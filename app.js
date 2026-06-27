@@ -548,7 +548,7 @@ function highlightActiveSuraInSidebar(suraId) {
 }
 
 // Custom chunked rendering to prevent UI freezes on massive suras
-function renderVerseList(container, versesToRender) {
+function renderVerseList(container, versesToRender, highlightQuery = '') {
   container.innerHTML = '';
   if (versesToRender.length === 0) {
     container.innerHTML = `
@@ -570,7 +570,7 @@ function renderVerseList(container, versesToRender) {
 
     for (let i = currentIndex; i < end; i++) {
       const verseKey = versesToRender[i];
-      const card = createVerseCard(verseKey);
+      const card = createVerseCard(verseKey, false, highlightQuery);
       fragment.appendChild(card);
     }
 
@@ -975,7 +975,7 @@ function renderSearchPage(allKeys, query) {
     });
   }
 
-  renderVerseList(container, pageKeys);
+  renderVerseList(container, pageKeys, query);
   requestAnimationFrame(buildPaginator);
 }
 
@@ -1012,7 +1012,101 @@ function wrapLayerText(text) {
           <button class="verse-layer-more" style="display:none">${moreLabel}</button>`;
 }
 
-function createVerseCard(verseKey, isDetailMode = false) {
+function getSearchExcerpts(verseKey, query) {
+  if (!query) return '';
+  const qLower = query.toLowerCase();
+  let html = '';
+  
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  
+  function highlightText(text, q) {
+    if (!text) return '';
+    // Strip HTML tags for clean snippet text
+    const cleanText = text.replace(/<[^>]*>/g, ' ');
+    const idx = cleanText.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return cleanText.slice(0, 150) + '...';
+    
+    let startIdx = 0;
+    let endIdx = cleanText.length;
+    let prefix = '';
+    let suffix = '';
+    
+    if (cleanText.length > 200) {
+      startIdx = Math.max(0, idx - 60);
+      endIdx = Math.min(cleanText.length, idx + q.length + 80);
+      if (startIdx > 0) prefix = '... ';
+      if (endIdx < cleanText.length) suffix = ' ...';
+    }
+    
+    const snippet = cleanText.slice(startIdx, endIdx);
+    const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
+    const highlighted = snippet.replace(regex, '<mark class="search-highlight">$1</mark>');
+    return prefix + highlighted + suffix;
+  }
+
+  // Check all translations
+  db.registry.translations.forEach(t => {
+    const data = db.cache.get(t.file);
+    if (data && data[verseKey]) {
+      const text = data[verseKey];
+      if (text.toLowerCase().includes(qLower)) {
+        html += `
+          <div class="search-excerpt-item">
+            <span class="search-excerpt-source translation-source">${t.name}</span>
+            <div class="search-excerpt-text">${highlightText(text, query)}</div>
+          </div>
+        `;
+      }
+    }
+  });
+
+  // Check all tafsirs
+  db.registry.tafsirs.forEach(t => {
+    const data = db.cache.get(t.file);
+    if (data) {
+      const text = resolveTafsirText(data, verseKey);
+      if (text && text.toLowerCase().includes(qLower)) {
+        html += `
+          <div class="search-excerpt-item">
+            <span class="search-excerpt-source tafsir-source">${t.name}</span>
+            <div class="search-excerpt-text">${highlightText(text, query)}</div>
+          </div>
+        `;
+      }
+    }
+  });
+
+  // Check all asbabun nuzul
+  db.registry.asbabun_nuzul.forEach(n => {
+    const data = db.cache.get(n.file);
+    if (data && data[verseKey]) {
+      const text = data[verseKey];
+      if (text.toLowerCase().includes(qLower)) {
+        html += `
+          <div class="search-excerpt-item">
+            <span class="search-excerpt-source nuzul-source">${n.name}</span>
+            <div class="search-excerpt-text">${highlightText(text, query)}</div>
+          </div>
+        `;
+      }
+    }
+  });
+
+  if (html) {
+    const title = state.uiLang === 'id' ? 'Kecocokan Pencarian:' : 'Search Matches:';
+    return `
+      <div class="search-excerpts-box">
+        <div class="search-excerpts-title">${title}</div>
+        <div class="search-excerpts-list">${html}</div>
+      </div>
+    `;
+  }
+  return '';
+}
+
+function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
   const card = document.createElement('div');
   card.className = 'verse-card';
   card.id = `v-${verseKey.replace(':', '-')}`;
@@ -1077,6 +1171,10 @@ function createVerseCard(verseKey, isDetailMode = false) {
           `;
         }
       }
+    }
+
+    if (highlightQuery) {
+      bodyHtml += getSearchExcerpts(verseKey, highlightQuery);
     }
 
     // Topic Tags
@@ -1203,6 +1301,10 @@ function createVerseCard(verseKey, isDetailMode = false) {
           `;
         }
       }
+    }
+
+    if (highlightQuery) {
+      bodyHtml += getSearchExcerpts(verseKey, highlightQuery);
     }
 
     // Topic Tags

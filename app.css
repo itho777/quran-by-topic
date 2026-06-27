@@ -1576,4 +1576,56 @@ body.has-player {
   padding-bottom: 100px;
 }
 
+/* ---------- Search Excerpts Highlight ---------- */
+.search-excerpts-box {
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+.search-excerpts-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  border-bottom: 1px dashed var(--border-color);
+  padding-bottom: 6px;
+}
+.search-excerpts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.search-excerpt-item {
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+.search-excerpt-source {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.search-excerpt-source.translation-source { color: var(--blue); }
+.search-excerpt-source.tafsir-source { color: var(--green); }
+.search-excerpt-source.nuzul-source { color: #d97a4a; }
+
+.search-excerpt-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.search-highlight {
+  background: rgba(255, 193, 7, 0.35); /* warm gold transparent */
+  color: var(--text-primary);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
 

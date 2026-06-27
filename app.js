@@ -975,7 +975,7 @@ function createVerseCard(verseKey, isDetailMode = false) {
           </button>
           <button class="share-btn copy" data-share="copy" data-key="${verseKey}" title="Copy Link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-            <span>Salin Link</span>
+            <span>${state.uiLang === 'id' ? 'Salin Link' : 'Copy Link'}</span>
           </button>
         </div>
       </div>
@@ -1067,7 +1067,7 @@ function shareVerse(type, key, card) {
   const textMsg = `Qur'an ${key}\n\n${arText}\n\n"${firstLayerText}"`;
   
   if (type === 'whatsapp') {
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg + '\n\nSelengkapnya: ' + shareUrl)}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMsg + '\n\n' + (state.uiLang === 'id' ? 'Selengkapnya: ' : 'Read more: ') + shareUrl)}`;
     window.open(url, '_blank');
   } else if (type === 'twitter') {
     const url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(textMsg)}`;
@@ -1084,7 +1084,7 @@ function shareVerse(type, key, card) {
       const origHtml = btn.innerHTML;
       btn.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color:var(--green)"><path d="M20 6 9 17l-5-5"/></svg>
-        <span>Salin Berhasil</span>
+        <span>${state.uiLang === 'id' ? 'Salin Berhasil' : 'Copied!'}</span>
       `;
       setTimeout(() => {
         btn.innerHTML = origHtml;

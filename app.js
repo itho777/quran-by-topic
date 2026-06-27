@@ -42,6 +42,8 @@ const defaultState = {
 
 // Per-sura pagination state (not persisted — resets on navigation)
 let suraPage = 1;
+let topicPage = 1;
+let searchPage = 1;
 
 // Settings schema version — bump whenever defaults change meaningfully
 const SETTINGS_VERSION = 8;
@@ -739,6 +741,244 @@ function renderSuraPage(allKeys, suraId, sura) {
   requestAnimationFrame(buildPaginator);
 }
 
+function renderTopicPage(allKeys, tagId, tag) {
+  const perPage = state.ayahPerPage || 25;
+  const totalPages = Math.ceil(allKeys.length / perPage);
+  if (topicPage < 1) topicPage = 1;
+  if (topicPage > totalPages) topicPage = totalPages;
+
+  const start = (topicPage - 1) * perPage;
+  const end   = Math.min(start + perPage, allKeys.length);
+  const pageKeys = allKeys.slice(start, end);
+
+  const container = document.getElementById('topic-results-list');
+  container.innerHTML = `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div>Loading verses...</div>
+    </div>
+  `;
+
+  function buildPaginator() {
+    const placeholder = document.getElementById('topic-paginator-placeholder');
+    if (!placeholder) return;
+    placeholder.innerHTML = '';
+
+    if (allKeys.length === 0) return;
+
+    const isId   = state.uiLang === 'id';
+    const label  = isId ? 'Ayat per halaman' : 'Ayahs per page';
+    const of     = isId ? 'dari' : 'of';
+
+    const paginator = document.createElement('div');
+    paginator.className = 'sura-paginator';
+
+    const selectorHtml = `
+      <div class="paginator-per-page">
+        <label class="paginator-label" for="topic-per-page-select">${label}:</label>
+        <select id="topic-per-page-select" class="paginator-select">
+          <option value="10"  ${perPage === 10  ? 'selected' : ''}>10</option>
+          <option value="25"  ${perPage === 25  ? 'selected' : ''}>25</option>
+          <option value="50"  ${perPage === 50  ? 'selected' : ''}>50</option>
+        </select>
+      </div>`;
+
+    const infoHtml = `
+      <div class="paginator-info">
+        <span>${start + 1}–${end} ${of} ${allKeys.length}</span>
+      </div>`;
+
+    const maxPills = 5;
+    let pagesHtml = '';
+    if (totalPages > 1) {
+      const half  = Math.floor(maxPills / 2);
+      let pStart  = Math.max(1, topicPage - half);
+      let pEnd    = Math.min(totalPages, pStart + maxPills - 1);
+      if (pEnd - pStart < maxPills - 1) pStart = Math.max(1, pEnd - maxPills + 1);
+
+      let pills = '';
+      if (pStart > 1) {
+        pills += `<button class="paginator-pill" data-page="1">1</button>`;
+        if (pStart > 2) pills += `<span class="paginator-ellipsis">…</span>`;
+      }
+      for (let p = pStart; p <= pEnd; p++) {
+        pills += `<button class="paginator-pill${p === topicPage ? ' active' : ''}" data-page="${p}">${p}</button>`;
+      }
+      if (pEnd < totalPages) {
+        if (pEnd < totalPages - 1) pills += `<span class="paginator-ellipsis">…</span>`;
+        pills += `<button class="paginator-pill" data-page="${totalPages}">${totalPages}</button>`;
+      }
+
+      pagesHtml = `
+        <div class="paginator-nav">
+          <button class="paginator-btn paginator-prev" id="topic-prev-btn" ${topicPage <= 1 ? 'disabled' : ''} aria-label="Previous page">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="paginator-pills">${pills}</div>
+          <button class="paginator-btn paginator-next" id="topic-next-btn" ${topicPage >= totalPages ? 'disabled' : ''} aria-label="Next page">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>`;
+    }
+
+    paginator.innerHTML = selectorHtml + infoHtml + (pagesHtml || '');
+    placeholder.appendChild(paginator);
+
+    const sel = document.getElementById('topic-per-page-select');
+    if (sel) {
+      sel.addEventListener('change', () => {
+        state.ayahPerPage = Number(sel.value);
+        saveSettings();
+        topicPage = 1;
+        renderTopicPage(allKeys, tagId, tag);
+      });
+    }
+
+    const prevP = document.getElementById('topic-prev-btn');
+    if (prevP) {
+      prevP.addEventListener('click', () => {
+        if (topicPage > 1) { topicPage--; renderTopicPage(allKeys, tagId, tag); }
+      });
+    }
+
+    const nextP = document.getElementById('topic-next-btn');
+    if (nextP) {
+      nextP.addEventListener('click', () => {
+        if (topicPage < totalPages) { topicPage++; renderTopicPage(allKeys, tagId, tag); }
+      });
+    }
+
+    paginator.querySelectorAll('.paginator-pill[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pg = Number(btn.dataset.page);
+        if (pg !== topicPage) { topicPage = pg; renderTopicPage(allKeys, tagId, tag); }
+      });
+    });
+  }
+
+  renderVerseList(container, pageKeys);
+  requestAnimationFrame(buildPaginator);
+}
+
+function renderSearchPage(allKeys, query) {
+  const perPage = state.ayahPerPage || 25;
+  const totalPages = Math.ceil(allKeys.length / perPage);
+  if (searchPage < 1) searchPage = 1;
+  if (searchPage > totalPages) searchPage = totalPages;
+
+  const start = (searchPage - 1) * perPage;
+  const end   = Math.min(start + perPage, allKeys.length);
+  const pageKeys = allKeys.slice(start, end);
+
+  const container = document.getElementById('search-results-list');
+  container.innerHTML = `
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div>Loading verses...</div>
+    </div>
+  `;
+
+  function buildPaginator() {
+    const placeholder = document.getElementById('search-paginator-placeholder');
+    if (!placeholder) return;
+    placeholder.innerHTML = '';
+
+    if (allKeys.length === 0) return;
+
+    const isId   = state.uiLang === 'id';
+    const label  = isId ? 'Ayat per halaman' : 'Ayahs per page';
+    const of     = isId ? 'dari' : 'of';
+
+    const paginator = document.createElement('div');
+    paginator.className = 'sura-paginator';
+
+    const selectorHtml = `
+      <div class="paginator-per-page">
+        <label class="paginator-label" for="search-per-page-select">${label}:</label>
+        <select id="search-per-page-select" class="paginator-select">
+          <option value="10"  ${perPage === 10  ? 'selected' : ''}>10</option>
+          <option value="25"  ${perPage === 25  ? 'selected' : ''}>25</option>
+          <option value="50"  ${perPage === 50  ? 'selected' : ''}>50</option>
+        </select>
+      </div>`;
+
+    const infoHtml = `
+      <div class="paginator-info">
+        <span>${start + 1}–${end} ${of} ${allKeys.length}</span>
+      </div>`;
+
+    const maxPills = 5;
+    let pagesHtml = '';
+    if (totalPages > 1) {
+      const half  = Math.floor(maxPills / 2);
+      let pStart  = Math.max(1, searchPage - half);
+      let pEnd    = Math.min(totalPages, pStart + maxPills - 1);
+      if (pEnd - pStart < maxPills - 1) pStart = Math.max(1, pEnd - maxPills + 1);
+
+      let pills = '';
+      if (pStart > 1) {
+        pills += `<button class="paginator-pill" data-page="1">1</button>`;
+        if (pStart > 2) pills += `<span class="paginator-ellipsis">…</span>`;
+      }
+      for (let p = pStart; p <= pEnd; p++) {
+        pills += `<button class="paginator-pill${p === searchPage ? ' active' : ''}" data-page="${p}">${p}</button>`;
+      }
+      if (pEnd < totalPages) {
+        if (pEnd < totalPages - 1) pills += `<span class="paginator-ellipsis">…</span>`;
+        pills += `<button class="paginator-pill" data-page="${totalPages}">${totalPages}</button>`;
+      }
+
+      pagesHtml = `
+        <div class="paginator-nav">
+          <button class="paginator-btn paginator-prev" id="search-prev-btn" ${searchPage <= 1 ? 'disabled' : ''} aria-label="Previous page">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="paginator-pills">${pills}</div>
+          <button class="paginator-btn paginator-next" id="search-next-btn" ${searchPage >= totalPages ? 'disabled' : ''} aria-label="Next page">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>`;
+    }
+
+    paginator.innerHTML = selectorHtml + infoHtml + (pagesHtml || '');
+    placeholder.appendChild(paginator);
+
+    const sel = document.getElementById('search-per-page-select');
+    if (sel) {
+      sel.addEventListener('change', () => {
+        state.ayahPerPage = Number(sel.value);
+        saveSettings();
+        searchPage = 1;
+        renderSearchPage(allKeys, query);
+      });
+    }
+
+    const prevP = document.getElementById('search-prev-btn');
+    if (prevP) {
+      prevP.addEventListener('click', () => {
+        if (searchPage > 1) { searchPage--; renderSearchPage(allKeys, query); }
+      });
+    }
+
+    const nextP = document.getElementById('search-next-btn');
+    if (nextP) {
+      nextP.addEventListener('click', () => {
+        if (searchPage < totalPages) { searchPage++; renderSearchPage(allKeys, query); }
+      });
+    }
+
+    paginator.querySelectorAll('.paginator-pill[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pg = Number(btn.dataset.page);
+        if (pg !== searchPage) { searchPage = pg; renderSearchPage(allKeys, query); }
+      });
+    });
+  }
+
+  renderVerseList(container, pageKeys);
+  requestAnimationFrame(buildPaginator);
+}
+
 function resolveTafsirText(data, verseKey) {
   if (!data) return '';
   if (data[verseKey]) return data[verseKey];
@@ -1276,13 +1516,10 @@ async function triggerRouting() {
     const tag = db.tags.find(t => t.id === tagId);
     updateBreadcrumbs('topic', { topicName: tag ? tag.name : tagId });
 
-    const topicResultsList = document.getElementById('topic-results-list');
-    topicResultsList.innerHTML = `
-      <div class="loading-wrap">
-        <div class="spinner"></div>
-        <div>Loading topic verses...</div>
-      </div>
-    `;
+    // Reset pagination on new topic navigation
+    topicPage = 1;
+    const placeholder = document.getElementById('topic-paginator-placeholder');
+    if (placeholder) placeholder.innerHTML = '';
 
     // Extract matches
     const verses = [];
@@ -1299,21 +1536,27 @@ async function triggerRouting() {
       return v1 - v2;
     });
 
+    const isId = state.uiLang === 'id';
     const header = document.getElementById('topic-results-header');
     if (header) {
       header.innerHTML = `
         <h2 class="search-results-title">Topic: ${tag ? tag.name : tagId}</h2>
-        <div class="search-results-count">${verses.length} verses tagged with this topic</div>
+        <div class="search-results-count">${verses.length} ${isId ? 'ayat dengan topik ini' : 'verses tagged with this topic'}</div>
       `;
     }
 
     await ensureActiveDatasets();
-    renderVerseList(topicResultsList, verses);
+    renderTopicPage(verses, tagId, tag);
   } else if (hash.startsWith('#search/')) {
     const query = decodeURIComponent(hash.substring(8));
     switchView('search');
     highlightActiveSuraInSidebar(null);
     updateBreadcrumbs('search');
+
+    // Reset pagination on new search
+    searchPage = 1;
+    const searchPlaceholder = document.getElementById('search-paginator-placeholder');
+    if (searchPlaceholder) searchPlaceholder.innerHTML = '';
 
     const searchResultsList = document.getElementById('search-results-list');
     searchResultsList.innerHTML = `
@@ -1360,15 +1603,16 @@ async function triggerRouting() {
       return v1 - v2;
     });
 
+    const isId = state.uiLang === 'id';
     const header = document.getElementById('search-results-header');
     if (header) {
       header.innerHTML = `
-        <h2 class="search-results-title">Search Results for "${query}"</h2>
-        <div class="search-results-count">Found ${mergedResults.length} matches across translation and topic tags</div>
+        <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} "${query}"</h2>
+        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'hasil dari terjemahan dan tag topik' : 'matches across translation and topic tags'}</div>
       `;
     }
 
-    renderVerseList(searchResultsList, mergedResults);
+    renderSearchPage(mergedResults, query);
   }
   updateAudioUI();
 }

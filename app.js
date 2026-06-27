@@ -450,6 +450,14 @@ function updateBreadcrumbs(view, details = {}) {
 }
 
 // --- 6. Rendering Functions ---
+// Localize sura revelation type based on UI language
+function localizeType(type) {
+  if (state.uiLang !== 'id') return type;
+  if (type === 'Meccan') return 'Makkiyah';
+  if (type === 'Madinan') return 'Madaniyyah';
+  return type;
+}
+
 function renderSidebarSuraList() {
   const container = document.getElementById('sura-list-container');
   container.innerHTML = '';
@@ -463,7 +471,7 @@ function renderSidebarSuraList() {
       <div class="sura-item-num">${sura.id}</div>
       <div class="sura-item-info">
         <div class="sura-item-name-en">${name}</div>
-        <div class="sura-item-sub">${sura.type} • ${sura.ayas} ${state.uiLang === 'id' ? 'ayat' : 'verses'}</div>
+        <div class="sura-item-sub">${localizeType(sura.type)} • ${sura.ayas} ${state.uiLang === 'id' ? 'ayat' : 'verses'}</div>
       </div>
       <div class="sura-item-ar" lang="ar">${sura.name_ar}</div>
     `;
@@ -1146,7 +1154,7 @@ async function triggerRouting() {
         headerContainer.innerHTML = `
           <div class="ayah-detail-header-sura">${name}</div>
           <h2 class="ayah-detail-header-title">Ayah ${targetVerse}</h2>
-          <div class="ayah-detail-header-meta">${state.uiLang === 'id' && sura.meaning_id ? sura.meaning_id : sura.meaning} • ${sura.type}</div>
+          <div class="ayah-detail-header-meta">${state.uiLang === 'id' && sura.meaning_id ? sura.meaning_id : sura.meaning} • ${localizeType(sura.type)}</div>
         `;
 
         // Render single card in detail mode
@@ -1218,7 +1226,7 @@ async function triggerRouting() {
           <div class="sura-header-num">Sura ${sura.id}</div>
           <div class="sura-header-name-ar" lang="ar">${sura.name_ar}</div>
           <h2 class="sura-header-name-en">${name}</h2>
-          <div class="sura-header-meta">${state.uiLang === 'id' && sura.meaning_id ? sura.meaning_id : sura.meaning} • ${sura.type} • ${sura.ayas} ${state.uiLang === 'id' ? 'Ayat' : 'Verses'}</div>
+          <div class="sura-header-meta">${state.uiLang === 'id' && sura.meaning_id ? sura.meaning_id : sura.meaning} • ${localizeType(sura.type)} • ${sura.ayas} ${state.uiLang === 'id' ? 'Ayat' : 'Verses'}</div>
           ${bismillahHtml}
         `;
 

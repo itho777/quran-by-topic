@@ -636,9 +636,24 @@ body {
   text-align: right;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
   letter-spacing: 0.02em;
 }
+
+/* Transliteration — appears right below Arabic, before translations */
+.verse-transliteration {
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.7;
+  padding-bottom: 14px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  /* Render bold/underline HTML from the transliteration dataset */
+}
+.verse-transliteration b { font-weight: 700; font-style: normal; color: var(--text-secondary); }
+.verse-transliteration u { text-decoration-color: var(--accent); }
 
 /* Layer sections */
 .verse-layer {

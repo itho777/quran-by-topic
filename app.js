@@ -11,6 +11,7 @@ const defaultState = {
   transFontSize: 15,
   activeTranslation1: 'en.shakir',
   activeTranslation2: 'id.kemenag',
+  activeTransliteration: 'en.transliteration',
   activeTafsir1: 'en.katsir_pdf',
   activeTafsir2: 'id.jalalayn',
   activeNuzul1: 'en.wahidi',
@@ -21,6 +22,7 @@ const defaultState = {
   tagsUserPref: false,
   trans1UserPref: false,
   trans2UserPref: false,
+  transliterationUserPref: false,
   nuzul1UserPref: false,
   nuzul2UserPref: false,
   tafsir1UserPref: false,
@@ -30,6 +32,7 @@ const defaultState = {
   layers: {
     trans1: true,
     trans2: false,
+    transliteration: true,
     tafsir1: false,
     tafsir2: false,
     nuzul1: false,
@@ -42,7 +45,7 @@ const defaultState = {
 let suraPage = 1;
 
 // Settings schema version — bump whenever defaults change meaningfully
-const SETTINGS_VERSION = 5;
+const SETTINGS_VERSION = 7;
 
 let state = JSON.parse(localStorage.getItem('tafsir_settings')) || defaultState;
 // If the stored settings predate this version, reset non-preference keys to defaults
@@ -57,6 +60,7 @@ if (!state._v || state._v < SETTINGS_VERSION) {
     // Preserve explicit user selections only if they have the UserPref flag set
     activeTranslation1: state.trans1UserPref ? state.activeTranslation1 : defaultState.activeTranslation1,
     activeTranslation2: state.trans2UserPref ? state.activeTranslation2 : defaultState.activeTranslation2,
+    activeTransliteration: state.transliterationUserPref ? state.activeTransliteration : defaultState.activeTransliteration,
     activeTafsir1: state.tafsir1UserPref ? state.activeTafsir1 : defaultState.activeTafsir1,
     activeTafsir2: state.tafsir2UserPref ? state.activeTafsir2 : defaultState.activeTafsir2,
     activeNuzul1: state.nuzul1UserPref ? state.activeNuzul1 : defaultState.activeNuzul1,
@@ -65,6 +69,7 @@ if (!state._v || state._v < SETTINGS_VERSION) {
     // Pref flags
     trans1UserPref: state.trans1UserPref || false,
     trans2UserPref: state.trans2UserPref || false,
+    transliterationUserPref: state.transliterationUserPref || false,
     tafsir1UserPref: state.tafsir1UserPref || false,
     tafsir2UserPref: state.tafsir2UserPref || false,
     nuzul1UserPref: state.nuzul1UserPref || false,
@@ -103,6 +108,19 @@ function applyLanguageDefaultTranslations(isInit = false) {
   }
   if (!state.trans2UserPref) {
     state.activeTranslation2 = state.uiLang === 'id' ? 'en.shakir' : 'id.kemenag';
+  }
+}
+
+function applyLanguageDefaultTransliterations(isInit = false) {
+  if (isInit) {
+    const expectedTranslit = 'en.transliteration';
+    if (state.transliterationUserPref === undefined) {
+      state.transliterationUserPref = (state.activeTransliteration !== expectedTranslit);
+    }
+  }
+
+  if (!state.transliterationUserPref) {
+    state.activeTransliteration = 'en.transliteration';
   }
 }
 
@@ -153,6 +171,7 @@ function applyLanguageDefaultTafsir(isInit = false) {
 
 // Call on load to apply proper default settings
 applyLanguageDefaultTranslations(true);
+applyLanguageDefaultTransliterations(true);
 applyLanguageDefaultNuzul(true);
 applyLanguageDefaultTafsir(true);
 
@@ -347,6 +366,10 @@ async function ensureActiveDatasets() {
   }
   if (state.layers.nuzul2 && state.activeNuzul2) {
     const item = db.registry.asbabun_nuzul.find(n => n.id === state.activeNuzul2);
+    if (item) promises.push(db.getResource(item.file));
+  }
+  if (state.layers.transliteration && state.activeTransliteration) {
+    const item = db.registry.transliterations && db.registry.transliterations.find(t => t.id === state.activeTransliteration);
     if (item) promises.push(db.getResource(item.file));
   }
   
@@ -758,6 +781,18 @@ function createVerseCard(verseKey, isDetailMode = false) {
     <div class="verse-card-body">
       <div class="verse-arabic" lang="ar">${arabicText}</div>
   `;
+
+  // Transliteration — always rendered right below Arabic (if enabled)
+  if (state.layers.transliteration && state.activeTransliteration) {
+    const trInfo = db.registry.transliterations && db.registry.transliterations.find(t => t.id === state.activeTransliteration);
+    if (trInfo) {
+      const trData = db.cache.get(trInfo.file);
+      const trText = trData ? trData[verseKey] : '';
+      if (trText) {
+        bodyHtml += `<div class="verse-transliteration">${trText}</div>`;
+      }
+    }
+  }
 
   if (!isDetailMode) {
     // Simple Mode: Arabic, one translation, topic tags, and footer link
@@ -1417,6 +1452,7 @@ function syncSearchableSelect(searchId, dropdownId, hiddenId, items, value, none
 function populateSelects() {
   buildSearchableSelect('trans1-search', 'trans1-dropdown', 'trans1-select', db.registry.translations, state.activeTranslation1, null);
   buildSearchableSelect('trans2-search', 'trans2-dropdown', 'trans2-select', db.registry.translations, state.activeTranslation2, null);
+  buildSearchableSelect('translit-search', 'translit-dropdown', 'translit-select', db.registry.transliterations || [], state.activeTransliteration, '— none —');
   buildSearchableSelect('tafsir1-search', 'tafsir1-dropdown', 'tafsir1-select', db.registry.tafsirs, state.activeTafsir1, null);
   buildSearchableSelect('tafsir2-search', 'tafsir2-dropdown', 'tafsir2-select', db.registry.tafsirs, state.activeTafsir2, null);
   buildSearchableSelect('nuzul1-search', 'nuzul1-dropdown', 'nuzul1-select', db.registry.asbabun_nuzul, state.activeNuzul1, '— none available —');
@@ -1785,6 +1821,10 @@ function setupEventBindings() {
     syncSearchableSelect('trans1-search', 'trans1-dropdown', 'trans1-select', db.registry.translations, state.activeTranslation1);
     syncSearchableSelect('trans2-search', 'trans2-dropdown', 'trans2-select', db.registry.translations, state.activeTranslation2);
 
+    // Auto-suggest Transliteration defaults.
+    applyLanguageDefaultTransliterations(false);
+    syncSearchableSelect('translit-search', 'translit-dropdown', 'translit-select', db.registry.transliterations, state.activeTransliteration, '— none —');
+
     // Auto-suggest Tafsir defaults.
     applyLanguageDefaultTafsir(false);
     syncSearchableSelect('tafsir1-search', 'tafsir1-dropdown', 'tafsir1-select', db.registry.tafsirs, state.activeTafsir1);
@@ -1823,7 +1863,7 @@ function setupEventBindings() {
   }
 
   // Comparison Panel Toggles
-  const layers = ['trans1', 'trans2', 'tafsir1', 'tafsir2', 'nuzul1', 'nuzul2', 'tags'];
+  const layers = ['trans1', 'trans2', 'transliteration', 'tafsir1', 'tafsir2', 'nuzul1', 'nuzul2', 'tags'];
   layers.forEach(layer => {
     const cb = document.getElementById(`${layer}-toggle`);
     if (cb) {
@@ -1841,6 +1881,7 @@ function setupEventBindings() {
   const selectBindings = {
     activeTranslation1: 'trans1-select',
     activeTranslation2: 'trans2-select',
+    activeTransliteration: 'translit-select',
     activeTafsir1: 'tafsir1-select',
     activeTafsir2: 'tafsir2-select',
     activeNuzul1: 'nuzul1-select',
@@ -1866,6 +1907,8 @@ function setupEventBindings() {
             state.trans1UserPref = true;
           } else if (stateProp === 'activeTranslation2') {
             state.trans2UserPref = true;
+          } else if (stateProp === 'activeTransliteration') {
+            state.transliterationUserPref = true;
           } else if (stateProp === 'activeNuzul1') {
             state.nuzul1UserPref = true;
           } else if (stateProp === 'activeNuzul2') {

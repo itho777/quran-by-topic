@@ -240,13 +240,6 @@
                              "default":  false
                          },
                          {
-                             "id":  "en.transliteration",
-                             "name":  "Transliteration (English)",
-                             "file":  "data/translations/en.transliteration.json",
-                             "lang":  "en",
-                             "default":  false
-                         },
-                         {
                              "id":  "en.wahiduddin",
                              "name":  "Wahiduddin Khan (English)",
                              "file":  "data/translations/en.wahiduddin.json",
@@ -653,13 +646,6 @@
                              "default":  false
                          },
                          {
-                             "id":  "tr.transliteration",
-                             "name":  "Transliteration (Turkish)",
-                             "file":  "data/translations/tr.transliteration.json",
-                             "lang":  "tr",
-                             "default":  false
-                         },
-                         {
                              "id":  "tr.diyanet",
                              "name":  "Diyanet Isleri (Turkish)",
                              "file":  "data/translations/tr.diyanet.json",
@@ -888,5 +874,21 @@
                      "verse_map":  "data/verse_tags_id.json",
                      "lang":  "id"
                  }
-             ]
+             ],
+    "transliterations":  [
+                             {
+                                 "id":  "en.transliteration",
+                                 "name":  "Transliteration (English)",
+                                 "file":  "data/translations/en.transliteration.json",
+                                 "lang":  "en",
+                                 "default":  true
+                             },
+                             {
+                                 "id":  "tr.transliteration",
+                                 "name":  "Transliteration (Turkish)",
+                                 "file":  "data/translations/tr.transliteration.json",
+                                 "lang":  "tr",
+                                 "default":  false
+                             }
+                         ]
 }

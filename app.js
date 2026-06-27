@@ -90,6 +90,21 @@ if (!state._v || state._v < SETTINGS_VERSION) {
   };
 }
 
+// Fresh session reset: force primary translation and transliteration to defaults on new visit
+if (!sessionStorage.getItem('tafsir_session_active')) {
+  state.trans1UserPref = false;
+  state.transliterationUserPref = false;
+  state.layers.trans1 = true;
+  state.layers.transliteration = true;
+  
+  // Re-apply defaults
+  applyLanguageDefaultTranslations(true);
+  applyLanguageDefaultTransliterations(true);
+  
+  localStorage.setItem('tafsir_settings', JSON.stringify(state));
+  sessionStorage.setItem('tafsir_session_active', '1');
+}
+
 
 function applyLanguageDefaultTranslations(isInit = false) {
   if (isInit) {

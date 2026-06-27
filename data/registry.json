@@ -1,0 +1,892 @@
+{
+    "quran_arabic":  "data/quran_arabic.json",
+    "sura_list":  "data/sura_list.json",
+    "translations":  [
+                         {
+                             "id":  "en.shakir",
+                             "name":  "Shakir (English)",
+                             "file":  "data/translations/en.shakir.json",
+                             "lang":  "en",
+                             "default":  true
+                         },
+                         {
+                             "id":  "id.kemenag",
+                             "name":  "Kemenag (Indonesian)",
+                             "file":  "data/translations/id.kemenag.json",
+                             "lang":  "id"
+                         },
+                         {
+                             "id":  "sq.nahi",
+                             "name":  "Efendi Nahi (Albanian)",
+                             "file":  "data/translations/sq.nahi.json",
+                             "lang":  "sq",
+                             "default":  false
+                         },
+                         {
+                             "id":  "sq.mehdiu",
+                             "name":  "Feti Mehdiu (Albanian)",
+                             "file":  "data/translations/sq.mehdiu.json",
+                             "lang":  "sq",
+                             "default":  false
+                         },
+                         {
+                             "id":  "sq.ahmeti",
+                             "name":  "Sherif Ahmeti (Albanian)",
+                             "file":  "data/translations/sq.ahmeti.json",
+                             "lang":  "sq",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ber.mensur",
+                             "name":  "At Mensur (Amazigh)",
+                             "file":  "data/translations/ber.mensur.json",
+                             "lang":  "ber",
+                             "default":  false
+                         },
+                         {
+                             "id":  "am.sadiq",
+                             "name":  "Sadiq \u0026 Sani Habib (Amharic)",
+                             "file":  "data/translations/am.sadiq.json",
+                             "lang":  "am",
+                             "default":  false
+                         },
+                         {
+                             "id":  "az.mammadaliyev",
+                             "name":  "Mammadaliyev \u0026 Bunyadov (Azerbaijani)",
+                             "file":  "data/translations/az.mammadaliyev.json",
+                             "lang":  "az",
+                             "default":  false
+                         },
+                         {
+                             "id":  "az.musayev",
+                             "name":  "Musayev (Azerbaijani)",
+                             "file":  "data/translations/az.musayev.json",
+                             "lang":  "az",
+                             "default":  false
+                         },
+                         {
+                             "id":  "bn.hoque",
+                             "name":  "Zohurul Hoque (Bengali)",
+                             "file":  "data/translations/bn.hoque.json",
+                             "lang":  "bn",
+                             "default":  false
+                         },
+                         {
+                             "id":  "bn.bengali",
+                             "name":  "Muhiuddin Khan (Bengali)",
+                             "file":  "data/translations/bn.bengali.json",
+                             "lang":  "bn",
+                             "default":  false
+                         },
+                         {
+                             "id":  "bs.korkut",
+                             "name":  "Besim Korkut (Bosnian)",
+                             "file":  "data/translations/bs.korkut.json",
+                             "lang":  "bs",
+                             "default":  false
+                         },
+                         {
+                             "id":  "bs.mlivo",
+                             "name":  "Mustafa Mlivo (Bosnian)",
+                             "file":  "data/translations/bs.mlivo.json",
+                             "lang":  "bs",
+                             "default":  false
+                         },
+                         {
+                             "id":  "bg.theophanov",
+                             "name":  "Theophanov (Bulgarian)",
+                             "file":  "data/translations/bg.theophanov.json",
+                             "lang":  "bg",
+                             "default":  false
+                         },
+                         {
+                             "id":  "zh.jian",
+                             "name":  "Ma Jian (Chinese Simplified)",
+                             "file":  "data/translations/zh.jian.json",
+                             "lang":  "zh",
+                             "default":  false
+                         },
+                         {
+                             "id":  "zh.majian",
+                             "name":  "Ma Jian (Chinese Traditional)",
+                             "file":  "data/translations/zh.majian.json",
+                             "lang":  "zh",
+                             "default":  false
+                         },
+                         {
+                             "id":  "cs.hrbek",
+                             "name":  "Hrbek (Czech)",
+                             "file":  "data/translations/cs.hrbek.json",
+                             "lang":  "cs",
+                             "default":  false
+                         },
+                         {
+                             "id":  "cs.nykl",
+                             "name":  "Nykl (Czech)",
+                             "file":  "data/translations/cs.nykl.json",
+                             "lang":  "cs",
+                             "default":  false
+                         },
+                         {
+                             "id":  "dv.divehi",
+                             "name":  "Divehi (Maldivian)",
+                             "file":  "data/translations/dv.divehi.json",
+                             "lang":  "dv",
+                             "default":  false
+                         },
+                         {
+                             "id":  "nl.keyzer",
+                             "name":  "Keyzer (Dutch)",
+                             "file":  "data/translations/nl.keyzer.json",
+                             "lang":  "nl",
+                             "default":  false
+                         },
+                         {
+                             "id":  "nl.leemhuis",
+                             "name":  "Leemhuis (Dutch)",
+                             "file":  "data/translations/nl.leemhuis.json",
+                             "lang":  "nl",
+                             "default":  false
+                         },
+                         {
+                             "id":  "nl.siregar",
+                             "name":  "Siregar (Dutch)",
+                             "file":  "data/translations/nl.siregar.json",
+                             "lang":  "nl",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.ahmedali",
+                             "name":  "Ahmed Ali (English)",
+                             "file":  "data/translations/en.ahmedali.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.ahmedraza",
+                             "name":  "Ahmed Raza Khan (English)",
+                             "file":  "data/translations/en.ahmedraza.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.arberry",
+                             "name":  "Arberry (English)",
+                             "file":  "data/translations/en.arberry.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.daryabadi",
+                             "name":  "Daryabadi (English)",
+                             "file":  "data/translations/en.daryabadi.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.hilali",
+                             "name":  "Hilali \u0026 Khan (English)",
+                             "file":  "data/translations/en.hilali.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.itani",
+                             "name":  "Talal Itani (English)",
+                             "file":  "data/translations/en.itani.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.mubarakpuri",
+                             "name":  "Mubarakpuri (English)",
+                             "file":  "data/translations/en.mubarakpuri.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.pickthall",
+                             "name":  "Pickthall (English)",
+                             "file":  "data/translations/en.pickthall.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.qarai",
+                             "name":  "Ali Quli Qarai (English)",
+                             "file":  "data/translations/en.qarai.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.qaribullah",
+                             "name":  "Qaribullah \u0026 Darwish (English)",
+                             "file":  "data/translations/en.qaribullah.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.sahih",
+                             "name":  "Saheeh International (English)",
+                             "file":  "data/translations/en.sahih.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.sarwar",
+                             "name":  "Muhammad Sarwar (English)",
+                             "file":  "data/translations/en.sarwar.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.transliteration",
+                             "name":  "Transliteration (English)",
+                             "file":  "data/translations/en.transliteration.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.wahiduddin",
+                             "name":  "Wahiduddin Khan (English)",
+                             "file":  "data/translations/en.wahiduddin.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "en.yusufali",
+                             "name":  "Yusuf Ali (English)",
+                             "file":  "data/translations/en.yusufali.json",
+                             "lang":  "en",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fr.hamidullah",
+                             "name":  "Hamidullah (French)",
+                             "file":  "data/translations/fr.hamidullah.json",
+                             "lang":  "fr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "de.aburida",
+                             "name":  "Abu Rida (German)",
+                             "file":  "data/translations/de.aburida.json",
+                             "lang":  "de",
+                             "default":  false
+                         },
+                         {
+                             "id":  "de.bubenheim",
+                             "name":  "Bubenheim \u0026 Elyas (German)",
+                             "file":  "data/translations/de.bubenheim.json",
+                             "lang":  "de",
+                             "default":  false
+                         },
+                         {
+                             "id":  "de.khoury",
+                             "name":  "Khoury (German)",
+                             "file":  "data/translations/de.khoury.json",
+                             "lang":  "de",
+                             "default":  false
+                         },
+                         {
+                             "id":  "de.zaidan",
+                             "name":  "Zaidan (German)",
+                             "file":  "data/translations/de.zaidan.json",
+                             "lang":  "de",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ha.gumi",
+                             "name":  "Gumi (Hausa)",
+                             "file":  "data/translations/ha.gumi.json",
+                             "lang":  "ha",
+                             "default":  false
+                         },
+                         {
+                             "id":  "hi.farooq",
+                             "name":  "Farooq Khan \u0026 Ahmad (Hindi)",
+                             "file":  "data/translations/hi.farooq.json",
+                             "lang":  "hi",
+                             "default":  false
+                         },
+                         {
+                             "id":  "hi.hindi",
+                             "name":  "Farooq Khan \u0026 Nadwi (Hindi)",
+                             "file":  "data/translations/hi.hindi.json",
+                             "lang":  "hi",
+                             "default":  false
+                         },
+                         {
+                             "id":  "id.indonesian",
+                             "name":  "Kemenag (Indonesian)",
+                             "file":  "data/translations/id.indonesian.json",
+                             "lang":  "id",
+                             "default":  false
+                         },
+                         {
+                             "id":  "it.piccardo",
+                             "name":  "Piccardo (Italian)",
+                             "file":  "data/translations/it.piccardo.json",
+                             "lang":  "it",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ja.japanese",
+                             "name":  "Japanese Translation",
+                             "file":  "data/translations/ja.japanese.json",
+                             "lang":  "ja",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ko.korean",
+                             "name":  "Korean Translation",
+                             "file":  "data/translations/ko.korean.json",
+                             "lang":  "ko",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ku.asan",
+                             "name":  "Burhan Muhammad-Amin (Kurdish)",
+                             "file":  "data/translations/ku.asan.json",
+                             "lang":  "ku",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ms.basmeih",
+                             "name":  "Basmeih (Malay)",
+                             "file":  "data/translations/ms.basmeih.json",
+                             "lang":  "ms",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ml.abdulhameed",
+                             "name":  "Abdul Hameed \u0026 Parappoor (Malayalam)",
+                             "file":  "data/translations/ml.abdulhameed.json",
+                             "lang":  "ml",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ml.karakunnu",
+                             "name":  "Karakunnu \u0026 Elayavoor (Malayalam)",
+                             "file":  "data/translations/ml.karakunnu.json",
+                             "lang":  "ml",
+                             "default":  false
+                         },
+                         {
+                             "id":  "no.berg",
+                             "name":  "Einar Berg (Norwegian)",
+                             "file":  "data/translations/no.berg.json",
+                             "lang":  "no",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ps.abdulwali",
+                             "name":  "Abdulwali Khan (Pashto)",
+                             "file":  "data/translations/ps.abdulwali.json",
+                             "lang":  "ps",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.ansarian",
+                             "name":  "Ansarian (Persian)",
+                             "file":  "data/translations/fa.ansarian.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.ayati",
+                             "name":  "Ayati (Persian)",
+                             "file":  "data/translations/fa.ayati.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.bahrampour",
+                             "name":  "Bahrampour (Persian)",
+                             "file":  "data/translations/fa.bahrampour.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.gharaati",
+                             "name":  "Gharaati (Persian)",
+                             "file":  "data/translations/fa.gharaati.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.ghomshei",
+                             "name":  "Elahi Ghomshei (Persian)",
+                             "file":  "data/translations/fa.ghomshei.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.khorramdel",
+                             "name":  "Khorramdel (Persian)",
+                             "file":  "data/translations/fa.khorramdel.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.khorramshahi",
+                             "name":  "Khorramshahi (Persian)",
+                             "file":  "data/translations/fa.khorramshahi.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.sadeqi",
+                             "name":  "Sadeqi Tehrani (Persian)",
+                             "file":  "data/translations/fa.sadeqi.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.safavi",
+                             "name":  "Safavi (Persian)",
+                             "file":  "data/translations/fa.safavi.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.fooladvand",
+                             "name":  "Fooladvand (Persian)",
+                             "file":  "data/translations/fa.fooladvand.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.mojtabavi",
+                             "name":  "Mojtabavi (Persian)",
+                             "file":  "data/translations/fa.mojtabavi.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.moezzi",
+                             "name":  "Moezzi (Persian)",
+                             "file":  "data/translations/fa.moezzi.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "fa.makarem",
+                             "name":  "Makarem Shirazi (Persian)",
+                             "file":  "data/translations/fa.makarem.json",
+                             "lang":  "fa",
+                             "default":  false
+                         },
+                         {
+                             "id":  "pl.bielawskiego",
+                             "name":  "Bielawskiego (Polish)",
+                             "file":  "data/translations/pl.bielawskiego.json",
+                             "lang":  "pl",
+                             "default":  false
+                         },
+                         {
+                             "id":  "pt.elhayek",
+                             "name":  "El-Hayek (Portuguese)",
+                             "file":  "data/translations/pt.elhayek.json",
+                             "lang":  "pt",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ro.grigore",
+                             "name":  "Grigore (Romanian)",
+                             "file":  "data/translations/ro.grigore.json",
+                             "lang":  "ro",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.abuadel",
+                             "name":  "Abu Adel (Russian)",
+                             "file":  "data/translations/ru.abuadel.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.muntahab",
+                             "name":  "Al-Muntahab (Russian)",
+                             "file":  "data/translations/ru.muntahab.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.kalam",
+                             "name":  "Kalam Sharif (Russian)",
+                             "file":  "data/translations/ru.kalam.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.krachkovsky",
+                             "name":  "Krachkovsky (Russian)",
+                             "file":  "data/translations/ru.krachkovsky.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.kuliev",
+                             "name":  "Kuliev (Russian)",
+                             "file":  "data/translations/ru.kuliev.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.kuliev-alsaadi",
+                             "name":  "Kuliev + as-Saadi (Russian)",
+                             "file":  "data/translations/ru.kuliev-alsaadi.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.osmanov",
+                             "name":  "Osmanov (Russian)",
+                             "file":  "data/translations/ru.osmanov.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.porokhova",
+                             "name":  "Porokhova (Russian)",
+                             "file":  "data/translations/ru.porokhova.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ru.sablukov",
+                             "name":  "Sablukov (Russian)",
+                             "file":  "data/translations/ru.sablukov.json",
+                             "lang":  "ru",
+                             "default":  false
+                         },
+                         {
+                             "id":  "sd.amroti",
+                             "name":  "Amroti (Sindhi)",
+                             "file":  "data/translations/sd.amroti.json",
+                             "lang":  "sd",
+                             "default":  false
+                         },
+                         {
+                             "id":  "so.abduh",
+                             "name":  "Mahmud Abduh (Somali)",
+                             "file":  "data/translations/so.abduh.json",
+                             "lang":  "so",
+                             "default":  false
+                         },
+                         {
+                             "id":  "es.bornez",
+                             "name":  "Bornez (Spanish)",
+                             "file":  "data/translations/es.bornez.json",
+                             "lang":  "es",
+                             "default":  false
+                         },
+                         {
+                             "id":  "es.cortes",
+                             "name":  "Cortes (Spanish)",
+                             "file":  "data/translations/es.cortes.json",
+                             "lang":  "es",
+                             "default":  false
+                         },
+                         {
+                             "id":  "es.garcia",
+                             "name":  "Garcia (Spanish)",
+                             "file":  "data/translations/es.garcia.json",
+                             "lang":  "es",
+                             "default":  false
+                         },
+                         {
+                             "id":  "sw.barwani",
+                             "name":  "Al-Barwani (Swahili)",
+                             "file":  "data/translations/sw.barwani.json",
+                             "lang":  "sw",
+                             "default":  false
+                         },
+                         {
+                             "id":  "sv.bernstrom",
+                             "name":  "Bernstrom (Swedish)",
+                             "file":  "data/translations/sv.bernstrom.json",
+                             "lang":  "sv",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tg.ayati",
+                             "name":  "Ayati (Tajik)",
+                             "file":  "data/translations/tg.ayati.json",
+                             "lang":  "tg",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ta.tamil",
+                             "name":  "Jan Turst Foundation (Tamil)",
+                             "file":  "data/translations/ta.tamil.json",
+                             "lang":  "ta",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tt.nugman",
+                             "name":  "Yakub Ibn Nugman (Tatar)",
+                             "file":  "data/translations/tt.nugman.json",
+                             "lang":  "tt",
+                             "default":  false
+                         },
+                         {
+                             "id":  "th.thai",
+                             "name":  "King Fahad Complex (Thai)",
+                             "file":  "data/translations/th.thai.json",
+                             "lang":  "th",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.golpinarli",
+                             "name":  "Golpinarli (Turkish)",
+                             "file":  "data/translations/tr.golpinarli.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.bulac",
+                             "name":  "Ali Bulac (Turkish)",
+                             "file":  "data/translations/tr.bulac.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.transliteration",
+                             "name":  "Transliteration (Turkish)",
+                             "file":  "data/translations/tr.transliteration.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.diyanet",
+                             "name":  "Diyanet Isleri (Turkish)",
+                             "file":  "data/translations/tr.diyanet.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.vakfi",
+                             "name":  "Diyanet Vakfi (Turkish)",
+                             "file":  "data/translations/tr.vakfi.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.yuksel",
+                             "name":  "Edip Yuksel (Turkish)",
+                             "file":  "data/translations/tr.yuksel.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.yazir",
+                             "name":  "Elmalili Hamdi Yazir (Turkish)",
+                             "file":  "data/translations/tr.yazir.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.ozturk",
+                             "name":  "Yasar Nuri Ozturk (Turkish)",
+                             "file":  "data/translations/tr.ozturk.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.yildirim",
+                             "name":  "Suat Yildirim (Turkish)",
+                             "file":  "data/translations/tr.yildirim.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "tr.ates",
+                             "name":  "Suleyman Ates (Turkish)",
+                             "file":  "data/translations/tr.ates.json",
+                             "lang":  "tr",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.maududi",
+                             "name":  "Maududi (Urdu)",
+                             "file":  "data/translations/ur.maududi.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.kanzuliman",
+                             "name":  "Ahmed Raza Khan (Urdu)",
+                             "file":  "data/translations/ur.kanzuliman.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.ahmedali",
+                             "name":  "Ahmed Ali (Urdu)",
+                             "file":  "data/translations/ur.ahmedali.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.jalandhry",
+                             "name":  "Jalandhry (Urdu)",
+                             "file":  "data/translations/ur.jalandhry.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.qadri",
+                             "name":  "Tahir ul Qadri (Urdu)",
+                             "file":  "data/translations/ur.qadri.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.jawadi",
+                             "name":  "Syed Zeeshan Jawadi (Urdu)",
+                             "file":  "data/translations/ur.jawadi.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.junagarhi",
+                             "name":  "Muhammad Junagarhi (Urdu)",
+                             "file":  "data/translations/ur.junagarhi.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ur.najafi",
+                             "name":  "Muhammad Hussain Najafi (Urdu)",
+                             "file":  "data/translations/ur.najafi.json",
+                             "lang":  "ur",
+                             "default":  false
+                         },
+                         {
+                             "id":  "ug.saleh",
+                             "name":  "Muhammad Saleh (Uyghur)",
+                             "file":  "data/translations/ug.saleh.json",
+                             "lang":  "ug",
+                             "default":  false
+                         },
+                         {
+                             "id":  "uz.sodik",
+                             "name":  "Muhammad Sodik (Uzbek)",
+                             "file":  "data/translations/uz.sodik.json",
+                             "lang":  "uz",
+                             "default":  false
+                         }
+                     ],
+    "tafsirs":  [
+                    {
+                        "id":  "id.jalalayn",
+                        "name":  "Tafsir Jalalayn (ID)",
+                        "file":  "data/tafsirs/id.jalalayn.json",
+                        "lang":  "id"
+                    },
+                    {
+                        "id":  "id.muntakhab",
+                        "name":  "Quraish Shihab (ID)",
+                        "file":  "data/tafsirs/id.muntakhab.json",
+                        "lang":  "id"
+                    },
+                    {
+                        "id":  "ar.jalalayn",
+                        "name":  "Tafsir Jalalayn (Arabic)",
+                        "file":  "data/tafsirs/ar.jalalayn.json",
+                        "lang":  "ar"
+                    },
+                    {
+                        "id":  "ar.muyassar",
+                        "name":  "Al-Muyassar (Arabic)",
+                        "file":  "data/tafsirs/ar.muyassar.json",
+                        "lang":  "ar"
+                    },
+                    {
+                        "id":  "en.maududi",
+                        "name":  "Maududi (English)",
+                        "file":  "data/tafsirs/en.maududi.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.tabari",
+                        "name":  "Tafsir al-Tabari (EN)",
+                        "file":  "data/tafsirs/en.tabari.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.baghawi",
+                        "name":  "Tafsir al-Baghawi (EN)",
+                        "file":  "data/tafsirs/en.baghawi.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.qurtubi",
+                        "name":  "Tafsir al-Qurtubi (EN)",
+                        "file":  "data/tafsirs/en.qurtubi.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.baidawi",
+                        "name":  "Tafsir al-Baidawi (EN)",
+                        "file":  "data/tafsirs/en.baidawi.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.katsir_pdf",
+                        "name":  "Tafsir Ibn Kathir (EN)",
+                        "file":  "data/tafsirs/en.katsir_pdf.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.jalalayn",
+                        "name":  "Tafsir al-Jalalayn (EN)",
+                        "file":  "data/tafsirs/en.jalalayn.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.suyuti",
+                        "name":  "Tafsir al-Suyuti (EN)",
+                        "file":  "data/tafsirs/en.suyuti.json",
+                        "lang":  "en"
+                    },
+                    {
+                        "id":  "en.fath_al_qadir",
+                        "name":  "Fath al-Qadir (EN)",
+                        "file":  "data/tafsirs/en.fath_al_qadir.json",
+                        "lang":  "en"
+                    }
+                ],
+    "asbabun_nuzul":  [
+                          {
+                              "id": "id.kemenag_nuzul",
+                              "name": "Asbabun Nuzul Kemenag RI (ID)",
+                              "file": "data/asbabun_nuzul/id.kemenag_nuzul.json",
+                              "lang": "id"
+                          },
+                          {
+                              "id": "en.wahidi",
+                              "name": "Asbab Al-Nuzul by Al-Wahidi (EN)",
+                              "file": "data/asbabun_nuzul/en.wahidi.json",
+                              "lang": "en"
+                          }
+                      ],
+    "tags":  [
+                 {
+                     "id":  "en",
+                     "name":  "English Topic Tags",
+                     "file":  "data/tags_en.json",
+                     "verse_map":  "data/verse_tags_en.json",
+                     "lang":  "en"
+                 },
+                 {
+                     "id":  "id",
+                     "name":  "Tag Topik (Indonesia)",
+                     "file":  "data/tags_id.json",
+                     "verse_map":  "data/verse_tags_id.json",
+                     "lang":  "id"
+                 }
+             ]
+}

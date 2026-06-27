@@ -884,6 +884,13 @@
                                  "default":  true
                              },
                              {
+                                 "id":  "id.kemenag_translit",
+                                 "name":  "Transliterasi Kemenag RI (ID)",
+                                 "file":  "data/translations/id.kemenag_translit.json",
+                                 "lang":  "id",
+                                 "default":  false
+                             },
+                             {
                                  "id":  "tr.transliteration",
                                  "name":  "Transliteration (Turkish)",
                                  "file":  "data/translations/tr.transliteration.json",

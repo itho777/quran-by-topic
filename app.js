@@ -113,14 +113,14 @@ function applyLanguageDefaultTranslations(isInit = false) {
 
 function applyLanguageDefaultTransliterations(isInit = false) {
   if (isInit) {
-    const expectedTranslit = 'en.transliteration';
+    const expectedTranslit = state.uiLang === 'id' ? 'id.kemenag_translit' : 'en.transliteration';
     if (state.transliterationUserPref === undefined) {
       state.transliterationUserPref = (state.activeTransliteration !== expectedTranslit);
     }
   }
 
   if (!state.transliterationUserPref) {
-    state.activeTransliteration = 'en.transliteration';
+    state.activeTransliteration = state.uiLang === 'id' ? 'id.kemenag_translit' : 'en.transliteration';
   }
 }
 

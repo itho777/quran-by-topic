@@ -12,13 +12,12 @@ const defaultState = {
   activeTranslation1: 'en.shakir',
   activeTranslation2: 'id.kemenag',
   activeTransliteration: 'en.transliteration',
+  activeReciter: 'Alafasy_128kbps',
   activeTafsir1: 'en.katsir_pdf',
   activeTafsir2: 'id.jalalayn',
   activeNuzul1: 'en.wahidi',
   activeNuzul2: 'id.kemenag_nuzul',
   activeTags: 'en',
-  // tagsUserPref: true means the user has manually chosen a tag set and
-  // the auto-switch on language change should be skipped.
   tagsUserPref: false,
   trans1UserPref: false,
   trans2UserPref: false,
@@ -45,7 +44,7 @@ const defaultState = {
 let suraPage = 1;
 
 // Settings schema version — bump whenever defaults change meaningfully
-const SETTINGS_VERSION = 7;
+const SETTINGS_VERSION = 8;
 
 let state = JSON.parse(localStorage.getItem('tafsir_settings')) || defaultState;
 // If the stored settings predate this version, reset non-preference keys to defaults
@@ -66,6 +65,7 @@ if (!state._v || state._v < SETTINGS_VERSION) {
     activeNuzul1: state.nuzul1UserPref ? state.activeNuzul1 : defaultState.activeNuzul1,
     activeNuzul2: state.nuzul2UserPref ? state.activeNuzul2 : defaultState.activeNuzul2,
     activeTags: state.tagsUserPref ? state.activeTags : defaultState.activeTags,
+    activeReciter: state.activeReciter || defaultState.activeReciter,
     // Pref flags
     trans1UserPref: state.trans1UserPref || false,
     trans2UserPref: state.trans2UserPref || false,
@@ -792,6 +792,10 @@ function createVerseCard(verseKey, isDetailMode = false) {
     <div class="verse-card-header">
       <a href="#sura/${suraId}/verse/${ayaId}" class="verse-ref-link verse-ref">${refLabel}</a>
       <div class="verse-actions">
+        <button class="btn-icon btn-play-ayah" data-key="${verseKey}" title="Play Ayah audio">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px;"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px; display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
         <button class="btn-icon btn-copy" data-key="${verseKey}" title="Copy verse text">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         </button>
@@ -1015,6 +1019,15 @@ function createVerseCard(verseKey, isDetailMode = false) {
       window.location.hash = `#topic/${tagEl.dataset.tagId}`;
     };
   });
+
+  // Play audio listener
+  const playBtn = card.querySelector('.btn-play-ayah');
+  if (playBtn) {
+    playBtn.onclick = (e) => {
+      e.stopPropagation();
+      togglePlayAyah(verseKey);
+    };
+  }
 
   // Copy verse listener
   card.querySelector('.btn-copy').onclick = () => {
@@ -1358,6 +1371,7 @@ async function triggerRouting() {
 
     renderVerseList(searchResultsList, mergedResults);
   }
+  updateAudioUI();
 }
 
 // --- 8. Sidebar Toggle Logic ---
@@ -1476,6 +1490,9 @@ function populateSelects() {
   buildSearchableSelect('trans1-search', 'trans1-dropdown', 'trans1-select', db.registry.translations, state.activeTranslation1, null);
   buildSearchableSelect('trans2-search', 'trans2-dropdown', 'trans2-select', db.registry.translations, state.activeTranslation2, null);
   buildSearchableSelect('translit-search', 'translit-dropdown', 'translit-select', db.registry.transliterations || [], state.activeTransliteration, '— none —');
+  buildSearchableSelect('reciter-search', 'reciter-dropdown', 'reciter-select',
+    (db.registry.reciters || []).map(r => ({ id: r.id, name: `${r.name} — ${r.style}` })),
+    state.activeReciter, null);
   buildSearchableSelect('tafsir1-search', 'tafsir1-dropdown', 'tafsir1-select', db.registry.tafsirs, state.activeTafsir1, null);
   buildSearchableSelect('tafsir2-search', 'tafsir2-dropdown', 'tafsir2-select', db.registry.tafsirs, state.activeTafsir2, null);
   buildSearchableSelect('nuzul1-search', 'nuzul1-dropdown', 'nuzul1-select', db.registry.asbabun_nuzul, state.activeNuzul1, '— none available —');
@@ -1500,6 +1517,216 @@ function updateTagsSelectHint() {
       tagSel.style.border = '';
       tagSel.style.boxShadow = '';
     }
+  }
+}
+
+}
+
+// --- Global Audio Controller ---
+let currentAudio = null;
+let currentPlayingKey = null; // "sura:ayah"
+let isAudioPlaying = false;
+
+function getAudioUrl(verseKey, reciterId) {
+  const [sura, ayah] = verseKey.split(':');
+  const suraPad = sura.padStart(3, '0');
+  const ayahPad = ayah.padStart(3, '0');
+  return `https://everyayah.com/data/${reciterId}/${suraPad}${ayahPad}.mp3`;
+}
+
+function playAyah(verseKey) {
+  if (currentAudio) {
+    currentAudio.pause();
+  }
+  
+  currentPlayingKey = verseKey;
+  isAudioPlaying = true;
+  
+  const url = getAudioUrl(verseKey, state.activeReciter);
+  currentAudio = new Audio(url);
+  currentAudio.play().then(() => {
+    updateAudioUI();
+  }).catch(err => {
+    console.error("Audio playback failed:", err);
+    isAudioPlaying = false;
+    updateAudioUI();
+  });
+  
+  // Auto-advance
+  currentAudio.onended = () => {
+    playNextAyah();
+  };
+}
+
+function pauseAyah() {
+  if (currentAudio) {
+    currentAudio.pause();
+    isAudioPlaying = false;
+    updateAudioUI();
+  }
+}
+
+function togglePlayAyah(verseKey) {
+  if (currentPlayingKey === verseKey) {
+    if (isAudioPlaying) {
+      pauseAyah();
+    } else {
+      if (currentAudio) {
+        currentAudio.play().then(() => {
+          isAudioPlaying = true;
+          updateAudioUI();
+        });
+      } else {
+        playAyah(verseKey);
+      }
+    }
+  } else {
+    playAyah(verseKey);
+  }
+}
+
+function playNextAyah() {
+  if (!currentPlayingKey) return;
+  const [sura, ayah] = currentPlayingKey.split(':').map(Number);
+  
+  const suraMeta = db.suraList.find(s => s.id === sura);
+  if (!suraMeta) return;
+  
+  if (ayah < suraMeta.ayas) {
+    const nextKey = `${sura}:${ayah + 1}`;
+    const nextCard = document.getElementById(`v-${nextKey.replace(':', '-')}`);
+    if (nextCard) {
+      nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    playAyah(nextKey);
+  } else {
+    // End of sura, check for next sura
+    if (sura < 114) {
+      const nextSura = sura + 1;
+      window.location.hash = `#sura/${nextSura}`;
+      setTimeout(() => {
+        playAyah(`${nextSura}:1`);
+      }, 1000);
+    } else {
+      stopAudio();
+    }
+  }
+}
+
+function playPrevAyah() {
+  if (!currentPlayingKey) return;
+  const [sura, ayah] = currentPlayingKey.split(':').map(Number);
+  if (ayah > 1) {
+    const prevKey = `${sura}:${ayah - 1}`;
+    const prevCard = document.getElementById(`v-${prevKey.replace(':', '-')}`);
+    if (prevCard) {
+      prevCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    playAyah(prevKey);
+  } else {
+    if (sura > 1) {
+      const prevSura = sura - 1;
+      const prevSuraMeta = db.suraList.find(s => s.id === prevSura);
+      if (prevSuraMeta) {
+        window.location.hash = `#sura/${prevSura}`;
+        setTimeout(() => {
+          playAyah(`${prevSura}:${prevSuraMeta.ayas}`);
+        }, 1000);
+      }
+    }
+  }
+}
+
+function stopAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  currentPlayingKey = null;
+  isAudioPlaying = false;
+  updateAudioUI();
+}
+
+function getOrCreatePlayerBar() {
+  let player = document.getElementById('global-audio-player');
+  if (!player) {
+    player = document.createElement('div');
+    player.id = 'global-audio-player';
+    player.className = 'global-audio-player';
+    player.innerHTML = `
+      <div class="gap-content">
+        <div class="gap-info">
+          <div class="gap-title" id="gap-title">Sura Name</div>
+          <div class="gap-reciter" id="gap-reciter">Reciter Name</div>
+        </div>
+        <div class="gap-controls">
+          <button class="gap-btn" id="gap-prev" title="Previous Ayah">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6L18 6v12z"/></svg>
+          </button>
+          <button class="gap-btn gap-play-main" id="gap-play-pause" title="Play/Pause">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button class="gap-btn" id="gap-next" title="Next Ayah">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18V6l8.5 6L6 18zm9-12h2v12h-2z"/></svg>
+          </button>
+          <button class="gap-btn gap-close" id="gap-close" title="Close Player">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(player);
+    
+    document.getElementById('gap-prev').onclick = playPrevAyah;
+    document.getElementById('gap-next').onclick = playNextAyah;
+    document.getElementById('gap-play-pause').onclick = () => {
+      if (currentPlayingKey) {
+        togglePlayAyah(currentPlayingKey);
+      }
+    };
+    document.getElementById('gap-close').onclick = stopAudio;
+  }
+  return player;
+}
+
+function updateAudioUI() {
+  document.querySelectorAll('.btn-play-ayah').forEach(btn => {
+    const key = btn.dataset.key;
+    const isCurrent = (key === currentPlayingKey);
+    const isPlaying = isCurrent && isAudioPlaying;
+    
+    btn.classList.toggle('playing', isPlaying);
+    const playSvg = btn.querySelector('.play-icon');
+    const pauseSvg = btn.querySelector('.pause-icon');
+    if (playSvg && pauseSvg) {
+      playSvg.style.display = isPlaying ? 'none' : 'block';
+      pauseSvg.style.display = isPlaying ? 'block' : 'none';
+    }
+  });
+
+  const player = getOrCreatePlayerBar();
+  if (currentPlayingKey) {
+    player.classList.add('visible');
+    
+    const [sura, ayah] = currentPlayingKey.split(':');
+    const suraMeta = db.suraList ? db.suraList.find(s => s.id === Number(sura)) : null;
+    const name = suraMeta ? (state.uiLang === 'id' ? suraMeta.name_id : suraMeta.name_en) : `Sura ${sura}`;
+    
+    document.getElementById('gap-title').textContent = `${name} : ${ayah}`;
+    
+    const reciter = db.registry.reciters ? db.registry.reciters.find(r => r.id === state.activeReciter) : null;
+    document.getElementById('gap-reciter').textContent = reciter ? reciter.name : state.activeReciter;
+    
+    const mainPlayBtn = document.getElementById('gap-play-pause');
+    const playIcon = mainPlayBtn.querySelector('.play-icon');
+    const pauseIcon = mainPlayBtn.querySelector('.pause-icon');
+    if (playIcon && pauseIcon) {
+      playIcon.style.display = isAudioPlaying ? 'none' : 'block';
+      pauseIcon.style.display = isAudioPlaying ? 'block' : 'none';
+    }
+  } else {
+    player.classList.remove('visible');
   }
 }
 
@@ -1905,6 +2132,7 @@ function setupEventBindings() {
     activeTranslation1: 'trans1-select',
     activeTranslation2: 'trans2-select',
     activeTransliteration: 'translit-select',
+    activeReciter: 'reciter-select',
     activeTafsir1: 'tafsir1-select',
     activeTafsir2: 'tafsir2-select',
     activeNuzul1: 'nuzul1-select',

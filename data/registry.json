@@ -897,5 +897,24 @@
                                  "lang":  "tr",
                                  "default":  false
                              }
-                         ]
+                         ],
+    "reciters": [
+        { "id": "Alafasy_128kbps",                    "name": "Mishary Rashid Alafasy",          "style": "Murattal", "default": true  },
+        { "id": "Abdurrahmaan_As-Sudais_192kbps",     "name": "Abdurrahman As-Sudais",            "style": "Murattal", "default": false },
+        { "id": "Abdul_Basit_Murattal_192kbps",       "name": "Abdul Basit Abd us-Samad",         "style": "Murattal", "default": false },
+        { "id": "Abdul_Basit_Mujawwad_128kbps",       "name": "Abdul Basit Abd us-Samad",         "style": "Mujawwad", "default": false },
+        { "id": "Husary_128kbps",                     "name": "Mahmoud Khalil Al-Husary",         "style": "Murattal", "default": false },
+        { "id": "Husary_128kbps_Mujawwad",            "name": "Mahmoud Khalil Al-Husary",         "style": "Mujawwad", "default": false },
+        { "id": "Minshawi_Murattal_128kbps",          "name": "Mohamed Siddiq Al-Minshawi",       "style": "Murattal", "default": false },
+        { "id": "Minshawy_Mujawwad_128kbps",          "name": "Mohamed Siddiq Al-Minshawi",       "style": "Mujawwad", "default": false },
+        { "id": "Abu_Bakr_Ash-Shaatree_128kbps",      "name": "Abu Bakr Ash-Shaatree",            "style": "Murattal", "default": false },
+        { "id": "Sahl_Yasin_128kbps",                 "name": "Sahl Yasin",                       "style": "Murattal", "default": false },
+        { "id": "Abdullah_Basfar_192kbps",            "name": "Abdullah Basfar",                  "style": "Murattal", "default": false },
+        { "id": "Hani_Rifai_192kbps",                 "name": "Hani Rifai",                       "style": "Murattal", "default": false },
+        { "id": "Hudhaify_128kbps",                   "name": "Ali bin Abdurrahman Al-Hudhaify",  "style": "Murattal", "default": false },
+        { "id": "Ibrahim_Akhdar_128kbps",             "name": "Ibrahim Akhdar",                   "style": "Murattal", "default": false },
+        { "id": "Saud_Al-Shuraim_128kbps",            "name": "Saud Al-Shuraim",                  "style": "Murattal", "default": false },
+        { "id": "Ahmed_ibn_Ali_al-Ajamy_128kbps_ketabook", "name": "Ahmed ibn Ali Al-Ajamy",      "style": "Murattal", "default": false },
+        { "id": "Mohammad_al_Tablawi_128kbps",        "name": "Mohammad Al-Tablawi",              "style": "Murattal", "default": false }
+    ]
 }

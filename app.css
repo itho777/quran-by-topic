@@ -1447,4 +1447,129 @@ body {
   animation: shake 0.3s ease-in-out;
 }
 
+/* --- Verse Action play button --- */
+.btn-play-ayah {
+  transition: all 0.2s ease;
+}
+.btn-play-ayah.playing {
+  color: var(--green) !important;
+  background-color: rgba(46, 204, 113, 0.15) !important;
+}
+
+/* --- Global Audio Player Bar --- */
+.global-audio-player {
+  position: fixed;
+  bottom: -90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 500px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 2000;
+  padding: 10px 24px;
+  transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.global-audio-player.visible {
+  bottom: 24px;
+}
+
+.gap-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gap-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gap-title {
+  font-family: var(--font-main);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gap-reciter {
+  font-family: var(--font-main);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gap-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gap-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gap-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.gap-btn:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.gap-btn.gap-play-main {
+  background-color: var(--accent);
+  color: #fff;
+  width: 44px;
+  height: 44px;
+}
+
+.gap-btn.gap-play-main svg {
+  width: 24px;
+  height: 24px;
+}
+
+.gap-btn.gap-play-main:hover {
+  transform: scale(1.08);
+  background-color: var(--accent-light, var(--accent));
+}
+
+.gap-btn.gap-close {
+  color: var(--text-muted);
+}
+.gap-btn.gap-close:hover {
+  color: var(--red);
+}
+
+body {
+  padding-bottom: 0;
+  transition: padding-bottom 0.4s ease;
+}
+body.has-player {
+  padding-bottom: 100px;
+}
+
 

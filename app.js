@@ -1520,8 +1520,6 @@ function updateTagsSelectHint() {
   }
 }
 
-}
-
 // --- Global Audio Controller ---
 let currentAudio = null;
 let currentPlayingKey = null; // "sura:ayah"

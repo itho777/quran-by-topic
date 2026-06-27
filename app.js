@@ -1558,57 +1558,93 @@ async function triggerRouting() {
     const searchPlaceholder = document.getElementById('search-paginator-placeholder');
     if (searchPlaceholder) searchPlaceholder.innerHTML = '';
 
+    const isId = state.uiLang === 'id';
     const searchResultsList = document.getElementById('search-results-list');
-    searchResultsList.innerHTML = `
-      <div class="loading-wrap">
-        <div class="spinner"></div>
-        <div>Searching...</div>
-      </div>
-    `;
+    const header = document.getElementById('search-results-header');
+
+    // Show loading with progress message
+    const showProgress = (msg) => {
+      searchResultsList.innerHTML = `
+        <div class="loading-wrap">
+          <div class="spinner"></div>
+          <div>${msg}</div>
+        </div>
+      `;
+    };
+    showProgress(isId ? 'Memuat semua sumber data...' : 'Loading all data sources...');
 
     await ensureActiveDatasets();
 
-    // Query translation text
-    const tInfo = db.registry.translations.find(t => t.id === state.activeTranslation1);
-    if (tInfo && !db.cache.has(tInfo.file)) {
-      await db.getResource(tInfo.file);
-    }
-    const transData = tInfo ? db.cache.get(tInfo.file) : {};
-    const results = [];
-    if (transData) {
-      for (const key in transData) {
-        if (transData[key].toLowerCase().includes(query.toLowerCase())) {
-          results.push(key);
+    const qLower = query.toLowerCase();
+    const matchedKeys = new Set();
+
+    // --- 1. Search ALL translations (parallel fetch) ---
+    showProgress(isId ? `Mencari di ${db.registry.translations.length} terjemahan...` : `Searching ${db.registry.translations.length} translations...`);
+    await Promise.all(
+      db.registry.translations.map(t => db.getResource(t.file).catch(() => null))
+    );
+    for (const t of db.registry.translations) {
+      const data = db.cache.get(t.file);
+      if (!data) continue;
+      for (const key in data) {
+        if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
+          matchedKeys.add(key);
         }
       }
     }
 
-    // Query tags
-    const matchingTagIds = db.tags
-      .filter(t => t.name.toLowerCase().includes(query.toLowerCase()))
-      .map(t => t.id);
-
-    const taggedVerses = [];
-    for (const key in db.verseTags) {
-      if (db.verseTags[key].some(t => matchingTagIds.includes(t))) {
-        taggedVerses.push(key);
+    // --- 2. Search ALL tafsirs (parallel fetch) ---
+    showProgress(isId ? `Mencari di ${db.registry.tafsirs.length} tafsir...` : `Searching ${db.registry.tafsirs.length} tafsirs...`);
+    await Promise.all(
+      db.registry.tafsirs.map(t => db.getResource(t.file).catch(() => null))
+    );
+    for (const t of db.registry.tafsirs) {
+      const data = db.cache.get(t.file);
+      if (!data) continue;
+      for (const key in data) {
+        if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
+          matchedKeys.add(key);
+        }
       }
     }
 
-    // Merge & sort results
-    const mergedResults = Array.from(new Set([...results, ...taggedVerses])).sort((a, b) => {
+    // --- 3. Search ALL asbabun nuzul (parallel fetch) ---
+    showProgress(isId ? `Mencari di ${db.registry.asbabun_nuzul.length} asbabun nuzul...` : `Searching ${db.registry.asbabun_nuzul.length} asbabun nuzul sources...`);
+    await Promise.all(
+      db.registry.asbabun_nuzul.map(n => db.getResource(n.file).catch(() => null))
+    );
+    for (const n of db.registry.asbabun_nuzul) {
+      const data = db.cache.get(n.file);
+      if (!data) continue;
+      for (const key in data) {
+        if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
+          matchedKeys.add(key);
+        }
+      }
+    }
+
+    // --- 4. Search topic tags (in memory — instant) ---
+    const matchingTagIds = db.tags
+      .filter(t => t.name.toLowerCase().includes(qLower))
+      .map(t => t.id);
+    for (const key in db.verseTags) {
+      if (db.verseTags[key].some(t => matchingTagIds.includes(t))) {
+        matchedKeys.add(key);
+      }
+    }
+
+    // --- 5. Sort merged results by surah:ayah ---
+    const mergedResults = Array.from(matchedKeys).sort((a, b) => {
       const [s1, v1] = a.split(':').map(Number);
       const [s2, v2] = b.split(':').map(Number);
       if (s1 !== s2) return s1 - s2;
       return v1 - v2;
     });
 
-    const isId = state.uiLang === 'id';
-    const header = document.getElementById('search-results-header');
     if (header) {
       header.innerHTML = `
-        <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} "${query}"</h2>
-        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'hasil dari terjemahan dan tag topik' : 'matches across translation and topic tags'}</div>
+        <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
+        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs, asbabun nuzul & topics'}</div>
       `;
     }
 

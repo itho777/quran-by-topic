@@ -454,7 +454,7 @@ function updateBreadcrumbs(view, details = {}) {
 function localizeType(type) {
   if (state.uiLang !== 'id') return type;
   if (type === 'Meccan') return 'Makkiyah';
-  if (type === 'Madinan') return 'Madaniyyah';
+  if (type === 'Medinan') return 'Madaniyyah';
   return type;
 }
 

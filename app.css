@@ -752,9 +752,13 @@ body {
   font-size: 0.7rem;
   color: var(--accent);
   cursor: pointer;
+  text-decoration: none;
   transition: background var(--trans);
 }
-.verse-tag:hover { background: var(--accent-bg); }
+.verse-tag:hover {
+  background: var(--accent-bg);
+  text-decoration: none;
+}
 
 /* ---------- Sura Paginator ---------- */
 .sura-paginator {

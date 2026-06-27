@@ -846,7 +846,7 @@ function createVerseCard(verseKey, isDetailMode = false) {
         let tagsHtml = '<div class="verse-tags">';
         tagIds.forEach(id => {
           const name = tagLookup.get(id) || id;
-          tagsHtml += `<span class="verse-tag" data-tag-id="${id}">${name}</span>`;
+          tagsHtml += `<a href="#topic/${id}" class="verse-tag">${name}</a>`;
         });
         tagsHtml += '</div>';
         bodyHtml += tagsHtml;
@@ -972,7 +972,7 @@ function createVerseCard(verseKey, isDetailMode = false) {
         let tagsHtml = '<div class="verse-tags">';
         tagIds.forEach(id => {
           const name = tagLookup.get(id) || id;
-          tagsHtml += `<span class="verse-tag" data-tag-id="${id}">${name}</span>`;
+          tagsHtml += `<a href="#topic/${id}" class="verse-tag">${name}</a>`;
         });
         tagsHtml += '</div>';
         bodyHtml += tagsHtml;
@@ -1012,11 +1012,10 @@ function createVerseCard(verseKey, isDetailMode = false) {
   bodyHtml += '</div>';
   card.innerHTML = headerHtml + bodyHtml;
 
-  // Add click listeners to tags
+  // Add click listeners to tags (to prevent bubbling, though they carry native href links now)
   card.querySelectorAll('.verse-tag').forEach(tagEl => {
     tagEl.onclick = (e) => {
       e.stopPropagation();
-      window.location.hash = `#topic/${tagEl.dataset.tagId}`;
     };
   });
 

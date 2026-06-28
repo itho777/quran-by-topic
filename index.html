@@ -156,7 +156,11 @@
         </div>
       </div>
       <div class="topbar-right">
-        <button class="btn-icon topbar-lang-btn" id="topbar-lang-toggle" aria-label="Toggle display language" title="Toggle language / Ganti bahasa">EN</button>
+        <div class="lang-switch" id="topbar-lang-toggle" role="button" aria-label="Toggle display language" title="Toggle language / Ganti bahasa">
+          <span class="lang-switch-label" data-lang="en">EN</span>
+          <span class="lang-switch-pill" id="lang-switch-pill"></span>
+          <span class="lang-switch-label" data-lang="id">ID</span>
+        </div>
         <button class="btn-icon" id="topbar-goto-btn" aria-label="Go to Ayah" title="Go to Ayah / Lompat ke Ayat">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
         </button>

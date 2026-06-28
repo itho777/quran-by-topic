@@ -737,6 +737,12 @@ function renderSuraPage(allKeys, suraId, sura) {
   // Render the current page's verses then attach paginator
   renderVerseList(verseListContainer, pageKeys);
 
+  // Scroll to top of verse list on every page change
+  requestAnimationFrame(() => {
+    verseListContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   // Wait a tick for renderVerseList to kick off, then place paginator
   requestAnimationFrame(buildPaginator);
 }
@@ -857,6 +863,13 @@ function renderTopicPage(allKeys, tagId, tag) {
   }
 
   renderVerseList(container, pageKeys);
+
+  // Scroll to top on topic page change
+  requestAnimationFrame(() => {
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   requestAnimationFrame(buildPaginator);
 }
 
@@ -976,6 +989,13 @@ function renderSearchPage(allKeys, query) {
   }
 
   renderVerseList(container, pageKeys, query);
+
+  // Scroll to top on search page change
+  requestAnimationFrame(() => {
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   requestAnimationFrame(buildPaginator);
 }
 
@@ -1565,6 +1585,12 @@ async function triggerRouting() {
         // --- Sura List Mode ---
         switchView('sura');
         updateBreadcrumbs('sura', { sura });
+
+        // Auto-open comparison panel so users can see display settings
+        const compPanel = document.getElementById('comparison-panel');
+        if (compPanel && !compPanel.classList.contains('open')) {
+          compPanel.classList.add('open');
+        }
 
         // Reset to page 1 whenever we navigate to a new sura
         suraPage = 1;
@@ -2516,7 +2542,10 @@ function setupEventBindings() {
     const uiLangSel = document.getElementById('ui-lang-select');
     const topbarLangToggle = document.getElementById('topbar-lang-toggle');
     if (uiLangSel) uiLangSel.value = newLang;
-    if (topbarLangToggle) topbarLangToggle.textContent = newLang === 'id' ? 'ID' : 'EN';
+    if (topbarLangToggle) {
+      topbarLangToggle.classList.remove('lang-en', 'lang-id');
+      topbarLangToggle.classList.add(newLang === 'id' ? 'lang-id' : 'lang-en');
+    }
 
     saveSettings();
     await reloadTagsDataset();
@@ -2532,10 +2561,11 @@ function setupEventBindings() {
     uiLangSel.onchange = (e) => handleLangChange(e.target.value);
   }
 
-  // Topbar language toggle button
+  // Topbar language slide switch
   const topbarLangToggle = document.getElementById('topbar-lang-toggle');
   if (topbarLangToggle) {
-    topbarLangToggle.textContent = state.uiLang === 'id' ? 'ID' : 'EN';
+    topbarLangToggle.classList.remove('lang-en', 'lang-id');
+    topbarLangToggle.classList.add(state.uiLang === 'id' ? 'lang-id' : 'lang-en');
     topbarLangToggle.onclick = () => handleLangChange(state.uiLang === 'en' ? 'id' : 'en');
   }
 

@@ -1973,10 +1973,33 @@ function playNextAyah() {
   
   if (ayah < suraMeta.ayas) {
     const nextKey = `${sura}:${ayah + 1}`;
-    const nextCard = document.getElementById(`v-${nextKey.replace(':', '-')}`);
-    if (nextCard) {
-      nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const hash = window.location.hash;
+    const isViewingThisSuraList = hash === `#sura/${sura}`;
+    const isViewingDetail = hash.startsWith(`#sura/${sura}/verse/`);
+    
+    if (isViewingThisSuraList) {
+      const perPage = state.ayahPerPage || 25;
+      const targetPage = Math.floor(ayah / perPage) + 1; // Since next index is `ayah`
+      
+      if (targetPage !== suraPage) {
+        suraPage = targetPage;
+        const allVerseKeys = [];
+        for (let i = 1; i <= suraMeta.ayas; i++) {
+          allVerseKeys.push(`${sura}:${i}`);
+        }
+        renderSuraPage(allVerseKeys, sura, suraMeta);
+      }
+    } else if (isViewingDetail) {
+      window.location.hash = `#sura/${sura}/verse/${ayah + 1}`;
     }
+    
+    setTimeout(() => {
+      const nextCard = document.getElementById(`v-${nextKey.replace(':', '-')}`);
+      if (nextCard) {
+        nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 200);
+    
     playAyah(nextKey);
   } else {
     // End of sura, check for next sura
@@ -1995,12 +2018,37 @@ function playNextAyah() {
 function playPrevAyah() {
   if (!currentPlayingKey) return;
   const [sura, ayah] = currentPlayingKey.split(':').map(Number);
+  
   if (ayah > 1) {
     const prevKey = `${sura}:${ayah - 1}`;
-    const prevCard = document.getElementById(`v-${prevKey.replace(':', '-')}`);
-    if (prevCard) {
-      prevCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const hash = window.location.hash;
+    const isViewingThisSuraList = hash === `#sura/${sura}`;
+    const isViewingDetail = hash.startsWith(`#sura/${sura}/verse/`);
+    
+    if (isViewingThisSuraList) {
+      const perPage = state.ayahPerPage || 25;
+      const targetPage = Math.floor((ayah - 2) / perPage) + 1; // Since prev index is `ayah - 2`
+      
+      if (targetPage !== suraPage) {
+        suraPage = targetPage;
+        const suraMeta = db.suraList.find(s => s.id === sura);
+        const allVerseKeys = [];
+        for (let i = 1; i <= suraMeta.ayas; i++) {
+          allVerseKeys.push(`${sura}:${i}`);
+        }
+        renderSuraPage(allVerseKeys, sura, suraMeta);
+      }
+    } else if (isViewingDetail) {
+      window.location.hash = `#sura/${sura}/verse/${ayah - 1}`;
     }
+    
+    setTimeout(() => {
+      const prevCard = document.getElementById(`v-${prevKey.replace(':', '-')}`);
+      if (prevCard) {
+        prevCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 200);
+    
     playAyah(prevKey);
   } else {
     if (sura > 1) {

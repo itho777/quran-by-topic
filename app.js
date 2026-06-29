@@ -1184,8 +1184,25 @@ function getSearchExcerpts(verseKey, query) {
   // check matching inactive sources in the index
   if (db.searchIndex) {
     const qLower = query.toLowerCase().trim();
-    const queryWords = qLower.split(/\s+/).filter(w => w.length >= 2);
-    const effectiveWords = queryWords.length ? queryWords : [qLower];
+
+    // Parse query the same way as the search engine:
+    // extract exact phrases (inside quotes) and bare broad words
+    const exactPhrases = [];
+    const broadWords   = [];
+    const rxParse = /"([^"]+)"|(\S+)/g;
+    let m;
+    while ((m = rxParse.exec(qLower)) !== null) {
+      if (m[1]) exactPhrases.push(m[1].trim());       // quoted phrase
+      else if (m[2]) broadWords.push(m[2].trim());    // bare word
+    }
+
+    // Flatten into individual clean words for index lookup
+    // (exact phrase "mercy of god" → ["mercy","of","god"])
+    const indexLookupWords = [
+      ...exactPhrases.flatMap(ep => ep.split(/\s+/).filter(w => w.length >= 2)),
+      ...broadWords.filter(w => w.length >= 2)
+    ];
+    const effectiveWords = indexLookupWords.length ? indexLookupWords : [qLower];
 
     // Check if the index actually has this verse for our query words
     const matchedIndices = new Set();

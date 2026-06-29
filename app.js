@@ -1121,40 +1121,61 @@ function getSearchExcerpts(verseKey, query) {
     `;
   }
 
-  // No match visible in currently loaded sources —
-  // count how many non-active sources in the index contain this verse
-  if (db.searchIndex) {
-    const qLower = query.toLowerCase().trim();
-    const queryWords = qLower.split(/\s+/).filter(w => w.length >= 2);
-    const effectiveWords = queryWords.length ? queryWords : [qLower];
-
-    // Count distinct source registries that have this verseKey cached vs not
-    let uncachedSources = 0;
-    for (const src of [...db.registry.translations, ...db.registry.tafsirs, ...db.registry.asbabun_nuzul]) {
-      if (!db.cache.has(src.file)) uncachedSources++;
-    }
-
     // Check if the index actually has this verse for our query words
-    let indexHasMatch = false;
+    const matchedIndices = new Set();
     for (const qw of effectiveWords) {
       for (const word in db.searchIndex) {
-        if (word.includes(qw) && db.searchIndex[word].includes(verseKey)) {
-          indexHasMatch = true;
-          break;
+        if (word.includes(qw) && db.searchIndex[word][verseKey]) {
+          const idxs = db.searchIndex[word][verseKey];
+          for (const idx of idxs) {
+            matchedIndices.add(idx);
+          }
         }
       }
-      if (indexHasMatch) break;
     }
 
-    if (indexHasMatch && uncachedSources > 0) {
+    const allRegistrySources = [
+      ...db.registry.translations,
+      ...db.registry.tafsirs,
+      ...db.registry.asbabun_nuzul
+    ];
+
+    const activeFiles = new Set();
+    const activeIds = [
+      state.activeTranslation1, state.activeTranslation2,
+      state.activeTafsir1, state.activeTafsir2,
+      state.activeNuzul1, state.activeNuzul2
+    ];
+    for (const src of allRegistrySources) {
+      if (activeIds.includes(src.id)) {
+        activeFiles.add(src.file);
+      }
+    }
+
+    const inactiveMatchedNames = [];
+    for (const idx of matchedIndices) {
+      const src = allRegistrySources[idx];
+      if (src && !activeFiles.has(src.file)) {
+        inactiveMatchedNames.push(src.name);
+      }
+    }
+
+    if (inactiveMatchedNames.length > 0) {
       const isId = state.uiLang === 'id';
-      const btnLabel = isId ? '🔍 Temukan sumber yang cocok...' : '🔍 Find matching source...';
+      const msg = isId
+        ? `Ditemukan kecocokan di: <strong>${inactiveMatchedNames.join(', ')}</strong>`
+        : `Found match in: <strong>${inactiveMatchedNames.join(', ')}</strong>`;
+      const btnLabel = isId ? '🔍 Lihat teks yang cocok...' : '🔍 View matching source...';
+
       // Encode args safely for inline onclick
       const vkAttr  = verseKey.replace(/'/g, '');
       const qAttr   = query.replace(/'/g, '').replace(/"/g, '');
       return `
         <div class="search-excerpts-box search-excerpts-other">
-          <button class="btn-find-source" onclick="findMatchingSource('${vkAttr}','${qAttr}',this)">${btnLabel}</button>
+          <div class="search-excerpt-item">
+            <div class="search-excerpt-hint" style="margin-bottom: 6px;">${msg}</div>
+            <button class="btn-find-source" onclick="findMatchingSource('${vkAttr}','${qAttr}',this)">${btnLabel}</button>
+          </div>
         </div>
       `;
     }
@@ -1269,6 +1290,10 @@ async function setSearchSource(slot, sourceId, verseKey) {
   await ensureActiveDatasets();
   triggerRouting();          // Re-render the whole page so all cards update
 }
+
+// Expose handlers to global window scope so inline onclick works
+window.findMatchingSource = findMatchingSource;
+window.setSearchSource = setSearchSource;
 
 function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
   const card = document.createElement('div');
@@ -1873,7 +1898,7 @@ async function triggerRouting() {
         // Single word → substring match on all index keys
         for (const word in db.searchIndex) {
           if (word.includes(qLower)) {
-            for (const k of db.searchIndex[word]) matchedKeys.add(k);
+            for (const k in db.searchIndex[word]) matchedKeys.add(k);
           }
         }
       } else {
@@ -1882,7 +1907,7 @@ async function triggerRouting() {
           const s = new Set();
           for (const word in db.searchIndex) {
             if (word.includes(qw)) {
-              for (const k of db.searchIndex[word]) s.add(k);
+              for (const k in db.searchIndex[word]) s.add(k);
             }
           }
           return s;

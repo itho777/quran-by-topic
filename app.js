@@ -240,6 +240,7 @@ class Database {
     this.quranArabic = null;
     this.tags = null;
     this.verseTags = null;
+    this.searchIndex = null; // Loaded once on first search
   }
 
   async init(onProgress) {
@@ -1690,7 +1691,6 @@ async function triggerRouting() {
     const searchResultsList = document.getElementById('search-results-list');
     const header = document.getElementById('search-results-header');
 
-    // Show loading with progress message
     const showProgress = (msg) => {
       searchResultsList.innerHTML = `
         <div class="loading-wrap">
@@ -1699,59 +1699,79 @@ async function triggerRouting() {
         </div>
       `;
     };
-    showProgress(isId ? 'Memuat semua sumber data...' : 'Loading all data sources...');
 
     await ensureActiveDatasets();
 
-    const qLower = query.toLowerCase();
+    const qLower = query.toLowerCase().trim();
     const matchedKeys = new Set();
 
-    // --- 1. Search ALL translations (parallel fetch) ---
-    showProgress(isId ? `Mencari di ${db.registry.translations.length} terjemahan...` : `Searching ${db.registry.translations.length} translations...`);
-    await Promise.all(
-      db.registry.translations.map(t => db.getResource(t.file).catch(() => null))
-    );
-    for (const t of db.registry.translations) {
-      const data = db.cache.get(t.file);
-      if (!data) continue;
-      for (const key in data) {
-        if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
-          matchedKeys.add(key);
+    // --- 1. Load search index once (then kept in memory for the session) ---
+    if (!db.searchIndex) {
+      showProgress(isId ? 'Memuat indeks pencarian...' : 'Loading search index...');
+      try {
+        const res = await fetch('data/search_index.json');
+        db.searchIndex = await res.json();
+      } catch (e) {
+        console.warn('Search index unavailable, falling back to raw scan:', e);
+        db.searchIndex = null;
+      }
+    } else {
+      showProgress(isId ? 'Mencari...' : 'Searching...');
+    }
+
+    // --- 2a. Fast path: query the pre-built index ---
+    if (db.searchIndex) {
+      showProgress(isId ? 'Mencari...' : 'Searching...');
+
+      // Split multi-word queries; keep each word for substring matching
+      const queryWords = qLower.split(/\s+/).filter(w => w.length >= 2);
+
+      if (queryWords.length === 1) {
+        // Single word → substring match on all index keys
+        for (const word in db.searchIndex) {
+          if (word.includes(qLower)) {
+            for (const k of db.searchIndex[word]) matchedKeys.add(k);
+          }
+        }
+      } else {
+        // Multi-word → per-word sets, then intersect (AND logic)
+        const sets = queryWords.map(qw => {
+          const s = new Set();
+          for (const word in db.searchIndex) {
+            if (word.includes(qw)) {
+              for (const k of db.searchIndex[word]) s.add(k);
+            }
+          }
+          return s;
+        });
+        // Sort smallest-first for faster intersection
+        sets.sort((a, b) => a.size - b.size);
+        const [first, ...rest] = sets;
+        for (const k of first) {
+          if (rest.every(s => s.has(k))) matchedKeys.add(k);
+        }
+      }
+
+    } else {
+      // --- 2b. Fallback: raw scan of all source files ---
+      showProgress(isId ? 'Mencari di semua sumber...' : 'Scanning all sources...');
+      await Promise.all([
+        ...db.registry.translations.map(t => db.getResource(t.file).catch(() => null)),
+        ...db.registry.tafsirs.map(t => db.getResource(t.file).catch(() => null)),
+        ...db.registry.asbabun_nuzul.map(n => db.getResource(n.file).catch(() => null))
+      ]);
+      for (const src of [...db.registry.translations, ...db.registry.tafsirs, ...db.registry.asbabun_nuzul]) {
+        const data = db.cache.get(src.file);
+        if (!data) continue;
+        for (const key in data) {
+          if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
+            matchedKeys.add(key);
+          }
         }
       }
     }
 
-    // --- 2. Search ALL tafsirs (parallel fetch) ---
-    showProgress(isId ? `Mencari di ${db.registry.tafsirs.length} tafsir...` : `Searching ${db.registry.tafsirs.length} tafsirs...`);
-    await Promise.all(
-      db.registry.tafsirs.map(t => db.getResource(t.file).catch(() => null))
-    );
-    for (const t of db.registry.tafsirs) {
-      const data = db.cache.get(t.file);
-      if (!data) continue;
-      for (const key in data) {
-        if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
-          matchedKeys.add(key);
-        }
-      }
-    }
-
-    // --- 3. Search ALL asbabun nuzul (parallel fetch) ---
-    showProgress(isId ? `Mencari di ${db.registry.asbabun_nuzul.length} asbabun nuzul...` : `Searching ${db.registry.asbabun_nuzul.length} asbabun nuzul sources...`);
-    await Promise.all(
-      db.registry.asbabun_nuzul.map(n => db.getResource(n.file).catch(() => null))
-    );
-    for (const n of db.registry.asbabun_nuzul) {
-      const data = db.cache.get(n.file);
-      if (!data) continue;
-      for (const key in data) {
-        if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
-          matchedKeys.add(key);
-        }
-      }
-    }
-
-    // --- 4. Search topic tags (in memory — instant) ---
+    // --- 3. Topic tags (in-memory, always instant) ---
     const matchingTagIds = db.tags
       .filter(t => t.name.toLowerCase().includes(qLower))
       .map(t => t.id);
@@ -1761,7 +1781,7 @@ async function triggerRouting() {
       }
     }
 
-    // --- 5. Sort merged results by surah:ayah ---
+    // --- 4. Sort merged results by surah:ayah ---
     const mergedResults = Array.from(matchedKeys).sort((a, b) => {
       const [s1, v1] = a.split(':').map(Number);
       const [s2, v2] = b.split(':').map(Number);

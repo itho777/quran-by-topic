@@ -2105,6 +2105,66 @@ async function triggerRouting() {
       `;
     }
 
+    // --- 5. Pre-load source files referenced in index for matched verses ---
+    // This ensures getSearchExcerpts() can always show excerpts even when
+    // the matching source (translation/tafsir/nuzul) is turned off in the sidebar.
+    if (db.searchIndex) {
+      const allRegistrySources = [
+        ...db.registry.translations,
+        ...db.registry.tafsirs,
+        ...db.registry.asbabun_nuzul
+      ];
+
+      // Build a set of the matched verse keys for fast O(1) lookup
+      const matchedSet = new Set(mergedResults);
+
+      // Collect unique source-file indices referenced for those verses.
+      // We scan the index once per effective query term (same terms used during search),
+      // keeping only entries that belong to a matched verse.
+      const neededFileIndices = new Set();
+
+      // Re-parse the query terms exactly as the search engine did
+      const qLowerPre = query.toLowerCase().trim();
+      const epPre = [], bwPre = [];
+      const rxPre = /"([^"]+)"|(\S+)/g;
+      let mPre;
+      while ((mPre = rxPre.exec(qLowerPre)) !== null) {
+        if (mPre[1]) epPre.push(...mPre[1].split(/\s+/).filter(w => w.length >= 2)); // phrase words
+        else if (mPre[2] && mPre[2].length >= 2) bwPre.push(mPre[2]);               // bare words
+      }
+      const lookupTerms = [...new Set([...epPre, ...bwPre])];
+      if (lookupTerms.length === 0) lookupTerms.push(qLowerPre);
+
+      for (const term of lookupTerms) {
+        for (const word in db.searchIndex) {
+          if (!word.includes(term)) continue;
+          const entryStr = db.searchIndex[word];
+          if (!entryStr) continue;
+          const pairs = entryStr.split(',');
+          for (const pair of pairs) {
+            const parts = pair.split('_');
+            if (matchedSet.has(parts[0])) {
+              for (let i = 1; i < parts.length; i++) {
+                neededFileIndices.add(Number(parts[i]));
+              }
+            }
+          }
+        }
+      }
+
+      // Pre-fetch any not-yet-cached source files in parallel
+      const fetchPromises = [];
+      for (const idx of neededFileIndices) {
+        const src = allRegistrySources[idx];
+        if (src && !db.cache.has(src.file)) {
+          fetchPromises.push(db.getResource(src.file).catch(() => null));
+        }
+      }
+      if (fetchPromises.length > 0) {
+        await Promise.all(fetchPromises);
+      }
+    }
+
     renderSearchPage(mergedResults, query);
   }
   updateAudioUI();

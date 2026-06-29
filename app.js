@@ -1033,38 +1033,34 @@ function wrapLayerText(text) {
           <button class="verse-layer-more" style="display:none">${moreLabel}</button>`;
 }
 
+// --- Shared text highlight helpers (used by search excerpts & findMatchingSource) ---
+function escapeRegExpGlobal(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function highlightSnippet(text, q) {
+  if (!text) return '';
+  const cleanText = text.replace(/<[^>]*>/g, ' ');
+  const idx = cleanText.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return cleanText.slice(0, 150) + '...';
+  let startIdx = 0, endIdx = cleanText.length, prefix = '', suffix = '';
+  if (cleanText.length > 200) {
+    startIdx = Math.max(0, idx - 60);
+    endIdx   = Math.min(cleanText.length, idx + q.length + 80);
+    if (startIdx > 0) prefix = '... ';
+    if (endIdx < cleanText.length) suffix = ' ...';
+  }
+  const snippet = cleanText.slice(startIdx, endIdx);
+  const regex = new RegExp(`(${escapeRegExpGlobal(q)})`, 'gi');
+  return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
+}
+
 function getSearchExcerpts(verseKey, query) {
   if (!query) return '';
   const qLower = query.toLowerCase();
   let html = '';
   
-  function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-  
   function highlightText(text, q) {
-    if (!text) return '';
-    // Strip HTML tags for clean snippet text
-    const cleanText = text.replace(/<[^>]*>/g, ' ');
-    const idx = cleanText.toLowerCase().indexOf(q.toLowerCase());
-    if (idx === -1) return cleanText.slice(0, 150) + '...';
-    
-    let startIdx = 0;
-    let endIdx = cleanText.length;
-    let prefix = '';
-    let suffix = '';
-    
-    if (cleanText.length > 200) {
-      startIdx = Math.max(0, idx - 60);
-      endIdx = Math.min(cleanText.length, idx + q.length + 80);
-      if (startIdx > 0) prefix = '... ';
-      if (endIdx < cleanText.length) suffix = ' ...';
-    }
-    
-    const snippet = cleanText.slice(startIdx, endIdx);
-    const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
-    const highlighted = snippet.replace(regex, '<mark class="search-highlight">$1</mark>');
-    return prefix + highlighted + suffix;
+    return highlightSnippet(text, q);
   }
 
   // Check all translations
@@ -1152,24 +1148,126 @@ function getSearchExcerpts(verseKey, query) {
 
     if (indexHasMatch && uncachedSources > 0) {
       const isId = state.uiLang === 'id';
-      const msg = isId
-        ? `Ditemukan di salah satu dari ${uncachedSources} terjemahan/tafsir lain yang tidak aktif`
-        : `Found in one of ${uncachedSources} other translation/tafsir sources not currently active`;
-      const hint = isId
-        ? 'Aktifkan lebih banyak terjemahan di panel Pengaturan Tampilan untuk melihat konteksnya.'
-        : 'Enable more translations in Display Settings to see the matching context.';
+      const btnLabel = isId ? '🔍 Temukan sumber yang cocok...' : '🔍 Find matching source...';
+      // Encode args safely for inline onclick
+      const vkAttr  = verseKey.replace(/'/g, '');
+      const qAttr   = query.replace(/'/g, '').replace(/"/g, '');
       return `
         <div class="search-excerpts-box search-excerpts-other">
-          <div class="search-excerpt-item">
-            <span class="search-excerpt-source other-source">🔍 ${msg}</span>
-            <div class="search-excerpt-hint">${hint}</div>
-          </div>
+          <button class="btn-find-source" onclick="findMatchingSource('${vkAttr}','${qAttr}',this)">${btnLabel}</button>
         </div>
       `;
     }
   }
 
   return '';
+}
+
+/**
+ * Async: scans all registry sources for `query` in `verseKey`,
+ * renders matched excerpts as clickable items with "Set as active" buttons.
+ * Called inline from the "Find matching source" button in search result cards.
+ */
+async function findMatchingSource(verseKey, query, btn) {
+  const box = btn.closest('.search-excerpts-other');
+  const isId = state.uiLang === 'id';
+  box.innerHTML = `<div class="loading-wrap" style="padding:8px 0;"><div class="spinner" style="width:16px;height:16px;"></div><span style="font-size:0.8rem;margin-left:8px;">${isId ? 'Mencari...' : 'Searching sources...'}</span></div>`;
+
+  const qLower = query.toLowerCase();
+  const found  = [];
+
+  // Load all source types in parallel then scan
+  const allSources = [
+    ...db.registry.translations.map(s => ({ src: s, type: 'translations' })),
+    ...db.registry.tafsirs.map(s => ({ src: s, type: 'tafsirs' })),
+    ...db.registry.asbabun_nuzul.map(s => ({ src: s, type: 'asbabun_nuzul' }))
+  ];
+
+  await Promise.all(allSources.map(({ src }) => db.getResource(src.file).catch(() => null)));
+
+  for (const { src, type } of allSources) {
+    const data = db.cache.get(src.file);
+    if (!data) continue;
+    const text = type === 'tafsirs'
+      ? resolveTafsirText(data, verseKey)
+      : (data[verseKey] || '');
+    if (text && text.toLowerCase().includes(qLower)) {
+      found.push({ src, type, text });
+    }
+  }
+
+  if (found.length === 0) {
+    box.innerHTML = `<p class="search-excerpt-hint" style="padding:4px 0;">${isId ? 'Tidak ditemukan di sumber lain.' : 'Not found in any other source.'}</p>`;
+    return;
+  }
+
+  // Build label suffix map
+  const typeLabel = {
+    translations:   isId ? 'Terjemahan' : 'Translation',
+    tafsirs:        'Tafsir',
+    asbabun_nuzul:  isId ? 'Asbabun Nuzul' : 'Asbabun Nuzul'
+  };
+  const slotMap = {
+    translations:   ['trans1', 'trans2'],
+    tafsirs:        ['tafsir1', 'tafsir2'],
+    asbabun_nuzul:  ['nuzul1',  'nuzul2']
+  };
+  const cssClass = {
+    translations:  'translation-source',
+    tafsirs:       'tafsir-source',
+    asbabun_nuzul: 'nuzul-source'
+  };
+
+  let innerHtml = `<div class="search-excerpts-title">${isId ? 'Ditemukan di:' : 'Found in:'}</div><div class="search-excerpts-list">`;
+
+  for (const { src, type, text } of found) {
+    const [slot1, slot2] = slotMap[type];
+    const btn1Label = isId ? `Pasang sebagai ${typeLabel[type]} 1` : `Set as ${typeLabel[type]} 1`;
+    const btn2Label = isId ? `Pasang sebagai ${typeLabel[type]} 2` : `Set as ${typeLabel[type]} 2`;
+    innerHtml += `
+      <div class="search-excerpt-item">
+        <div class="search-excerpt-source-row">
+          <span class="search-excerpt-source ${cssClass[type]}">${src.name}</span>
+          <span class="excerpt-set-btns">
+            <button class="btn-set-source" onclick="setSearchSource('${slot1}','${src.id}','${verseKey}')">${btn1Label}</button>
+            <button class="btn-set-source" onclick="setSearchSource('${slot2}','${src.id}','${verseKey}')">${btn2Label}</button>
+          </span>
+        </div>
+        <div class="search-excerpt-text">${highlightSnippet(text, query)}</div>
+      </div>`;
+  }
+
+  innerHtml += '</div>';
+  box.className = 'search-excerpts-box';
+  box.innerHTML = innerHtml;
+}
+
+/**
+ * Sets a source as the active translation/tafsir/nuzul slot,
+ * saves settings, and re-renders the current search view.
+ */
+async function setSearchSource(slot, sourceId, verseKey) {
+  const stateMap = {
+    trans1:  { key: 'activeTranslation1',  pref: 'trans1UserPref'  },
+    trans2:  { key: 'activeTranslation2',  pref: 'trans2UserPref'  },
+    tafsir1: { key: 'activeTafsir1',       pref: 'tafsir1UserPref' },
+    tafsir2: { key: 'activeTafsir2',       pref: 'tafsir2UserPref' },
+    nuzul1:  { key: 'activeNuzul1',        pref: 'nuzul1UserPref'  },
+    nuzul2:  { key: 'activeNuzul2',        pref: 'nuzul2UserPref'  }
+  };
+  const mapping = stateMap[slot];
+  if (!mapping) return;
+
+  state[mapping.key] = sourceId;
+  state[mapping.pref] = true;  // Prevent auto-reset on language change
+  saveSettings();
+
+  // Sync the comparison panel dropdown if visible
+  const sel = document.getElementById(`${slot}-select`);
+  if (sel) sel.value = sourceId;
+
+  await ensureActiveDatasets();
+  triggerRouting();          // Re-render the whole page so all cards update
 }
 
 function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {

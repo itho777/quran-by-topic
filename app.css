@@ -1677,3 +1677,58 @@ body.has-player {
   margin-top: 3px;
   line-height: 1.5;
 }
+
+/* "Find matching source" trigger button */
+.btn-find-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  margin: 6px 0 2px;
+}
+.btn-find-source:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px var(--accent-glow, rgba(99,102,241,0.35));
+}
+.btn-find-source:active { transform: translateY(0); }
+
+/* Source name + "set as" buttons row */
+.search-excerpt-source-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+.excerpt-set-btns {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.btn-set-source {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.btn-set-source:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}

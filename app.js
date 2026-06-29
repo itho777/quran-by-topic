@@ -1121,6 +1121,13 @@ function getSearchExcerpts(verseKey, query) {
     `;
   }
 
+  // No match visible in currently loaded sources —
+  // check matching inactive sources in the index
+  if (db.searchIndex) {
+    const qLower = query.toLowerCase().trim();
+    const queryWords = qLower.split(/\s+/).filter(w => w.length >= 2);
+    const effectiveWords = queryWords.length ? queryWords : [qLower];
+
     // Check if the index actually has this verse for our query words
     const matchedIndices = new Set();
     for (const qw of effectiveWords) {

@@ -1040,17 +1040,48 @@ function escapeRegExpGlobal(string) {
 function highlightSnippet(text, q) {
   if (!text) return '';
   const cleanText = text.replace(/<[^>]*>/g, ' ');
-  const idx = cleanText.toLowerCase().indexOf(q.toLowerCase());
-  if (idx === -1) return cleanText.slice(0, 150) + '...';
+  const qLower = q.toLowerCase().trim();
+
+  // Parse exact phrases and broad words to highlight
+  const exactPhrases = [];
+  const broadWords = [];
+  const regexParse = /"([^"]+)"|(\S+)/g;
+  let match;
+  while ((match = regexParse.exec(qLower)) !== null) {
+    if (match[1]) exactPhrases.push(match[1].trim());
+    else if (match[2]) broadWords.push(match[2].trim());
+  }
+
+  const highlightTerms = [...exactPhrases, ...broadWords].filter(t => t.length >= 2);
+  if (highlightTerms.length === 0) return cleanText.slice(0, 150) + '...';
+
+  // Find the first matching term index to center the snippet
+  let bestIdx = -1;
+  let termLen = 0;
+  for (const term of highlightTerms) {
+    const idx = cleanText.toLowerCase().indexOf(term);
+    if (idx !== -1) {
+      bestIdx = idx;
+      termLen = term.length;
+      break;
+    }
+  }
+  if (bestIdx === -1) return cleanText.slice(0, 150) + '...';
+
   let startIdx = 0, endIdx = cleanText.length, prefix = '', suffix = '';
   if (cleanText.length > 200) {
-    startIdx = Math.max(0, idx - 60);
-    endIdx   = Math.min(cleanText.length, idx + q.length + 80);
+    startIdx = Math.max(0, bestIdx - 60);
+    endIdx   = Math.min(cleanText.length, bestIdx + termLen + 80);
     if (startIdx > 0) prefix = '... ';
     if (endIdx < cleanText.length) suffix = ' ...';
   }
+
   const snippet = cleanText.slice(startIdx, endIdx);
-  const regex = new RegExp(`(${escapeRegExpGlobal(q)})`, 'gi');
+  
+  // Sort longest first to prioritize matching longer terms
+  highlightTerms.sort((a, b) => b.length - a.length);
+  const regexPattern = `(${highlightTerms.map(t => escapeRegExpGlobal(t)).join('|')})(?![^<>]*>)`;
+  const regex = new RegExp(regexPattern, 'gi');
   return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
 }
 
@@ -1906,48 +1937,84 @@ async function triggerRouting() {
     if (db.searchIndex) {
       showProgress(isId ? 'Mencari...' : 'Searching...');
 
-      // Split multi-word queries; keep each word for substring matching
-      const queryWords = qLower.split(/\s+/).filter(w => w.length >= 2);
+      // Parse exact phrases and broad words
+      const exactPhrases = [];
+      const broadWords = [];
+      const regexParse = /"([^"]+)"|(\S+)/g;
+      let match;
+      while ((match = regexParse.exec(qLower)) !== null) {
+        if (match[1]) exactPhrases.push(match[1].trim());
+        else if (match[2]) broadWords.push(match[2].trim());
+      }
 
-      if (queryWords.length === 1) {
-        // Single word → substring match on all index keys
-        for (const word in db.searchIndex) {
-          if (word.includes(qLower)) {
-            const entryStr = db.searchIndex[word];
-            if (entryStr) {
-              const pairs = entryStr.split(',');
-              for (const pair of pairs) {
-                const vk = pair.split('_')[0];
-                matchedKeys.add(vk);
-              }
-            }
+      const sets = [];
+
+      // Helper: Exact word lookup
+      const addExactMatch = (word, targetSet) => {
+        const entryStr = db.searchIndex[word];
+        if (entryStr) {
+          const pairs = entryStr.split(',');
+          for (const pair of pairs) {
+            targetSet.add(pair.split('_')[0]);
           }
         }
-      } else {
-        // Multi-word → per-word sets, then intersect (AND logic)
-        const sets = queryWords.map(qw => {
+      };
+
+      // 1. Process broad words (substring match on index keys)
+      for (const bw of broadWords) {
+        if (bw.length < 2) continue;
+        const s = new Set();
+        for (const word in db.searchIndex) {
+          if (word.includes(bw)) {
+            addExactMatch(word, s);
+          }
+        }
+        sets.push(s);
+      }
+
+      // 2. Process exact phrases/words in double quotes
+      for (const ep of exactPhrases) {
+        const epWords = ep.split(/\s+/).filter(w => w.length >= 2);
+        if (epWords.length === 0) continue;
+
+        if (epWords.length === 1) {
+          // Exact single-word lookup -> O(1) lookup
           const s = new Set();
-          for (const word in db.searchIndex) {
-            if (word.includes(qw)) {
-              const entryStr = db.searchIndex[word];
-              if (entryStr) {
-                const pairs = entryStr.split(',');
-                for (const pair of pairs) {
-                  const vk = pair.split('_')[0];
-                  s.add(vk);
-                }
+          addExactMatch(epWords[0], s);
+          sets.push(s);
+        } else {
+          // Exact multi-word phrase -> AND intersect all words exactly
+          const phraseWordSets = [];
+          for (const w of epWords) {
+            const ws = new Set();
+            addExactMatch(w, ws);
+            phraseWordSets.push(ws);
+          }
+          if (phraseWordSets.length > 0) {
+            phraseWordSets.sort((a, b) => a.size - b.size);
+            const s = new Set();
+            const [first, ...rest] = phraseWordSets;
+            for (const k of first) {
+              if (rest.every(rs => rs.has(k))) {
+                s.add(k);
               }
             }
+            sets.push(s);
           }
-          return s;
-        });
-        // Sort smallest-first for faster intersection
+        }
+      }
+
+      // 3. Intersect all matching term sets
+      if (sets.length > 0) {
         sets.sort((a, b) => a.size - b.size);
         const [first, ...rest] = sets;
         for (const k of first) {
-          if (rest.every(s => s.has(k))) matchedKeys.add(k);
+          if (rest.every(rs => rs.has(k))) {
+            matchedKeys.add(k);
+          }
         }
       }
+
 
     } else {
       // --- 2b. Fallback: raw scan of all source files ---

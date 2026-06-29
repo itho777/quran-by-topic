@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-build_index_v2.py
-=================
-Generates a detailed inverted search index containing source indices:
+build_index.py
+==============
+Generates a highly-compact search index file data/search_index.json:
 {
-  "word": {
-    "1:1": [0, 4, 12],
-    "2:5": [1]
-  }
+  "word": "verse_1_src_src,verse_2_src,..."
 }
+Filters out words appearing in > 500 verses to optimize download size.
 """
 
 import json, re, os, sys, time
@@ -60,7 +58,7 @@ sources = (
 total = len(sources)
 print(f"Total sources to index: {total}\n")
 
-index = {}
+temp_index = {}
 t0 = time.time()
 
 for idx, source in enumerate(sources):
@@ -83,21 +81,36 @@ for idx, source in enumerate(sources):
         if not isinstance(text, str):
             continue
         for word in tokenize(text):
-            if word not in index:
-                index[word] = {}
-            if verse_key not in index[word]:
-                index[word][verse_key] = []
-            index[word][verse_key].append(idx)
+            if word not in temp_index:
+                temp_index[word] = {}
+            if verse_key not in temp_index[word]:
+                temp_index[word][verse_key] = []
+            temp_index[word][verse_key].append(idx)
 
 elapsed = time.time() - t0
-print(f"\n✓ Indexed {total} files in {elapsed:.1f}s")
-print(f"  Unique word tokens: {len(index):,}")
+print(f"\n✓ Raw indexing finished in {elapsed:.1f}s")
+
+# Compact serialization & filtering common words (> 500 verses)
+print("Filtering common words and compacting...")
+compact_index = {}
+filtered_count = 0
+for w, verses in temp_index.items():
+    if len(verses) > 500:
+        filtered_count += 1
+        continue
+    parts = []
+    for vk, srcs in verses.items():
+        src_str = '_'.join(str(s) for s in srcs)
+        parts.append(f'{vk}_{src_str}')
+    compact_index[w] = ','.join(parts)
 
 out_path = 'data/search_index.json'
-print(f"Writing detailed index to {out_path}...")
+print(f"Writing compact index to {out_path}...")
 with open(out_path, 'w', encoding='utf-8') as f:
-    json.dump(index, f, ensure_ascii=False, separators=(',', ':'))
+    json.dump(compact_index, f, ensure_ascii=False, separators=(',', ':'))
 
 size_mb = os.path.getsize(out_path) / 1e6
 print(f"\n✅ Done! Wrote: {out_path}")
 print(f"   Index size: {size_mb:.1f} MB")
+print(f"   Unique words kept: {len(compact_index):,}")
+print(f"   Common words filtered (>500 verses): {filtered_count}")

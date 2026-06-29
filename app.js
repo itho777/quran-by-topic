@@ -1132,10 +1132,18 @@ function getSearchExcerpts(verseKey, query) {
     const matchedIndices = new Set();
     for (const qw of effectiveWords) {
       for (const word in db.searchIndex) {
-        if (word.includes(qw) && db.searchIndex[word][verseKey]) {
-          const idxs = db.searchIndex[word][verseKey];
-          for (const idx of idxs) {
-            matchedIndices.add(idx);
+        if (word.includes(qw)) {
+          const entryStr = db.searchIndex[word];
+          if (entryStr) {
+            const pairs = entryStr.split(',');
+            for (const pair of pairs) {
+              const parts = pair.split('_');
+              if (parts[0] === verseKey) {
+                for (let i = 1; i < parts.length; i++) {
+                  matchedIndices.add(Number(parts[i]));
+                }
+              }
+            }
           }
         }
       }
@@ -1905,7 +1913,14 @@ async function triggerRouting() {
         // Single word → substring match on all index keys
         for (const word in db.searchIndex) {
           if (word.includes(qLower)) {
-            for (const k in db.searchIndex[word]) matchedKeys.add(k);
+            const entryStr = db.searchIndex[word];
+            if (entryStr) {
+              const pairs = entryStr.split(',');
+              for (const pair of pairs) {
+                const vk = pair.split('_')[0];
+                matchedKeys.add(vk);
+              }
+            }
           }
         }
       } else {
@@ -1914,7 +1929,14 @@ async function triggerRouting() {
           const s = new Set();
           for (const word in db.searchIndex) {
             if (word.includes(qw)) {
-              for (const k in db.searchIndex[word]) s.add(k);
+              const entryStr = db.searchIndex[word];
+              if (entryStr) {
+                const pairs = entryStr.split(',');
+                for (const pair of pairs) {
+                  const vk = pair.split('_')[0];
+                  s.add(vk);
+                }
+              }
             }
           }
           return s;

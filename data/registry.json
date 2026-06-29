@@ -310,13 +310,6 @@
                              "default":  false
                          },
                          {
-                             "id":  "id.indonesian",
-                             "name":  "Kemenag (Indonesian)",
-                             "file":  "data/translations/id.indonesian.json",
-                             "lang":  "id",
-                             "default":  false
-                         },
-                         {
                              "id":  "it.piccardo",
                              "name":  "Piccardo (Italian)",
                              "file":  "data/translations/it.piccardo.json",

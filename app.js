@@ -1124,6 +1124,51 @@ function getSearchExcerpts(verseKey, query) {
       </div>
     `;
   }
+
+  // No match visible in currently loaded sources —
+  // count how many non-active sources in the index contain this verse
+  if (db.searchIndex) {
+    const qLower = query.toLowerCase().trim();
+    const queryWords = qLower.split(/\s+/).filter(w => w.length >= 2);
+    const effectiveWords = queryWords.length ? queryWords : [qLower];
+
+    // Count distinct source registries that have this verseKey cached vs not
+    let uncachedSources = 0;
+    for (const src of [...db.registry.translations, ...db.registry.tafsirs, ...db.registry.asbabun_nuzul]) {
+      if (!db.cache.has(src.file)) uncachedSources++;
+    }
+
+    // Check if the index actually has this verse for our query words
+    let indexHasMatch = false;
+    for (const qw of effectiveWords) {
+      for (const word in db.searchIndex) {
+        if (word.includes(qw) && db.searchIndex[word].includes(verseKey)) {
+          indexHasMatch = true;
+          break;
+        }
+      }
+      if (indexHasMatch) break;
+    }
+
+    if (indexHasMatch && uncachedSources > 0) {
+      const isId = state.uiLang === 'id';
+      const msg = isId
+        ? `Ditemukan di salah satu dari ${uncachedSources} terjemahan/tafsir lain yang tidak aktif`
+        : `Found in one of ${uncachedSources} other translation/tafsir sources not currently active`;
+      const hint = isId
+        ? 'Aktifkan lebih banyak terjemahan di panel Pengaturan Tampilan untuk melihat konteksnya.'
+        : 'Enable more translations in Display Settings to see the matching context.';
+      return `
+        <div class="search-excerpts-box search-excerpts-other">
+          <div class="search-excerpt-item">
+            <span class="search-excerpt-source other-source">🔍 ${msg}</span>
+            <div class="search-excerpt-hint">${hint}</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
   return '';
 }
 

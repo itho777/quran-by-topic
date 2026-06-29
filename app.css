@@ -1655,4 +1655,25 @@ body.has-player {
   font-weight: 600;
 }
 
-
+/* Fallback: matched in a non-active source */
+.search-excerpts-other {
+  border-left: 2px solid var(--border-color);
+  background: transparent;
+  opacity: 0.75;
+}
+.search-excerpts-other .search-excerpt-item {
+  border-left: none;
+  padding-left: 0;
+}
+.search-excerpt-source.other-source {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-style: italic;
+}
+.search-excerpt-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}

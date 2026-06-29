@@ -1048,18 +1048,18 @@ function textMatchesQuery(text, query) {
 
   const textLower = text.toLowerCase();
   
-  // All exact phrases must match
+  // Match if ANY exact phrase matches
   for (const ep of exactPhrases) {
-    if (!textLower.includes(ep)) return false;
+    if (textLower.includes(ep)) return true;
   }
   
-  // All broad words must match
+  // Match if ANY broad word matches
   for (const bw of broadWords) {
     if (bw.length < 2) continue;
-    if (!textLower.includes(bw)) return false;
+    if (textLower.includes(bw)) return true;
   }
 
-  return true;
+  return false;
 }
 
 function escapeRegExpGlobal(string) {

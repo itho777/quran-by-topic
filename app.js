@@ -1033,7 +1033,35 @@ function wrapLayerText(text) {
           <button class="verse-layer-more" style="display:none">${moreLabel}</button>`;
 }
 
-// --- Shared text highlight helpers (used by search excerpts & findMatchingSource) ---
+// --- Shared text highlight & query match helpers ---
+function textMatchesQuery(text, query) {
+  if (!text) return false;
+  const qLower = query.toLowerCase().trim();
+  const exactPhrases = [];
+  const broadWords = [];
+  const regexParse = /"([^"]+)"|(\S+)/g;
+  let match;
+  while ((match = regexParse.exec(qLower)) !== null) {
+    if (match[1]) exactPhrases.push(match[1].trim());
+    else if (match[2]) broadWords.push(match[2].trim());
+  }
+
+  const textLower = text.toLowerCase();
+  
+  // All exact phrases must match
+  for (const ep of exactPhrases) {
+    if (!textLower.includes(ep)) return false;
+  }
+  
+  // All broad words must match
+  for (const bw of broadWords) {
+    if (bw.length < 2) continue;
+    if (!textLower.includes(bw)) return false;
+  }
+
+  return true;
+}
+
 function escapeRegExpGlobal(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -1099,7 +1127,7 @@ function getSearchExcerpts(verseKey, query) {
     const data = db.cache.get(t.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
-      if (text.toLowerCase().includes(qLower)) {
+      if (textMatchesQuery(text, query)) {
         html += `
           <div class="search-excerpt-item">
             <span class="search-excerpt-source translation-source">${t.name}</span>
@@ -1115,7 +1143,7 @@ function getSearchExcerpts(verseKey, query) {
     const data = db.cache.get(t.file);
     if (data) {
       const text = resolveTafsirText(data, verseKey);
-      if (text && text.toLowerCase().includes(qLower)) {
+      if (textMatchesQuery(text, query)) {
         html += `
           <div class="search-excerpt-item">
             <span class="search-excerpt-source tafsir-source">${t.name}</span>
@@ -1131,7 +1159,7 @@ function getSearchExcerpts(verseKey, query) {
     const data = db.cache.get(n.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
-      if (text.toLowerCase().includes(qLower)) {
+      if (textMatchesQuery(text, query)) {
         html += `
           <div class="search-excerpt-item">
             <span class="search-excerpt-source nuzul-source">${n.name}</span>
@@ -1258,7 +1286,7 @@ async function findMatchingSource(verseKey, query, btn) {
     const text = type === 'tafsirs'
       ? resolveTafsirText(data, verseKey)
       : (data[verseKey] || '');
-    if (text && text.toLowerCase().includes(qLower)) {
+    if (textMatchesQuery(text, query)) {
       found.push({ src, type, text });
     }
   }

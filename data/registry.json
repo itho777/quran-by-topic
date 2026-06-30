@@ -908,6 +908,7 @@
         { "id": "Ibrahim_Akhdar_128kbps",             "name": "Ibrahim Akhdar",                   "style": "Murattal", "default": false },
         { "id": "Saud_Al-Shuraim_128kbps",            "name": "Saud Al-Shuraim",                  "style": "Murattal", "default": false },
         { "id": "Ahmed_ibn_Ali_al-Ajamy_128kbps_ketabook", "name": "Ahmed ibn Ali Al-Ajamy",      "style": "Murattal", "default": false },
-        { "id": "Mohammad_al_Tablawi_128kbps",        "name": "Mohammad Al-Tablawi",              "style": "Murattal", "default": false }
+        { "id": "Mohammad_al_Tablawi_128kbps",        "name": "Mohammad Al-Tablawi",              "style": "Murattal", "default": false },
+        { "id": "Ghamadi_40kbps",                    "name": "Saad Al-Ghamdi",                   "style": "Murattal", "default": false }
     ]
 }

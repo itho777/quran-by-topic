@@ -2394,11 +2394,14 @@ let currentAudio = null;
 let currentPlayingKey = null; // "sura:ayah"
 let isAudioPlaying = false;
 
-function getAudioUrl(verseKey, reciterId) {
+function getAudioUrl(verseKey, reciterId, useMirror = true) {
   const [sura, ayah] = verseKey.split(':');
   const suraPad = sura.padStart(3, '0');
   const ayahPad = ayah.padStart(3, '0');
-  return `https://everyayah.com/data/${reciterId}/${suraPad}${ayahPad}.mp3`;
+  const host = useMirror 
+    ? 'https://mirrors.quranicaudio.com/everyayah/data' 
+    : 'https://everyayah.com/data';
+  return `${host}/${reciterId}/${suraPad}${ayahPad}.mp3`;
 }
 
 function playAyah(verseKey) {
@@ -2409,20 +2412,30 @@ function playAyah(verseKey) {
   currentPlayingKey = verseKey;
   isAudioPlaying = true;
   
-  const url = getAudioUrl(verseKey, state.activeReciter);
-  currentAudio = new Audio(url);
-  currentAudio.play().then(() => {
-    updateAudioUI();
-  }).catch(err => {
-    console.error("Audio playback failed:", err);
-    isAudioPlaying = false;
-    updateAudioUI();
-  });
-  
-  // Auto-advance
-  currentAudio.onended = () => {
-    playNextAyah();
-  };
+  function tryPlay(url, isFallback = false) {
+    currentAudio = new Audio(url);
+    currentAudio.onended = () => {
+      playNextAyah();
+    };
+    
+    currentAudio.play().then(() => {
+      updateAudioUI();
+    }).catch(err => {
+      console.warn(`Audio playback failed on ${url}:`, err);
+      if (!isFallback) {
+        // Try fallback to primary everyayah.com server
+        const fallbackUrl = getAudioUrl(verseKey, state.activeReciter, false);
+        tryPlay(fallbackUrl, true);
+      } else {
+        console.error("Audio playback failed completely:", err);
+        isAudioPlaying = false;
+        updateAudioUI();
+      }
+    });
+  }
+
+  const url = getAudioUrl(verseKey, state.activeReciter, true);
+  tryPlay(url, false);
 }
 
 function pauseAyah() {
@@ -3179,8 +3192,9 @@ function setupEventBindings() {
       if (tagsSel) tagsSel.value = state.activeTags;
       updateTagsSelectHint();
 
-      const recSel = document.getElementById('reciter-select');
-      if (recSel) recSel.value = state.activeReciter;
+      syncSearchableSelect('reciter-search', 'reciter-dropdown', 'reciter-select',
+        (db.registry.reciters || []).map(r => ({ id: r.id, name: `${r.name} — ${r.style}` })),
+        state.activeReciter);
 
       // Apply font/theme sizes
       applyStyles();

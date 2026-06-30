@@ -1130,7 +1130,7 @@ function getSearchExcerpts(verseKey, query) {
       if (textMatchesQuery(text, query)) {
         html += `
           <div class="search-excerpt-item">
-            <span class="search-excerpt-source translation-source">${t.name}</span>
+            <a class="search-excerpt-source translation-source search-excerpt-source-link" href="#" title="Open ayah with this translation" onclick="return goToVerseWithSource('${t.id}','translations','${verseKey}')">${t.name}</a>
             <div class="search-excerpt-text">${highlightText(text, query)}</div>
           </div>
         `;
@@ -1146,7 +1146,7 @@ function getSearchExcerpts(verseKey, query) {
       if (textMatchesQuery(text, query)) {
         html += `
           <div class="search-excerpt-item">
-            <span class="search-excerpt-source tafsir-source">${t.name}</span>
+            <a class="search-excerpt-source tafsir-source search-excerpt-source-link" href="#" title="Open ayah with this tafsir" onclick="return goToVerseWithSource('${t.id}','tafsirs','${verseKey}')">${t.name}</a>
             <div class="search-excerpt-text">${highlightText(text, query)}</div>
           </div>
         `;
@@ -1162,7 +1162,7 @@ function getSearchExcerpts(verseKey, query) {
       if (textMatchesQuery(text, query)) {
         html += `
           <div class="search-excerpt-item">
-            <span class="search-excerpt-source nuzul-source">${n.name}</span>
+            <a class="search-excerpt-source nuzul-source search-excerpt-source-link" href="#" title="Open ayah with this asbabun nuzul" onclick="return goToVerseWithSource('${n.id}','asbabun_nuzul','${verseKey}')">${n.name}</a>
             <div class="search-excerpt-text">${highlightText(text, query)}</div>
           </div>
         `;
@@ -1339,7 +1339,7 @@ async function findMatchingSource(verseKey, query, btn) {
     innerHtml += `
       <div class="search-excerpt-item">
         <div class="search-excerpt-source-row">
-          <span class="search-excerpt-source ${cssClass[type]}">${src.name}</span>
+          <a class="search-excerpt-source ${cssClass[type]} search-excerpt-source-link" href="#" title="Open ayah with this source" onclick="return goToVerseWithSource('${src.id}','${type}','${verseKey}')">${src.name}</a>
           <span class="excerpt-set-btns">
             <button class="btn-set-source" onclick="setSearchSource('${slot1}','${src.id}','${verseKey}')">${btn1Label}</button>
             <button class="btn-set-source" onclick="setSearchSource('${slot2}','${src.id}','${verseKey}')">${btn2Label}</button>
@@ -1382,9 +1382,31 @@ async function setSearchSource(slot, sourceId, verseKey) {
   triggerRouting();          // Re-render the whole page so all cards update
 }
 
+/**
+ * Navigate to the ayah detail page with the clicked source set as the primary slot.
+ * Called from clickable source name labels in search result excerpts.
+ */
+function goToVerseWithSource(sourceId, sourceType, verseKey) {
+  const slotKeyMap = {
+    translations:  { key: 'activeTranslation1', pref: 'trans1UserPref'  },
+    tafsirs:       { key: 'activeTafsir1',       pref: 'tafsir1UserPref' },
+    asbabun_nuzul: { key: 'activeNuzul1',        pref: 'nuzul1UserPref'  }
+  };
+  const mapping = slotKeyMap[sourceType];
+  if (mapping) {
+    state[mapping.key] = sourceId;
+    state[mapping.pref] = true; // Lock this choice, don't auto-reset on language change
+    saveSettings();
+  }
+  const [suraId, ayahNum] = verseKey.split(':');
+  window.location.hash = `#sura/${suraId}/verse/${ayahNum}`;
+  return false; // Prevent default anchor navigation
+}
+
 // Expose handlers to global window scope so inline onclick works
 window.findMatchingSource = findMatchingSource;
 window.setSearchSource = setSearchSource;
+window.goToVerseWithSource = goToVerseWithSource;
 
 function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
   const card = document.createElement('div');

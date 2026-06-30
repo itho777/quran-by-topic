@@ -586,6 +586,17 @@ function renderVerseList(container, versesToRender, highlightQuery = '') {
           btn.style.display = '';
         }
       });
+      container.querySelectorAll('.tags-more-btn:not([data-processed])').forEach(btn => {
+        btn.setAttribute('data-processed', '1');
+        const tagsEl = btn.previousElementSibling;
+        if (tagsEl && tagsEl.scrollHeight > tagsEl.clientHeight + 2) {
+          btn.style.display = 'inline-flex';
+          btn.onclick = () => {
+            const expanded = tagsEl.classList.toggle('is-expanded');
+            btn.textContent = expanded ? btn.getAttribute('data-less') : btn.getAttribute('data-more');
+          };
+        }
+      });
     });
 
     currentIndex = end;
@@ -1483,12 +1494,14 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
     if (state.layers.tags && db.verseTags && db.verseTags[verseKey]) {
       const tagIds = db.verseTags[verseKey];
       if (tagIds && tagIds.length > 0) {
-        let tagsHtml = '<div class="verse-tags">';
+        const moreLabel = state.uiLang === 'id' ? 'Selengkapnya ▼' : 'Show more ▼';
+        const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
+        let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
           const name = tagLookup.get(id) || id;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${name}</a>`;
         });
-        tagsHtml += '</div>';
+        tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
         bodyHtml += tagsHtml;
       }
     }
@@ -1613,12 +1626,14 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
     if (state.layers.tags && db.verseTags && db.verseTags[verseKey]) {
       const tagIds = db.verseTags[verseKey];
       if (tagIds && tagIds.length > 0) {
-        let tagsHtml = '<div class="verse-tags">';
+        const moreLabel = state.uiLang === 'id' ? 'Selengkapnya ▼' : 'Show more ▼';
+        const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
+        let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
           const name = tagLookup.get(id) || id;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${name}</a>`;
         });
-        tagsHtml += '</div>';
+        tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
         bodyHtml += tagsHtml;
       }
     }
@@ -1797,6 +1812,31 @@ async function triggerRouting() {
       const tabSura = document.getElementById('tab-sura-list');
       if (tabSura) tabSura.click();
 
+      // First display of surah page and ayah page logic:
+      // Open the display settings sidebar and set all options activated (if not done yet in this session)
+      if (!sessionStorage.getItem('tafsir_first_display_done')) {
+        sessionStorage.setItem('tafsir_first_display_done', '1');
+        
+        // Open panel
+        const compPanel = document.getElementById('comparison-panel');
+        if (compPanel && !compPanel.classList.contains('open')) {
+          compPanel.classList.add('open');
+        }
+        
+        // Set all layers to active
+        for (const layer in state.layers) {
+          state.layers[layer] = true;
+        }
+        
+        // Update checkbox controls in UI
+        for (const layer in state.layers) {
+          const cb = document.getElementById(`${layer}-toggle`);
+          if (cb) cb.checked = true;
+        }
+        
+        saveSettings();
+      }
+
       await ensureActiveDatasets();
 
       if (targetVerse) {
@@ -1826,6 +1866,17 @@ async function triggerRouting() {
             const textEl = btn.previousElementSibling;
             if (textEl && textEl.scrollHeight > textEl.clientHeight + 2) {
               btn.style.display = '';
+            }
+          });
+          card.querySelectorAll('.tags-more-btn:not([data-processed])').forEach(btn => {
+            btn.setAttribute('data-processed', '1');
+            const tagsEl = btn.previousElementSibling;
+            if (tagsEl && tagsEl.scrollHeight > tagsEl.clientHeight + 2) {
+              btn.style.display = 'inline-flex';
+              btn.onclick = () => {
+                const expanded = tagsEl.classList.toggle('is-expanded');
+                btn.textContent = expanded ? btn.getAttribute('data-less') : btn.getAttribute('data-more');
+              };
             }
           });
         });
@@ -3076,6 +3127,69 @@ function setupEventBindings() {
   }
   if (gotoSuraSelect) {
     gotoSuraSelect.addEventListener('change', updateGotoModalMaxAyah);
+  }
+
+  // Reset Defaults Button click handler
+  const btnResetDefaults = document.getElementById('btn-reset-defaults');
+  if (btnResetDefaults) {
+    btnResetDefaults.onclick = async () => {
+      // 1. Reset user preference locks
+      state.trans1UserPref = false;
+      state.trans2UserPref = false;
+      state.transliterationUserPref = false;
+      state.tafsir1UserPref = false;
+      state.tafsir2UserPref = false;
+      state.nuzul1UserPref = false;
+      state.nuzul2UserPref = false;
+      state.tagsUserPref = false;
+
+      // 2. Reset layers to default values
+      state.layers = { ...defaultState.layers };
+
+      // 3. Reset common settings to defaultState values
+      state.arabicFontSize = defaultState.arabicFontSize;
+      state.transFontSize = defaultState.transFontSize;
+      state.activeReciter = defaultState.activeReciter;
+
+      // 4. Force default settings for active UI language
+      applyLanguageDefaultTranslations(false);
+      applyLanguageDefaultTransliterations(false);
+      applyLanguageDefaultTafsir(false);
+      applyLanguageDefaultNuzul(false);
+      state.activeTags = state.uiLang === 'id' ? 'id' : 'en';
+
+      saveSettings();
+
+      // 5. Update UI checkboxes
+      for (const layer in state.layers) {
+        const cb = document.getElementById(`${layer}-toggle`);
+        if (cb) cb.checked = state.layers[layer];
+      }
+
+      // 6. Update UI dropdown selections
+      syncSearchableSelect('trans1-search', 'trans1-dropdown', 'trans1-select', db.registry.translations, state.activeTranslation1);
+      syncSearchableSelect('trans2-search', 'trans2-dropdown', 'trans2-select', db.registry.translations, state.activeTranslation2);
+      syncSearchableSelect('translit-search', 'translit-dropdown', 'translit-select', db.registry.transliterations, state.activeTransliteration, '— none —');
+      syncSearchableSelect('tafsir1-search', 'tafsir1-dropdown', 'tafsir1-select', db.registry.tafsirs, state.activeTafsir1);
+      syncSearchableSelect('tafsir2-search', 'tafsir2-dropdown', 'tafsir2-select', db.registry.tafsirs, state.activeTafsir2);
+      syncSearchableSelect('nuzul1-search', 'nuzul1-dropdown', 'nuzul1-select', db.registry.asbabun_nuzul, state.activeNuzul1, '— none available —');
+      syncSearchableSelect('nuzul2-search', 'nuzul2-dropdown', 'nuzul2-select', db.registry.asbabun_nuzul, state.activeNuzul2, '— none available —');
+
+      const tagsSel = document.getElementById('tags-select');
+      if (tagsSel) tagsSel.value = state.activeTags;
+      updateTagsSelectHint();
+
+      const recSel = document.getElementById('reciter-select');
+      if (recSel) recSel.value = state.activeReciter;
+
+      // Apply font/theme sizes
+      applyStyles();
+
+      // 7. Reload resources and re-route/re-render
+      await reloadTagsDataset();
+      await ensureActiveDatasets();
+      triggerRouting();
+    };
   }
 }
 

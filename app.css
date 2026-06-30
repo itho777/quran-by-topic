@@ -787,6 +787,37 @@ body {
   text-decoration: none;
 }
 
+/* Collapsible tag container */
+.verse-tags.tags-collapsible {
+  max-height: 110px; /* ~5 lines of tags */
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.verse-tags.tags-collapsible.is-expanded {
+  max-height: 1000px; /* Large enough height to show all */
+}
+.tags-more-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 10px;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  border-radius: 12px;
+  border: 1px dashed var(--border-color);
+  transition: background var(--trans-fast), color var(--trans-fast);
+}
+.tags-more-btn:hover {
+  background: var(--bg-secondary);
+  text-decoration: none;
+}
+
 /* ---------- Sura Paginator ---------- */
 .sura-paginator {
   display: flex;
@@ -957,6 +988,29 @@ body {
 .comparison-panel-header h3 {
   font-size: 0.9rem;
   font-weight: 700;
+  color: var(--text-primary);
+}
+.comparison-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-reset-defaults {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background var(--trans-fast), border-color var(--trans-fast), color var(--trans-fast);
+}
+.btn-reset-defaults:hover {
+  background: var(--border-color);
   color: var(--text-primary);
 }
 .comparison-panel-body { padding: 12px; }

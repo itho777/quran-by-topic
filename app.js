@@ -30,12 +30,12 @@ const defaultState = {
   ayahPerPage: 10,
   layers: {
     trans1: true,
-    trans2: false,
+    trans2: true,
     transliteration: true,
-    tafsir1: false,
-    tafsir2: false,
-    nuzul1: false,
-    nuzul2: false,
+    tafsir1: true,
+    tafsir2: true,
+    nuzul1: true,
+    nuzul2: true,
     tags: true
   }
 };

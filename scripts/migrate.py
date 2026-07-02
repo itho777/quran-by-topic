@@ -27,9 +27,16 @@ if not supabase_url or not supabase_key:
 if not supabase_url.endswith("/"):
     supabase_url += "/"
 
-# 2. UTILITY FUNCTION FOR RAW POSTGREST BATCH INSERTS
-def send_batch(table, records):
+# 2. UTILITY FUNCTION FOR RAW POSTGREST BATCH UPSERTS
+def send_batch(table, records, on_conflict=None):
+    """
+    Upsert a batch of records into a Supabase table via PostgREST.
+    on_conflict: comma-separated column name(s) to use for conflict resolution.
+                 If None, PostgREST uses the primary key by default.
+    """
     url = f"{supabase_url}rest/v1/{table}"
+    if on_conflict:
+        url += f"?on_conflict={on_conflict}"
     headers = {
         "apikey": supabase_key,
         "Authorization": f"Bearer {supabase_key}",
@@ -105,7 +112,7 @@ def run_migration():
             "ayas": s["ayas"],
             "type": s["type"]
         })
-    send_batch("surahs", suras_records)
+    send_batch("surahs", suras_records, on_conflict="id")
     print_status(f"Successfully migrated {len(suras_records)} Surahs.")
 
     # --- B. MIGRATE VERSES ---
@@ -128,7 +135,7 @@ def run_migration():
     batch_size = 1000
     for i in range(0, len(verses_records), batch_size):
         chunk = verses_records[i:i+batch_size]
-        send_batch("verses", chunk)
+        send_batch("verses", chunk, on_conflict="verse_key")
         print(f"Uploaded verses {i+1} to {min(i+batch_size, len(verses_records))}...", end="\r")
     print_status(f"\nSuccessfully migrated {len(verses_records)} Verses.")
 
@@ -165,7 +172,7 @@ def run_migration():
         
         # Batch upload
         for i in range(0, len(trans_records), batch_size):
-            send_batch("translations", trans_records[i:i+batch_size])
+            send_batch("translations", trans_records[i:i+batch_size], on_conflict="source_id,verse_id")
         print_status(f"Migrated translation: {source_id} ({len(trans_records)} entries)")
 
     # --- D. MIGRATE TAFSIRS ---
@@ -192,7 +199,7 @@ def run_migration():
                 
         # Batch upload
         for i in range(0, len(tafsir_records), batch_size):
-            send_batch("tafsirs", tafsir_records[i:i+batch_size])
+            send_batch("tafsirs", tafsir_records[i:i+batch_size], on_conflict="source_id,verse_id")
         print_status(f"Migrated tafsir: {source_id} ({len(tafsir_records)} entries)")
 
     # --- E. MIGRATE ASBABUN NUZUL ---
@@ -219,7 +226,7 @@ def run_migration():
                 
         # Batch upload
         for i in range(0, len(nuzul_records), batch_size):
-            send_batch("asbabun_nuzul", nuzul_records[i:i+batch_size])
+            send_batch("asbabun_nuzul", nuzul_records[i:i+batch_size], on_conflict="source_id,verse_id")
         print_status(f"Migrated Asbabun Nuzul: {source_id} ({len(nuzul_records)} entries)")
 
     # --- F. MIGRATE TAGS / TOPICS ---
@@ -237,9 +244,9 @@ def run_migration():
     tags_id_records = [{"id": t["id"], "name": t["name"], "lang": "id"} for t in tags_id]
     tags_en_records = [{"id": t["id"], "name": t["name"], "lang": "en"} for t in tags_en]
     
-    send_batch("tags", tags_id_records)
+    send_batch("tags", tags_id_records, on_conflict="id,lang")
     print_status(f"Migrated {len(tags_id_records)} Indonesian tag definitions.")
-    send_batch("tags", tags_en_records)
+    send_batch("tags", tags_en_records, on_conflict="id,lang")
     print_status(f"Migrated {len(tags_en_records)} English tag definitions.")
 
     # --- G. MIGRATE VERSE-TAG MAPPINGS ---
@@ -283,7 +290,7 @@ def run_migration():
     # Batch upload mappings
     total_maps = len(vtags_records)
     for i in range(0, total_maps, batch_size):
-        send_batch("verse_tags", vtags_records[i:i+batch_size])
+        send_batch("verse_tags", vtags_records[i:i+batch_size], on_conflict="verse_id,tag_id,lang")
         print(f"Uploaded mapping {i+1} to {min(i+batch_size, total_maps)}...", end="\r")
         
     print_status(f"\nSuccessfully migrated {total_maps} verse-topic mappings!")

@@ -1,7 +1,7 @@
 -- Supabase SQL Schema for Quran by Topic (tafsir-upgrade)
 
--- Enable pgvector for semantic search (optional but highly recommended)
-create extension if not exists "pgvector";
+-- Enable pgvector for semantic search (optional but commented out due to instance availability)
+-- create extension if not exists "pgvector";
 
 -- 1. SURAHS TABLE
 create table if not exists surahs (

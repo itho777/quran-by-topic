@@ -90,7 +90,7 @@ def run_migration():
     # --- A. MIGRATE SURAHS ---
     print_status("\n--- 1. Migrating Surahs ---", YELLOW)
     suras_file = os.path.join(data_dir, "sura_list.json")
-    with open(suras_file, "r", encoding="utf-8") as f:
+    with open(suras_file, "r", encoding="utf-8-sig") as f:
         suras = json.load(f)
     
     suras_records = []
@@ -111,7 +111,7 @@ def run_migration():
     # --- B. MIGRATE VERSES ---
     print_status("\n--- 2. Migrating Verses ---", YELLOW)
     arabic_file = os.path.join(data_dir, "quran_arabic.json")
-    with open(arabic_file, "r", encoding="utf-8") as f:
+    with open(arabic_file, "r", encoding="utf-8-sig") as f:
         arabic_data = json.load(f)
     
     verses_records = []
@@ -150,7 +150,7 @@ def run_migration():
         source_id = filename[:-5] # remove ".json" extension
         filepath = os.path.join(trans_dir, filename)
         
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, "r", encoding="utf-8-sig") as f:
             trans_data = json.load(f)
             
         trans_records = []
@@ -177,7 +177,7 @@ def run_migration():
         source_id = filename[:-5]
         filepath = os.path.join(tafsir_dir, filename)
         
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, "r", encoding="utf-8-sig") as f:
             tafsir_data = json.load(f)
             
         tafsir_records = []
@@ -204,7 +204,7 @@ def run_migration():
         source_id = filename[:-5]
         filepath = os.path.join(nuzul_dir, filename)
         
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, "r", encoding="utf-8-sig") as f:
             nuzul_data = json.load(f)
             
         nuzul_records = []
@@ -226,10 +226,10 @@ def run_migration():
     print_status("\n--- 6. Migrating Topic Tags ---", YELLOW)
     
     # Load Indonesian tags
-    with open(os.path.join(data_dir, "tags_id.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(data_dir, "tags_id.json"), "r", encoding="utf-8-sig") as f:
         tags_id = json.load(f)
     # Load English tags
-    with open(os.path.join(data_dir, "tags_en.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(data_dir, "tags_en.json"), "r", encoding="utf-8-sig") as f:
         tags_en = json.load(f)
         
     tags_records = []
@@ -245,10 +245,10 @@ def run_migration():
     print_status("\n--- 7. Migrating Verse-Tag Mappings ---", YELLOW)
     
     # Indonesian mapping
-    with open(os.path.join(data_dir, "verse_tags_id.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(data_dir, "verse_tags_id.json"), "r", encoding="utf-8-sig") as f:
         vtags_id = json.load(f)
     # English mapping
-    with open(os.path.join(data_dir, "verse_tags_en.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(data_dir, "verse_tags_en.json"), "r", encoding="utf-8-sig") as f:
         vtags_en = json.load(f)
         
     vtags_records = []

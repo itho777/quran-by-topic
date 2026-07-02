@@ -71,17 +71,20 @@ create index if not exists idx_nuzul_search on asbabun_nuzul(source_id, verse_ke
 
 -- 6. TAGS / TOPICS TABLES
 create table if not exists tags (
-    id text primary key, -- e.g. "akidah", "iman"
+    id integer not null,             -- numeric tag ID from source files
     name text not null,
-    lang text not null default 'id' -- 'id' or 'en'
+    lang text not null default 'id', -- 'id' or 'en'
+    primary key (id, lang)           -- composite PK: same ID exists in both langs
 );
 
 create table if not exists verse_tags (
     id serial primary key,
     verse_id integer not null references verses(id) on delete cascade,
     verse_key text not null,
-    tag_id text not null references tags(id) on delete cascade,
-    lang text not null default 'id'
+    tag_id integer not null,
+    tag_lang text not null default 'id',
+    lang text not null default 'id',
+    foreign key (tag_id, tag_lang) references tags(id, lang) on delete cascade
 );
 
 create unique index if not exists unique_verse_tag on verse_tags(verse_id, tag_id, lang);

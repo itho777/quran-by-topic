@@ -231,15 +231,16 @@ def run_migration():
     # Load English tags
     with open(os.path.join(data_dir, "tags_en.json"), "r", encoding="utf-8-sig") as f:
         tags_en = json.load(f)
-        
-    tags_records = []
-    for t in tags_id:
-        tags_records.append({"id": t["id"], "name": t["name"], "lang": "id"})
-    for t in tags_en:
-        tags_records.append({"id": t["id"], "name": t["name"], "lang": "en"})
-        
-    send_batch("tags", tags_records)
-    print_status(f"Migrated {len(tags_records)} unique topic tag definitions.")
+    
+    # Send each language as a SEPARATE batch to avoid duplicate ID conflicts
+    # within a single upsert request (both lang files share the same ID numbers)
+    tags_id_records = [{"id": t["id"], "name": t["name"], "lang": "id"} for t in tags_id]
+    tags_en_records = [{"id": t["id"], "name": t["name"], "lang": "en"} for t in tags_en]
+    
+    send_batch("tags", tags_id_records)
+    print_status(f"Migrated {len(tags_id_records)} Indonesian tag definitions.")
+    send_batch("tags", tags_en_records)
+    print_status(f"Migrated {len(tags_en_records)} English tag definitions.")
 
     # --- G. MIGRATE VERSE-TAG MAPPINGS ---
     print_status("\n--- 7. Migrating Verse-Tag Mappings ---", YELLOW)
@@ -262,6 +263,7 @@ def run_migration():
                     "verse_id": verse_id,
                     "verse_key": key,
                     "tag_id": tag_id,
+                    "tag_lang": "id",
                     "lang": "id"
                 })
                 
@@ -274,6 +276,7 @@ def run_migration():
                     "verse_id": verse_id,
                     "verse_key": key,
                     "tag_id": tag_id,
+                    "tag_lang": "en",
                     "lang": "en"
                 })
                 

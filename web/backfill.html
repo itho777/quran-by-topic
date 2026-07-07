@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Embedding Backfill Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1A1A1A;
+      color: #E5E2E1;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: #242424;
+      border: 1px solid #4E4639;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 { font-size: 20px; margin-bottom: 8px; color: #E9C176; }
+    p { font-size: 13px; color: #9A8F80; margin-bottom: 20px; line-height: 1.5; }
+    code { background: #333; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .progress-bg {
+      background: #333; border-radius: 100px; height: 10px; margin: 16px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      background: linear-gradient(90deg, #E9C176, #C5A059);
+      height: 100%; width: 0%; border-radius: 100px;
+      transition: width 0.4s ease;
+    }
+    .stats { display: flex; gap: 24px; font-size: 13px; margin-bottom: 16px; }
+    .stat-val { color: #E9C176; font-weight: 700; }
+    .err-val { color: #ff6679; font-weight: 700; }
+    label { display: block; font-size: 11px; color: #9A8F80; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; font-weight: 600; }
+    input[type="password"], input[type="text"] {
+      width: 100%; background: #2A2A2A; border: 1px solid #4E4639;
+      color: #E5E2E1; padding: 10px 12px; border-radius: 10px;
+      font-size: 13px; margin-bottom: 16px;
+    }
+    input:focus { border-color: #E9C176; outline: none; }
+    .btn {
+      width: 100%; background: linear-gradient(135deg, #E9C176, #C5A059);
+      color: #412D00; border: none; border-radius: 12px;
+      padding: 14px; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn:disabled { background: #353534; color: #9A8F80; cursor: not-allowed; }
+    .log {
+      background: #131313; border: 1px solid #333; border-radius: 10px;
+      height: 180px; overflow-y: auto; margin-top: 16px;
+      padding: 12px; font-family: monospace; font-size: 11px; color: #95D1D1;
+    }
+    .status { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+    .error { color: #ff6679; }
+    .success { color: #7BC67E; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>✨ Embedding Backfill Tool</h1>
+    <p>Generates multilingual semantic embeddings for all Quran translations using <code>paraphrase-multilingual-MiniLM-L12-v2</code> and saves them directly to Supabase.</p>
+
+    <div>
+      <label>Hugging Face Token (optional — avoids rate limits)</label>
+      <input type="password" id="hfToken" placeholder="hf_xxxxxxx (optional, from huggingface.co/settings/tokens)" />
+    </div>
+
+    <div class="status" id="statusText">Status: Ready</div>
+    <div class="progress-bg"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="stats">
+      <div>Processed: <span class="stat-val" id="processed">0</span> / <span class="stat-val" id="total">0</span></div>
+      <div>Errors: <span class="err-val" id="errCount">0</span></div>
+    </div>
+
+    <button class="btn" id="startBtn" onclick="startBackfill()">▶ Start Generating Embeddings</button>
+
+    <div class="log" id="log">Ready. Click Start to begin...</div>
+  </div>
+
+<script>
+  // ── FILL THESE IN (already injected by prepare_backfill.py) ──────────────
+  const SUPABASE_URL = "https://zgeygoclduqotqveperx.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnZXlnb2NsZHVxb3RxdmVwZXJ4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzAwNjA0OSwiZXhwIjoyMDk4NTgyMDQ5fQ.CaplGGMS_Xuxsh85iiQF6FbvhY24wva7Io_bOfxU7hw";
+  const HF_MODEL   = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
+  const HF_API     = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+  const BATCH_SIZE = 50;
+  // ─────────────────────────────────────────────────────────────────────────
+
+  let running = false;
+  let processed = 0;
+  let totalCount = 0;
+  let errorCount = 0;
+
+  function log(msg, cls = '') {
+    const el = document.getElementById('log');
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setStatus(msg) {
+    document.getElementById('statusText').textContent = `Status: ${msg}`;
+  }
+
+  async function supabaseFetch(path, opts = {}) {
+    const url = `${SUPABASE_URL}/rest/v1/${path}`;
+    const headers = {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      ...opts.headers,
+    };
+    const res = await fetch(url, { ...opts, headers });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Supabase ${res.status}: ${body}`);
+    }
+    return res;
+  }
+
+  async function getEmbeddings(texts) {
+    const hfToken = document.getElementById('hfToken').value.trim();
+    const headers = { 'Content-Type': 'application/json' };
+    if (hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+
+    let attempt = 0;
+    while (true) {
+      attempt++;
+      const res = await fetch(HF_API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ inputs: texts, options: { wait_for_model: true } }),
+      });
+
+      if (res.status === 503) {
+        const info = await res.json().catch(() => ({}));
+        const wait = Math.ceil((info.estimated_time || 20));
+        log(`Model loading — waiting ${wait}s and retrying (attempt ${attempt})...`);
+        await sleep(wait * 1000);
+        continue;
+      }
+      if (res.status === 429) {
+        log(`Rate limited — waiting 30s (attempt ${attempt})...`);
+        await sleep(30000);
+        continue;
+      }
+      if (!res.ok) {
+        throw new Error(`HF API ${res.status}: ${await res.text()}`);
+      }
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error(`Unexpected HF response: ${JSON.stringify(data)}`);
+      return data;
+    }
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function startBackfill() {
+    if (running) return;
+    running = true;
+    document.getElementById('startBtn').disabled = true;
+    errorCount = 0;
+    processed = 0;
+
+    // 1. Count pending rows
+    log('Connecting to Supabase...');
+    try {
+      const countRes = await supabaseFetch(
+        'translations?select=id&embedding=is.null',
+        { headers: { Prefer: 'count=exact', Range: '0-0' } }
+      );
+      const contentRange = countRes.headers.get('Content-Range') || '';
+      totalCount = parseInt(contentRange.split('/')[1] || '0', 10);
+      document.getElementById('total').textContent = totalCount;
+      log(`Found ${totalCount} translations needing embeddings.`);
+    } catch (e) {
+      log(`Failed to connect: ${e.message}`, 'error');
+      setStatus('Error — check console');
+      running = false;
+      document.getElementById('startBtn').disabled = false;
+      return;
+    }
+
+    if (totalCount === 0) {
+      log('All embeddings already exist!', 'success');
+      setStatus('Already complete ✓');
+      running = false;
+      document.getElementById('startBtn').disabled = false;
+      return;
+    }
+
+    // 2. Process in batches
+    while (processed < totalCount && running) {
+      setStatus(`Processing ${processed} / ${totalCount}…`);
+
+      // Fetch batch
+      let batch = [];
+      try {
+        const res = await supabaseFetch(
+          `translations?select=id,text&embedding=is.null&limit=${BATCH_SIZE}`
+        );
+        batch = await res.json();
+      } catch (e) {
+        log(`Fetch batch error: ${e.message}`, 'error');
+        errorCount += BATCH_SIZE;
+        document.getElementById('errCount').textContent = errorCount;
+        await sleep(5000);
+        continue;
+      }
+
+      if (batch.length === 0) break;
+
+      // Get embeddings
+      let embeddings;
+      try {
+        embeddings = await getEmbeddings(batch.map(r => r.text));
+      } catch (e) {
+        log(`Embedding error: ${e.message}`, 'error');
+        errorCount += batch.length;
+        document.getElementById('errCount').textContent = errorCount;
+        await sleep(5000);
+        continue;
+      }
+
+      // Save to Supabase
+      try {
+        const updates = batch.map((r, i) => ({ id: r.id, embedding: embeddings[i] }));
+        await supabaseFetch('translations', {
+          method: 'POST',
+          headers: { Prefer: 'resolution=merge-duplicates' },
+          body: JSON.stringify(updates),
+        });
+        processed += batch.length;
+        document.getElementById('processed').textContent = processed;
+        document.getElementById('progressFill').style.width = `${(processed / totalCount) * 100}%`;
+        log(`Saved batch: ${processed}/${totalCount}`, 'success');
+      } catch (e) {
+        log(`Save error: ${e.message}`, 'error');
+        errorCount += batch.length;
+        document.getElementById('errCount').textContent = errorCount;
+        await sleep(5000);
+      }
+
+      await sleep(300); // gentle pacing
+    }
+
+    setStatus(errorCount === 0 ? 'Completed ✓' : `Completed with ${errorCount} errors`);
+    log(`Done! Processed=${processed}, Errors=${errorCount}`, 'success');
+    running = false;
+    document.getElementById('startBtn').disabled = false;
+  }
+</script>
+</body>
+</html>

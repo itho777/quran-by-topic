@@ -1,0 +1,88 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class BookmarksManager {
+  static const String _key = 'bookmarks';
+  static const String _lastReadKey = 'last_read';
+
+  // Get all bookmarks
+  static Future<List<Map<String, dynamic>>> getBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_key);
+    if (data == null) return [];
+    try {
+      final decoded = json.decode(data) as List;
+      return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Toggle bookmark (add if not exists, remove if exists)
+  static Future<bool> toggleBookmark({
+    required int surahId,
+    required int ayahNumber,
+    required String surahName,
+    required String verseKey,
+    required String textAr,
+    required String translation,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = await getBookmarks();
+
+    final idx = current.indexWhere((element) => element['verseKey'] == verseKey);
+    bool added = false;
+
+    if (idx >= 0) {
+      current.removeAt(idx);
+    } else {
+      current.add({
+        'surahId': surahId,
+        'ayahNumber': ayahNumber,
+        'surahName': surahName,
+        'verseKey': verseKey,
+        'textAr': textAr,
+        'translation': translation,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+      added = true;
+    }
+
+    await prefs.setString(_key, json.encode(current));
+    return added;
+  }
+
+  // Check if bookmarked
+  static Future<bool> isBookmarked(String verseKey) async {
+    final current = await getBookmarks();
+    return current.any((element) => element['verseKey'] == verseKey);
+  }
+
+  // Save Last Read
+  static Future<void> saveLastRead({
+    required int surahId,
+    required int ayahNumber,
+    required String surahName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = {
+      'surahId': surahId,
+      'ayahNumber': ayahNumber,
+      'surahName': surahName,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+    await prefs.setString(_lastReadKey, json.encode(data));
+  }
+
+  // Get Last Read
+  static Future<Map<String, dynamic>?> getLastRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(_lastReadKey);
+    if (data == null) return null;
+    try {
+      return json.decode(data) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+}

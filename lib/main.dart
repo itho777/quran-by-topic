@@ -37,10 +37,11 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    AppTheme.themeMode = themeMode;
     return MaterialApp.router(
       title: 'Tafseer.id',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(useMaterial3: true),
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: router,

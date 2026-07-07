@@ -51,7 +51,7 @@ class ShellScaffold extends ConsumerWidget {
       bottomNavigationBar: hideNavBar
           ? null
           : Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: AppTheme.outlineVariant, width: 0.5)),
               ),
               child: BottomNavigationBar(
@@ -87,9 +87,9 @@ class ShellScaffold extends ConsumerWidget {
                   // Profile — shows a dot badge when signed in
                   BottomNavigationBarItem(
                     icon: user != null
-                        ? const Icon(Icons.account_circle)
-                        : const Icon(Icons.account_circle_outlined),
-                    activeIcon: const Icon(Icons.account_circle),
+                        ? Icon(Icons.account_circle)
+                        : Icon(Icons.account_circle_outlined),
+                    activeIcon: Icon(Icons.account_circle),
                     label: user != null ? 'Profile' : 'Sign In',
                   ),
                 ],

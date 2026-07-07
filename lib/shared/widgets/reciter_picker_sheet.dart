@@ -48,12 +48,12 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
           // Header
           Row(
             children: [
-              const Icon(Icons.record_voice_over, color: AppTheme.primary, size: 22),
+              Icon(Icons.record_voice_over, color: AppTheme.primary, size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   isEn ? 'Select Reciter' : 'Pilih Qori',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppTheme.primary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -61,7 +61,7 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: AppTheme.outline),
+                icon: Icon(Icons.close, color: AppTheme.outline),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -70,7 +70,7 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
           // Search box
           TextField(
             autofocus: false,
-            style: const TextStyle(color: AppTheme.onSurface),
+            style: TextStyle(color: AppTheme.onSurface),
             onChanged: (v) {
               setState(() {
                 _searchQuery = v;
@@ -78,16 +78,16 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
             },
             decoration: InputDecoration(
               hintText: isEn ? 'Search reciter by name…' : 'Cari qori…',
-              hintStyle: const TextStyle(color: AppTheme.outline),
-              prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+              hintStyle: TextStyle(color: AppTheme.outline),
+              prefixIcon: Icon(Icons.search, color: AppTheme.outline),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.outlineVariant),
+                borderSide: BorderSide(color: AppTheme.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.primary),
+                borderSide: BorderSide(color: AppTheme.primary),
               ),
             ),
           ),
@@ -97,7 +97,7 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
             isEn 
                 ? 'Found ${filteredReciters.length} reciters' 
                 : 'Menampilkan ${filteredReciters.length} qori',
-            style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+            style: TextStyle(color: AppTheme.outline, fontSize: 11),
           ),
           const SizedBox(height: 8),
           // Reciter list
@@ -119,11 +119,11 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppTheme.primary.withOpacity(0.12)
+                            ? AppTheme.primary.withValues(alpha: 0.12)
                             : AppTheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? AppTheme.primary : AppTheme.outlineVariant.withOpacity(0.4),
+                          color: isSelected ? AppTheme.primary : AppTheme.outlineVariant.withValues(alpha: 0.4),
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
@@ -146,7 +146,7 @@ class _ReciterPickerSheetState extends State<ReciterPickerSheet> {
                             ),
                           ),
                           if (isSelected)
-                            const Icon(Icons.check, color: AppTheme.primary, size: 16),
+                            Icon(Icons.check, color: AppTheme.primary, size: 16),
                         ],
                       ),
                     ),

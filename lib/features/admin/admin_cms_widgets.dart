@@ -81,11 +81,11 @@ class _AdminEditDialogState extends State<AdminEditDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          const Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
+          Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(widget.title,
-                style: const TextStyle(color: AppTheme.onSurface, fontSize: 15, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: AppTheme.onSurface, fontSize: 15, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -97,24 +97,24 @@ class _AdminEditDialogState extends State<AdminEditDialog> {
             TextField(
               controller: _ctrl,
               maxLines: widget.multiline ? 8 : 1,
-              style: const TextStyle(color: AppTheme.onSurface, fontSize: 13, height: 1.6),
+              style: TextStyle(color: AppTheme.onSurface, fontSize: 13, height: 1.6),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppTheme.surfaceContainer,
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppTheme.outlineVariant),
+                  borderSide: BorderSide(color: AppTheme.outlineVariant),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: AppTheme.primary),
+                  borderSide: BorderSide(color: AppTheme.primary),
                 ),
                 contentPadding: const EdgeInsets.all(12),
               ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: const TextStyle(color: AppTheme.error, fontSize: 12)),
+              Text(_error!, style: TextStyle(color: AppTheme.error, fontSize: 12)),
             ],
           ],
         ),
@@ -122,7 +122,7 @@ class _AdminEditDialogState extends State<AdminEditDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel', style: TextStyle(color: AppTheme.outline)),
+          child: Text('Cancel', style: TextStyle(color: AppTheme.outline)),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -209,10 +209,10 @@ class AdminEditButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: AppTheme.secondary.withOpacity(0.15),
+            color: AppTheme.secondary.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(Icons.edit_outlined, size: 13, color: AppTheme.secondary),
+          child: Icon(Icons.edit_outlined, size: 13, color: AppTheme.secondary),
         ),
       ),
     );

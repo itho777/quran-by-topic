@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import 'admin_widgets.dart';
@@ -65,7 +64,7 @@ class _AdminTagsScreenState extends State<AdminTagsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppTheme.primary,
         foregroundColor: AppTheme.onPrimary,
-        icon: const Icon(Icons.add),
+        icon: Icon(Icons.add),
         label: const Text('New Tag', style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: () => _showTagForm(context),
       ),
@@ -82,7 +81,7 @@ class _AdminTagsScreenState extends State<AdminTagsScreen> {
           AdminCountBar(total: _tags.length, filtered: _filtered.length, label: 'tags'),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: _filtered.length,
@@ -245,7 +244,7 @@ class _AdminTranslationsScreenState extends State<AdminTranslationsScreen> {
           AdminCountBar(total: _rows.length, filtered: _filtered.length, label: 'entries (showing first 200)'),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: _filtered.length,
@@ -357,7 +356,7 @@ class _AdminTafsirsScreenState extends State<AdminTafsirsScreen> {
           AdminCountBar(total: _rows.length, filtered: _filtered.length, label: 'entries (showing first 200)'),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: _filtered.length,
@@ -469,7 +468,7 @@ class _AdminNuzulScreenState extends State<AdminNuzulScreen> {
           AdminCountBar(total: _rows.length, filtered: _filtered.length, label: 'entries (showing first 200)'),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     itemCount: _filtered.length,
@@ -568,7 +567,7 @@ class _TextEditSheetState extends State<_TextEditSheet> {
           _SourceBadge(widget.sourceId),
           const SizedBox(width: 8),
           Text(widget.verseKey,
-              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+              style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13)),
         ]),
         const SizedBox(height: 12),
         AdminFormField(
@@ -591,7 +590,7 @@ class _LangBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: lang == 'en' ? AppTheme.secondary.withOpacity(0.15) : AppTheme.primary.withOpacity(0.12),
+      color: lang == 'en' ? AppTheme.secondary.withValues(alpha: 0.15) : AppTheme.primary.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
@@ -617,7 +616,7 @@ class _SourceBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
-      color: _color.withOpacity(0.12),
+      color: _color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
@@ -651,8 +650,8 @@ class _SourceFilter extends StatelessWidget {
     child: DropdownButton<String>(
       value: value,
       dropdownColor: AppTheme.surfaceContainer,
-      icon: const Icon(Icons.filter_list, color: AppTheme.outline, size: 16),
-      style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold),
+      icon: Icon(Icons.filter_list, color: AppTheme.outline, size: 16),
+      style: TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold),
       onChanged: (v) { if (v != null) onChanged(v); },
       items: sources.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
     ),
@@ -675,9 +674,9 @@ class _FilterChips extends StatelessWidget {
           margin: const EdgeInsets.only(left: 6),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: active ? AppTheme.primary.withOpacity(0.15) : AppTheme.surfaceContainerHigh,
+            color: active ? AppTheme.primary.withValues(alpha: 0.15) : AppTheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: active ? AppTheme.primary.withOpacity(0.5) : Colors.transparent),
+            border: Border.all(color: active ? AppTheme.primary.withValues(alpha: 0.5) : Colors.transparent),
           ),
           child: Text(
             o.toUpperCase(),
@@ -702,7 +701,7 @@ class _LangSelector extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text('LANGUAGE', style: TextStyle(color: AppTheme.outline, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+      Text('LANGUAGE', style: TextStyle(color: AppTheme.outline, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
       const SizedBox(height: 8),
       Row(
         children: ['id', 'en'].map((lang) {
@@ -713,9 +712,9 @@ class _LangSelector extends StatelessWidget {
               margin: const EdgeInsets.only(right: 10),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: active ? AppTheme.primary.withOpacity(0.15) : AppTheme.surfaceContainerHigh,
+                color: active ? AppTheme.primary.withValues(alpha: 0.15) : AppTheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: active ? AppTheme.primary.withOpacity(0.5) : Colors.transparent),
+                border: Border.all(color: active ? AppTheme.primary.withValues(alpha: 0.5) : Colors.transparent),
               ),
               child: Text(
                 lang.toUpperCase(),

@@ -30,9 +30,16 @@ class ProfileScreen extends ConsumerWidget {
             pinned: true,
             backgroundColor: AppTheme.surfaceContainer,
             surfaceTintColor: Colors.transparent,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+                tooltip: 'Settings',
+                onPressed: () => context.push('/settings'),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -41,45 +48,45 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 child: SafeArea(
                   child: profileAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-                    error: (_, __) => const Center(child: Icon(Icons.person, color: AppTheme.outline, size: 48)),
+                    loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                    error: (_, _) => Center(child: Icon(Icons.person, color: AppTheme.outline, size: 48)),
                     data: (profile) => Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Avatar
                         CircleAvatar(
                           radius: 42,
-                          backgroundColor: AppTheme.primary.withOpacity(0.2),
+                          backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                           backgroundImage: (profile?.avatarUrl != null && profile!.avatarUrl!.isNotEmpty)
                               ? NetworkImage(profile.avatarUrl!)
                               : null,
                           child: (profile?.avatarUrl == null || profile!.avatarUrl!.isEmpty)
                               ? Text(
                                   (profile?.displayName ?? user.email ?? 'U')[0].toUpperCase(),
-                                  style: const TextStyle(fontSize: 32, color: AppTheme.primary, fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontSize: 32, color: AppTheme.primary, fontWeight: FontWeight.bold),
                                 )
                               : null,
                         ),
                         const SizedBox(height: 10),
                         Text(
                           profile?.displayName ?? user.email?.split('@').first ?? 'User',
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           user.email ?? '',
-                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
                         ),
                         if (isAdmin) ...[
                           const SizedBox(height: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppTheme.secondary.withOpacity(0.2),
+                              color: AppTheme.secondary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppTheme.secondary.withOpacity(0.5)),
+                              border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.5)),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.verified, color: AppTheme.secondary, size: 12),
@@ -111,7 +118,7 @@ class ProfileScreen extends ConsumerWidget {
                     iconColor: AppTheme.secondary,
                     title: 'Admin Panel',
                     subtitle: 'Manage verses, translations, tags & more',
-                    trailing: const Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                    trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                     onTap: () => context.go('/admin'),
                   ),
                   const SizedBox(height: 20),
@@ -124,14 +131,14 @@ class ProfileScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+                    border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
                   ),
                   child: Column(children: [
                     ListTile(
                       leading: _iconBox(Icons.cloud_upload_outlined, AppTheme.primary),
-                      title: const Text('Push to Cloud', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Save current settings to your account', style: TextStyle(color: AppTheme.outline, fontSize: 12)),
-                      trailing: const Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                      title: Text('Push to Cloud', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Save current settings to your account', style: TextStyle(color: AppTheme.outline, fontSize: 12)),
+                      trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                       onTap: () async {
                         await ref.read(settingsProvider.notifier).syncToCloud();
                         if (context.mounted) {
@@ -142,12 +149,12 @@ class ProfileScreen extends ConsumerWidget {
                         }
                       },
                     ),
-                    const Divider(height: 1, indent: 16, endIndent: 16),
+                    Divider(height: 1, indent: 16, endIndent: 16),
                     ListTile(
                       leading: _iconBox(Icons.cloud_download_outlined, AppTheme.bronzeMute),
-                      title: const Text('Restore from Cloud', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Load settings saved to your account', style: TextStyle(color: AppTheme.outline, fontSize: 12)),
-                      trailing: const Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                      title: Text('Restore from Cloud', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                      subtitle: Text('Load settings saved to your account', style: TextStyle(color: AppTheme.outline, fontSize: 12)),
+                      trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                       onTap: () async {
                         await ref.read(settingsProvider.notifier).loadFromCloud();
                         if (context.mounted) {
@@ -170,7 +177,7 @@ class ProfileScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+                    border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
                   ),
                   child: Column(children: [
                     _prefRow('Language', settings.appLanguage == 'en' ? 'English' : 'Indonesian'),
@@ -188,7 +195,7 @@ class ProfileScreen extends ConsumerWidget {
                   iconColor: AppTheme.outline,
                   title: 'App Settings',
                   subtitle: 'Theme, font size, display options',
-                  trailing: const Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                   onTap: () => context.go('/settings'),
                 ),
                 const SizedBox(height: 20),
@@ -221,6 +228,13 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
         title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+            tooltip: 'Settings',
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -232,25 +246,25 @@ class ProfileScreen extends ConsumerWidget {
                 width: 80, height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.primary.withOpacity(0.1),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                 ),
-                child: const Icon(Icons.person_outline, color: AppTheme.primary, size: 40),
+                child: Icon(Icons.person_outline, color: AppTheme.primary, size: 40),
               ),
               const SizedBox(height: 24),
-              const Text('You\'re browsing as a guest',
+              Text('You\'re browsing as a guest',
                   style: TextStyle(color: AppTheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text('Sign in to sync your settings and bookmarks across devices',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.outline.withOpacity(0.8), fontSize: 13, height: 1.5)),
+                  style: TextStyle(color: AppTheme.outline.withValues(alpha: 0.8), fontSize: 13, height: 1.5)),
               const SizedBox(height: 32),
               SizedBox(
                 width: 220,
                 height: 48,
                 child: FilledButton.icon(
                   onPressed: () => context.go('/login'),
-                  icon: const Icon(Icons.login),
+                  icon: Icon(Icons.login),
                   label: const Text('Sign In / Register', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppTheme.primary,
@@ -261,7 +275,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => context.go('/settings'),
-                child: const Text('App Settings →', style: TextStyle(color: AppTheme.outline)),
+                child: Text('App Settings →', style: TextStyle(color: AppTheme.outline)),
               ),
             ],
           ),
@@ -273,12 +287,12 @@ class ProfileScreen extends ConsumerWidget {
   Widget _sectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(left: 4),
     child: Text(text.toUpperCase(),
-        style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
   );
 
   Widget _iconBox(IconData icon, Color color) => Container(
     padding: const EdgeInsets.all(8),
-    decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
     child: Icon(icon, color: color, size: 18),
   );
 
@@ -294,7 +308,7 @@ class ProfileScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -308,10 +322,10 @@ class ProfileScreen extends ConsumerWidget {
               _iconBox(icon, iconColor),
               const SizedBox(width: 14),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: const TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
-                Text(subtitle, style: const TextStyle(color: AppTheme.outline, fontSize: 12)),
+                Text(title, style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
+                Text(subtitle, style: TextStyle(color: AppTheme.outline, fontSize: 12)),
               ])),
-              if (trailing != null) trailing,
+              ?trailing,
             ]),
           ),
         ),
@@ -326,12 +340,12 @@ class ProfileScreen extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: AppTheme.outline, fontSize: 13)),
-            Text(value, style: const TextStyle(color: AppTheme.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(color: AppTheme.outline, fontSize: 13)),
+            Text(value, style: TextStyle(color: AppTheme.onSurface, fontSize: 13, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
-      if (!isLast) const Divider(height: 1, color: AppTheme.outlineVariant),
+      if (!isLast) Divider(height: 1, color: AppTheme.outlineVariant),
     ]);
   }
 }

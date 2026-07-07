@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../core/quran_sources.dart';
@@ -64,14 +63,14 @@ class _SourcePickerSheetState extends State<SourcePickerSheet> {
             children: [
               Text(
                 widget.title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: AppTheme.outline),
+                icon: Icon(Icons.close, color: AppTheme.outline),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -80,19 +79,19 @@ class _SourcePickerSheetState extends State<SourcePickerSheet> {
           // Search Field
           TextField(
             onChanged: _filter,
-            style: const TextStyle(color: AppTheme.onSurface),
+            style: TextStyle(color: AppTheme.onSurface),
             decoration: InputDecoration(
               hintText: isEn ? 'Search source...' : 'Cari sumber...',
-              hintStyle: const TextStyle(color: AppTheme.outline),
-              prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+              hintStyle: TextStyle(color: AppTheme.outline),
+              prefixIcon: Icon(Icons.search, color: AppTheme.outline),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.outlineVariant),
+                borderSide: BorderSide(color: AppTheme.outlineVariant),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.primary),
+                borderSide: BorderSide(color: AppTheme.primary),
               ),
             ),
           ),
@@ -114,10 +113,10 @@ class _SourcePickerSheetState extends State<SourcePickerSheet> {
                   ),
                   subtitle: Text(
                     '${src.id} (${src.language})',
-                    style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check, color: AppTheme.primary)
+                      ? Icon(Icons.check, color: AppTheme.primary)
                       : null,
                   onTap: () {
                     widget.onSelected(src.id);

@@ -54,9 +54,14 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         actions: [
           if (_bookmarks.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.refresh, color: AppTheme.primary),
+              icon: Icon(Icons.refresh, color: AppTheme.primary),
               onPressed: _loadBookmarks,
-            )
+            ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+            tooltip: 'Settings',
+            onPressed: () => context.push('/settings'),
+          ),
         ],
       ),
       body: _buildBody(),
@@ -65,7 +70,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
+      return Center(child: CircularProgressIndicator(color: AppTheme.primary));
     }
 
     if (_bookmarks.isEmpty) {
@@ -76,18 +81,18 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.secondary.withOpacity(0.1),
+                color: AppTheme.secondary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bookmark_outline, size: 64, color: AppTheme.secondary),
+              child: Icon(Icons.bookmark_outline, size: 64, color: AppTheme.secondary),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No bookmarks yet',
               style: TextStyle(color: AppTheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 40),
               child: Text(
                 'Bookmark your favorite verses on the ayah detail screen to view them here.',
@@ -118,12 +123,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           background: Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: AppTheme.error.withOpacity(0.9),
+              color: AppTheme.error.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
-            child: const Icon(Icons.delete_outline, color: Colors.white),
+            child: Icon(Icons.delete_outline, color: Colors.white),
           ),
           onDismissed: (_) => _deleteBookmark(verseKey),
           child: Container(
@@ -131,7 +136,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             decoration: BoxDecoration(
               color: AppTheme.surfaceContainer,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.5)),
+              border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
             ),
             child: Material(
               color: Colors.transparent,
@@ -149,12 +154,12 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.15),
+                              color: AppTheme.primary.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '$surahName : $ayahNumber',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppTheme.primary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -164,11 +169,11 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                           const Spacer(),
                           Text(
                             verseKey,
-                            style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                            style: TextStyle(color: AppTheme.outline, fontSize: 11),
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.outline),
+                            icon: Icon(Icons.delete_outline, size: 18, color: AppTheme.outline),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                             onPressed: () => _deleteBookmark(verseKey),
@@ -184,13 +189,13 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                       ),
                       if (translation.isNotEmpty) ...[
                         const SizedBox(height: 10),
-                        const Divider(color: AppTheme.outlineVariant),
+                        Divider(color: AppTheme.outlineVariant),
                         const SizedBox(height: 6),
                         Text(
                           translation,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: 13,
                             height: 1.5,

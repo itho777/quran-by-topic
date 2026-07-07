@@ -23,7 +23,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _ayahController = TextEditingController(text: '1');
   Map<String, dynamic>? _lastRead;
   bool _loadingSurahs = true;
-  String _surahSearchQuery = '';
+  final String _surahSearchQuery = '';
 
   // Featured Ayah of the Day
   String _featuredVerseKey = '2:255';  // default: Ayat Kursi
@@ -285,7 +285,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Expanded(
                       child: Text(
                         isEn ? 'Select Surah' : 'Pilih Surah',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -293,7 +293,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.outline),
+                      icon: Icon(Icons.close, color: AppTheme.outline),
                       onPressed: () => Navigator.pop(ctx2),
                     ),
                   ],
@@ -302,19 +302,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 TextField(
                   autofocus: true,
                   onChanged: (v) => setSheet(() => query = v),
-                  style: const TextStyle(color: AppTheme.onSurface),
+                  style: TextStyle(color: AppTheme.onSurface),
                   decoration: InputDecoration(
                     hintText: isEn ? 'Search surah by name or number…' : 'Cari surah…',
-                    hintStyle: const TextStyle(color: AppTheme.outline),
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                    hintStyle: TextStyle(color: AppTheme.outline),
+                    prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.outlineVariant),
+                      borderSide: BorderSide(color: AppTheme.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primary),
+                      borderSide: BorderSide(color: AppTheme.primary),
                     ),
                   ),
                 ),
@@ -357,10 +357,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         subtitle: Text(
                           '${s['ayas'] ?? ''} ${isEn ? 'verses' : 'ayat'}',
-                          style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                          style: TextStyle(color: AppTheme.outline, fontSize: 11),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check, color: AppTheme.primary)
+                            ? Icon(Icons.check, color: AppTheme.primary)
                             : null,
                         onTap: () {
                           setState(() => _selectedSurahId = s['id'] as int);
@@ -388,7 +388,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0.0, -1.0),
               radius: 1.2,
@@ -415,7 +415,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+                          icon: Icon(Icons.arrow_back, color: AppTheme.primary),
                           onPressed: () {},
                         ),
                       ),
@@ -433,7 +433,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         const SizedBox(height: 2),
                         Text(
                           _homeTagline,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppTheme.outline,
                             fontSize: 10,
                           ),
@@ -447,7 +447,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           color: AppTheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: AppTheme.outlineVariant.withOpacity(0.4),
+                            color: AppTheme.outlineVariant.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Row(
@@ -503,7 +503,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.settings_outlined, color: AppTheme.outline),
+                        icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
                         onPressed: () => context.go('/settings'),
                       ),
                     ],
@@ -522,7 +522,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         color: AppTheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: AppTheme.outlineVariant.withOpacity(0.3),
+                          color: AppTheme.outlineVariant.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Material(
@@ -545,10 +545,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primaryContainer.withOpacity(0.1),
+                                        color: AppTheme.primaryContainer.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(14),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.history,
                                         color: AppTheme.primaryContainer,
                                       ),
@@ -560,7 +560,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         children: [
                                           Text(
                                             isEn ? 'LAST READ' : 'TERAKHIR DIBACA',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: AppTheme.outline,
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
@@ -572,7 +572,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             _lastRead != null
                                                 ? '${_lastRead!['surahName']}, ${isEn ? 'Ayah' : 'Ayat'} ${_lastRead!['ayahNumber']}'
                                                 : (isEn ? 'Al-Fatihah, Ayah 1' : 'Al-Fatihah, Ayat 1'),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: AppTheme.onSurface,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
@@ -585,7 +585,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       _lastRead != null
                                           ? _getTimeAgo(_lastRead!['timestamp'] as int, isEn)
                                           : (isEn ? 'Not started' : 'Belum mulai'),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppTheme.outline,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -599,7 +599,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   children: [
                                     Text(
                                       isEn ? 'Progress' : 'Kemajuan',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppTheme.outline,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -607,7 +607,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                     Text(
                                       '${_lastRead != null ? ((_lastRead!['surahId'] as int) / 114.0 * 100).toStringAsFixed(0) : '0'}%',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppTheme.outline,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -622,7 +622,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     value: _lastRead != null ? (_lastRead!['surahId'] as int) / 114.0 : 0.0,
                                     minHeight: 6,
                                     backgroundColor: AppTheme.surfaceContainerHigh,
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
                                       AppTheme.primaryContainer,
                                     ),
                                   ),
@@ -657,7 +657,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Text(
                           _homeHeroSubtitle,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppTheme.outline,
                             fontSize: 11,
                             fontStyle: FontStyle.italic,
@@ -680,11 +680,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         color: AppTheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: AppTheme.outlineVariant.withOpacity(0.2),
+                          color: AppTheme.outlineVariant.withValues(alpha: 0.2),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.4),
+                            color: Colors.black.withValues(alpha: 0.4),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),
@@ -697,13 +697,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           // Search field
                           TextField(
                             controller: _searchController,
-                            style: const TextStyle(color: AppTheme.onSurface),
+                            style: TextStyle(color: AppTheme.onSurface),
                             decoration: InputDecoration(
                               hintText: isEn ? 'Search within Qur\'an' : 'Cari dalam Al-Qur\'an',
-                              prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                              prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
-                                      icon: const Icon(Icons.clear, color: AppTheme.outline),
+                                      icon: Icon(Icons.clear, color: AppTheme.outline),
                                       onPressed: () {
                                         _searchController.clear();
                                         setState(() {});
@@ -727,7 +727,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   children: [
                                     Text(
                                       isEn ? 'SELECT SURAH' : 'PILIH SURAH',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppTheme.outline,
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -743,7 +743,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         decoration: BoxDecoration(
                                           color: AppTheme.surfaceContainerHigh,
                                           borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.5)),
+                                          border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
                                         ),
                                         child: Row(
                                           children: [
@@ -762,12 +762,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                         : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
                                                 return Text(
                                                   name,
-                                                  style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
+                                                  style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
                                                   overflow: TextOverflow.ellipsis,
                                                 );
                                               }),
                                             ),
-                                            const Icon(Icons.search, color: AppTheme.outline, size: 18),
+                                            Icon(Icons.search, color: AppTheme.outline, size: 18),
                                           ],
                                         ),
                                       ),
@@ -782,7 +782,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   children: [
                                     Text(
                                       isEn ? 'AYAH (1-$_maxAyas)' : 'AYAT (1-$_maxAyas)',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppTheme.outline,
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -794,7 +794,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       controller: _ayahController,
                                       keyboardType: TextInputType.number,
                                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                      style: const TextStyle(color: AppTheme.onSurface),
+                                      style: TextStyle(color: AppTheme.onSurface),
                                       onSubmitted: (_) => _goSpecificAyah(),
                                       onChanged: (val) {
                                         if (val.isNotEmpty) {
@@ -836,9 +836,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Text(isEn ? 'GO' : 'BUKA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward, size: 14),
+                                    Icon(Icons.arrow_forward, size: 14),
                                   ],
                                 ),
                               ),
@@ -873,7 +873,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ? 'Experience the traditional manuscript layout.'
                                 : 'Baca Al-Qur\'an dengan tampilan mushaf standar.',
                             color: AppTheme.secondary,
-                            iconBg: AppTheme.secondaryContainer.withOpacity(0.2),
+                            iconBg: AppTheme.secondaryContainer.withValues(alpha: 0.2),
                             onTap: () async {
                               final lr = await BookmarksManager.getLastRead();
                               if (lr != null) {
@@ -890,7 +890,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ? 'Browse the 114 Surahs of the Holy Quran.'
                                 : 'Telusuri seluruh 114 surah dalam Al-Qur\'an.',
                             color: AppTheme.primary,
-                            iconBg: AppTheme.primaryContainer.withOpacity(0.1),
+                            iconBg: AppTheme.primaryContainer.withValues(alpha: 0.1),
                             onTap: () => context.go('/surahs'),
                           ),
                         ],
@@ -910,17 +910,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       constraints: const BoxConstraints(maxWidth: 600),
                       child: Row(
                         children: [
-                          const Expanded(child: Divider(color: AppTheme.outlineVariant)),
+                          Expanded(child: Divider(color: AppTheme.outlineVariant)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.auto_awesome, size: 10, color: AppTheme.outline),
+                                Icon(Icons.auto_awesome, size: 10, color: AppTheme.outline),
                                 const SizedBox(width: 5),
                                 Text(
                                   isEn ? 'FEATURED AYAH' : 'AYAT HARI INI',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppTheme.outline,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -930,7 +930,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ],
                             ),
                           ),
-                          const Expanded(child: Divider(color: AppTheme.outlineVariant)),
+                          Expanded(child: Divider(color: AppTheme.outlineVariant)),
                         ],
                       ),
                     ),
@@ -951,9 +951,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                         boxShadow: [
-                          BoxShadow(color: AppTheme.primary.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 6)),
+                          BoxShadow(color: AppTheme.primary.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 6)),
                         ],
                       ),
                       child: Material(
@@ -970,7 +970,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: Padding(
                             padding: const EdgeInsets.all(20),
                             child: _loadingFeatured
-                              ? const Center(child: SizedBox(height: 60, child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2)))
+                              ? Center(child: SizedBox(height: 60, child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2)))
                               : Column(
                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
@@ -984,7 +984,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           ),
                                         const Spacer(),
                                         Text(_featuredVerseKey,
-                                          style: const TextStyle(color: AppTheme.outline, fontSize: 10)),
+                                          style: TextStyle(color: AppTheme.outline, fontSize: 10)),
                                       ],
                                     ),
                                     if (_featuredArabic.isNotEmpty) ...[
@@ -998,18 +998,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ],
                                     if ((_currentLang == 'en' ? _featuredTranslationEn : _featuredTranslationId).isNotEmpty) ...[
                                       const SizedBox(height: 10),
-                                      const Divider(color: AppTheme.outlineVariant),
+                                      Divider(color: AppTheme.outlineVariant),
                                       const SizedBox(height: 8),
                                       Text(
                                         _currentLang == 'en' ? _featuredTranslationEn : _featuredTranslationId,
-                                        style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 13, height: 1.6),
+                                        style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 13, height: 1.6),
                                       ),
                                     ],
                                     if (_featuredNote.isNotEmpty) ...[
                                       const SizedBox(height: 8),
                                       Text(
                                         '— $_featuredNote',
-                                        style: const TextStyle(color: AppTheme.outline, fontSize: 11, fontStyle: FontStyle.italic),
+                                        style: TextStyle(color: AppTheme.outline, fontSize: 11, fontStyle: FontStyle.italic),
                                       ),
                                     ],
                                     const SizedBox(height: 4),
@@ -1055,7 +1055,7 @@ class _QuickCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.2)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1079,13 +1079,13 @@ class _QuickCard extends StatelessWidget {
                       ),
                       child: Icon(icon, color: color, size: 24),
                     ),
-                    const Icon(Icons.arrow_forward, color: AppTheme.outline, size: 18),
+                    Icon(Icons.arrow_forward, color: AppTheme.outline, size: 18),
                   ],
                 ),
                 const Spacer(),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -1096,7 +1096,7 @@ class _QuickCard extends StatelessWidget {
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppTheme.onSurfaceVariant,
                     fontSize: 11,
                   ),

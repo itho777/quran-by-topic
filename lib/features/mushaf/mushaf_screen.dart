@@ -723,7 +723,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                     Expanded(
                       child: Text(
                         isEn ? 'Select Surah' : 'Pilih Surah',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -731,7 +731,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.outline),
+                      icon: Icon(Icons.close, color: AppTheme.outline),
                       onPressed: () => Navigator.pop(ctx2),
                     ),
                   ],
@@ -740,11 +740,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 TextField(
                   autofocus: true,
                   onChanged: (v) => setSheet(() => query = v),
-                  style: const TextStyle(color: AppTheme.onSurface),
+                  style: TextStyle(color: AppTheme.onSurface),
                   decoration: InputDecoration(
                     hintText: isEn ? 'Search by name or number…' : 'Cari surah…',
-                    hintStyle: const TextStyle(color: AppTheme.outline),
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                    hintStyle: TextStyle(color: AppTheme.outline),
+                    prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
@@ -785,9 +785,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         ),
                         subtitle: Text(
                           '${s['ayas'] ?? ''} ${isEn ? 'verses' : 'ayat'}',
-                          style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                          style: TextStyle(color: AppTheme.outline, fontSize: 11),
                         ),
-                        trailing: isSelected ? const Icon(Icons.check, color: AppTheme.primary) : null,
+                        trailing: isSelected ? Icon(Icons.check, color: AppTheme.primary) : null,
                         onTap: () {
                           setState(() {
                             _selectedJumpSurahId = s['id'] as int;
@@ -841,7 +841,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                     Expanded(
                       child: Text(
                         isEn ? 'Jump to Ayah' : 'Lompat ke Ayat',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -849,7 +849,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.outline),
+                      icon: Icon(Icons.close, color: AppTheme.outline),
                       onPressed: () => Navigator.pop(ctx2),
                     ),
                   ],
@@ -867,7 +867,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         children: [
                           Text(
                             isEn ? 'SURAH' : 'SURAH',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -883,7 +883,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                               decoration: BoxDecoration(
                                 color: AppTheme.surfaceContainer,
                                 borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.5)),
+                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
                               ),
                               child: Row(
                                 children: [
@@ -902,12 +902,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                               : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
                                       return Text(
                                         name,
-                                        style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
+                                        style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
                                         overflow: TextOverflow.ellipsis,
                                       );
                                     }),
                                   ),
-                                  const Icon(Icons.search, color: AppTheme.outline, size: 18),
+                                  Icon(Icons.search, color: AppTheme.outline, size: 18),
                                 ],
                               ),
                             ),
@@ -924,7 +924,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         children: [
                           Text(
                             isEn ? 'AYAH (1-$_jumpMaxAyas)' : 'AYAT (1-$_jumpMaxAyas)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
@@ -936,7 +936,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             controller: _jumpAyahController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            style: const TextStyle(color: AppTheme.onSurface),
+                            style: TextStyle(color: AppTheme.onSurface),
                             onSubmitted: (_) {
                               Navigator.pop(ctx2);
                               _doJumpToAyah();
@@ -986,9 +986,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(isEn ? 'GO' : 'BUKA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                           const SizedBox(width: 4),
-                          const Icon(Icons.arrow_forward, size: 14),
+                          Icon(Icons.arrow_forward, size: 14),
                         ],
                       ),
                     ),
@@ -1054,7 +1054,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             color: const Color(0xFFFBF9F1), // Cream background for premium paper look
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 16,
                                 offset: const Offset(0, 4),
                               )
@@ -1110,8 +1110,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                   height: 90,
                   padding: const EdgeInsets.only(top: 36, left: 16, right: 16),
                   decoration: BoxDecoration(
-                    color: AppTheme.background.withOpacity(0.85),
-                    border: const Border(
+                    color: AppTheme.background.withValues(alpha: 0.85),
+                    border: Border(
                       bottom: BorderSide(color: AppTheme.outlineVariant, width: 0.5),
                     ),
                   ),
@@ -1125,7 +1125,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           children: [
                             Text(
                               _selectedVerseKey,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppTheme.primary,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -1134,7 +1134,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             const SizedBox(height: 2),
                             Text(
                               '${_getSurahName()} • ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppTheme.outline,
                                 fontSize: 11,
                               ),
@@ -1150,7 +1150,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                          border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1178,9 +1178,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 duration: const Duration(milliseconds: 200),
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: active ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
+                                  color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: active ? Border.all(color: AppTheme.primary.withOpacity(0.5)) : null,
+                                  border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
                                 ),
                                 child: Text(
                                   lang.toUpperCase(),
@@ -1201,12 +1201,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       ),
                       // Reciter selector
                       IconButton(
-                        icon: const Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
+                        icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
                         tooltip: _currentLang == 'en' ? 'Select Reciter' : 'Pilih Qori',
                         onPressed: _showReciterPicker,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.info_outline, color: AppTheme.primary),
+                        icon: Icon(Icons.info_outline, color: AppTheme.primary),
                         onPressed: () async {
                           if (_selectedVerseId != null) {
                             final current = _pageVerses.firstWhere((v) => v['id'] == _selectedVerseId);
@@ -1219,11 +1219,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.explore_outlined, color: AppTheme.primary),
+                        icon: Icon(Icons.explore_outlined, color: AppTheme.primary),
                         onPressed: _showJumpDialog,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.share, color: AppTheme.primary),
+                        icon: Icon(Icons.share, color: AppTheme.primary),
                         tooltip: _currentLang == 'en' ? 'Copy & Share' : 'Salin & Bagikan',
                         onPressed: _copyActiveAyah,
                       ),
@@ -1235,6 +1235,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         ),
                         tooltip: _studyPanelOpen ? 'Close panel' : 'Open study panel',
                         onPressed: () => setState(() => _studyPanelOpen = !_studyPanelOpen),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.settings_outlined, color: AppTheme.outline, size: 20),
+                        tooltip: _currentLang == 'en' ? 'Settings' : 'Pengaturan',
+                        onPressed: () => context.push('/settings'),
                       ),
                     ],
                   ),
@@ -1253,11 +1258,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             child: Container(
               height: 270,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceContainer.withOpacity(0.95),
+                color: AppTheme.surfaceContainer.withValues(alpha: 0.95),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
+                    color: Colors.black.withValues(alpha: 0.12),
                     blurRadius: 10,
                   )
                 ],
@@ -1268,7 +1273,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                   Container(
                     height: 50,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(bottom: BorderSide(color: AppTheme.outlineVariant, width: 0.5)),
                     ),
                     child: Row(
@@ -1308,10 +1313,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                         await _loadPageTexts();
                                       }
                                     },
-                                    selectedColor: AppTheme.primary.withOpacity(0.15),
+                                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
                                     backgroundColor: Colors.transparent,
                                     side: BorderSide(
-                                      color: active ? AppTheme.primary : AppTheme.outlineVariant.withOpacity(0.5),
+                                      color: active ? AppTheme.primary : AppTheme.outlineVariant.withValues(alpha: 0.5),
                                     ),
                                   ),
                                 );
@@ -1321,13 +1326,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         ),
                         // Source selector button for active tab
                         IconButton(
-                          icon: const Icon(Icons.swap_horiz, size: 18, color: AppTheme.primary),
+                          icon: Icon(Icons.swap_horiz, size: 18, color: AppTheme.primary),
                           tooltip: _currentLang == 'en' ? 'Switch source' : 'Ganti sumber',
                           onPressed: _showSourcePicker,
                         ),
                         // Adjust font size button
                         IconButton(
-                          icon: const Icon(Icons.format_size, size: 18, color: AppTheme.primary),
+                          icon: Icon(Icons.format_size, size: 18, color: AppTheme.primary),
                           onPressed: () {
                             showModalBottomSheet(
                               context: context,
@@ -1343,7 +1348,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                         children: [
                                           Text(
                                             _currentLang == 'en' ? 'Font Size' : 'Ukuran Font',
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                            style: TextStyle(fontWeight: FontWeight.bold),
                                           ),
                                           Slider(
                                             value: _fontSize,
@@ -1366,7 +1371,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         ),
                         // Close panel button
                         IconButton(
-                          icon: const Icon(Icons.close, size: 18, color: AppTheme.outline),
+                          icon: Icon(Icons.close, size: 18, color: AppTheme.outline),
                           onPressed: () => setState(() => _studyPanelOpen = false),
                         ),
                       ],
@@ -1375,7 +1380,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                   // List of page verses showing translation details dynamically
                   Expanded(
                     child: _loading
-                        ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                        ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                         : Listener(
                             onPointerDown: (_) => _onUserInteraction(),
                             child: ListView.builder(
@@ -1394,15 +1399,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                               // Color priority: playing > selected > neutral
                               final Color bgColor = isPlaying
-                                  ? AppTheme.secondary.withOpacity(0.10)
+                                  ? AppTheme.secondary.withValues(alpha: 0.10)
                                   : isSelected
-                                      ? AppTheme.primary.withOpacity(0.08)
+                                      ? AppTheme.primary.withValues(alpha: 0.08)
                                       : AppTheme.surfaceContainerLow;
                               final Color borderColor = isPlaying
                                   ? AppTheme.secondary
                                   : isSelected
                                       ? AppTheme.primary
-                                      : AppTheme.outlineVariant.withOpacity(0.3);
+                                      : AppTheme.outlineVariant.withValues(alpha: 0.3);
                               final double borderWidth = (isSelected || isPlaying) ? 1.5 : 1.0;
 
                               return Container(
@@ -1437,7 +1442,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                                   ),
                                                   child: Text(
                                                     v['verse_key'] ?? '',
-                                                    style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
+                                                    style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
@@ -1460,14 +1465,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                                       children: [
                                                         Text(
                                                           _currentLang == 'en' ? 'Details' : 'Detail',
-                                                          style: const TextStyle(
+                                                          style: TextStyle(
                                                             color: AppTheme.primary,
                                                             fontSize: 10,
                                                             fontWeight: FontWeight.w600,
                                                           ),
                                                         ),
                                                         const SizedBox(width: 2),
-                                                        const Icon(Icons.open_in_new, color: AppTheme.primary, size: 10),
+                                                        Icon(Icons.open_in_new, color: AppTheme.primary, size: 10),
                                                       ],
                                                     ),
                                                   ),
@@ -1479,14 +1484,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 if (isPlaying)
-                                                  const Padding(
+                                                  Padding(
                                                     padding: EdgeInsets.only(right: 4),
                                                     child: Icon(Icons.volume_up, color: AppTheme.secondary, size: 14),
                                                   ),
                                                 if (isPlaying)
                                                   Text(
                                                     'PLAYING',
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       color: AppTheme.secondary,
                                                       fontSize: 9,
                                                       fontWeight: FontWeight.bold,
@@ -1495,7 +1500,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                                 else if (isSelected)
                                                   Text(
                                                     activeTabTitle.toUpperCase(),
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       color: AppTheme.primary,
                                                       fontSize: 9,
                                                       fontWeight: FontWeight.bold,
@@ -1509,7 +1514,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                         const SizedBox(height: 8),
                                         // Translation / Transliteration / Tafsir / Nuzul content
                                         _loadingDetails && isSelected
-                                            ? const Align(
+                                            ? Align(
                                                 alignment: Alignment.centerLeft,
                                                 child: SizedBox(
                                                   width: 16,
@@ -1668,7 +1673,7 @@ class PositionChangedArrowButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: CircleAvatar(
           radius: 22,
-          backgroundColor: AppTheme.surfaceContainer.withOpacity(0.8),
+          backgroundColor: AppTheme.surfaceContainer.withValues(alpha: 0.8),
           child: IconButton(
             icon: Icon(icon, color: AppTheme.primary, size: 24),
             onPressed: onTap,

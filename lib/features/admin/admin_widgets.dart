@@ -9,7 +9,7 @@ AppBar adminAppBar(BuildContext context, String title, {VoidCallback? onRefresh}
   return AppBar(
     backgroundColor: AppTheme.surfaceContainer,
     leading: IconButton(
-      icon: const Icon(Icons.arrow_back, color: AppTheme.outline),
+      icon: Icon(Icons.arrow_back, color: AppTheme.outline),
       onPressed: () {
         if (context.canPop()) {
           context.pop();
@@ -20,18 +20,18 @@ AppBar adminAppBar(BuildContext context, String title, {VoidCallback? onRefresh}
     ),
     title: Row(
       children: [
-        const Icon(Icons.admin_panel_settings_outlined, color: AppTheme.primary, size: 16),
+        Icon(Icons.admin_panel_settings_outlined, color: AppTheme.primary, size: 16),
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ],
     ),
     actions: [
       if (onRefresh != null)
         IconButton(
-          icon: const Icon(Icons.refresh, color: AppTheme.outline),
+          icon: Icon(Icons.refresh, color: AppTheme.outline),
           onPressed: onRefresh,
           tooltip: 'Refresh',
         ),
@@ -60,15 +60,15 @@ class AdminSearchBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
               ),
               child: TextField(
                 onChanged: onChanged,
-                style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
+                style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: hint,
-                  hintStyle: const TextStyle(color: AppTheme.outline, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, color: AppTheme.outline, size: 18),
+                  hintStyle: TextStyle(color: AppTheme.outline, fontSize: 13),
+                  prefixIcon: Icon(Icons.search, color: AppTheme.outline, size: 18),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -103,17 +103,17 @@ class AdminCountBar extends StatelessWidget {
         children: [
           Text(
             filtered == total ? '$total $label' : '$filtered of $total $label',
-            style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+            style: TextStyle(color: AppTheme.outline, fontSize: 11),
           ),
           if (filtered != total) ...[
             const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.12),
+                color: AppTheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text('filtered', style: TextStyle(color: AppTheme.primary, fontSize: 9, fontWeight: FontWeight.bold)),
+              child: Text('filtered', style: TextStyle(color: AppTheme.primary, fontSize: 9, fontWeight: FontWeight.bold)),
             ),
           ],
         ],
@@ -147,7 +147,7 @@ class AdminListTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -170,11 +170,11 @@ class AdminListTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 13)),
                       const SizedBox(height: 3),
                       Text(subtitle,
-                          style: const TextStyle(color: AppTheme.outline, fontSize: 12, height: 1.4)),
+                          style: TextStyle(color: AppTheme.outline, fontSize: 12, height: 1.4)),
                     ],
                   ),
                 ),
@@ -183,7 +183,7 @@ class AdminListTile extends StatelessWidget {
                   children: [
                     if (onEdit != null)
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 16, color: AppTheme.secondary),
+                        icon: Icon(Icons.edit_outlined, size: 16, color: AppTheme.secondary),
                         onPressed: onEdit,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -191,7 +191,7 @@ class AdminListTile extends StatelessWidget {
                       ),
                     if (onDelete != null)
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 16, color: AppTheme.error),
+                        icon: Icon(Icons.delete_outline, size: 16, color: AppTheme.error),
                         onPressed: onDelete,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -231,7 +231,7 @@ class AdminFormSheet extends StatelessWidget {
       maxChildSize: 0.95,
       minChildSize: 0.4,
       builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppTheme.surfaceContainer,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [BoxShadow(color: Color(0x66000000), blurRadius: 24)],
@@ -254,15 +254,15 @@ class AdminFormSheet extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(title,
-                      style: const TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 17)),
+                      style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 17)),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.outline),
+                    icon: Icon(Icons.close, color: AppTheme.outline),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            const Divider(color: AppTheme.outlineVariant, height: 1),
+            Divider(color: AppTheme.outlineVariant, height: 1),
             // Fields
             Expanded(
               child: ListView(
@@ -286,7 +286,7 @@ class AdminFormSheet extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     child: saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 18,
                             width: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.onPrimary),
@@ -327,29 +327,29 @@ class AdminFormField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label.toUpperCase(),
-            style: const TextStyle(color: AppTheme.outline, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+            style: TextStyle(color: AppTheme.outline, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           enabled: enabled,
           maxLines: maxLines,
-          style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
+          style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.outline, fontSize: 13),
+            hintStyle: TextStyle(color: AppTheme.outline, fontSize: 13),
             filled: true,
             fillColor: enabled ? AppTheme.surfaceContainerHigh : AppTheme.surfaceContainerHighest,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.outlineVariant),
+              borderSide: BorderSide(color: AppTheme.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppTheme.outlineVariant.withOpacity(0.5)),
+              borderSide: BorderSide(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primary),
+              borderSide: BorderSide(color: AppTheme.primary),
             ),
           ),
         ),
@@ -367,12 +367,12 @@ Future<bool> showAdminConfirmDialog(BuildContext context, String message) async 
         builder: (ctx) => AlertDialog(
           backgroundColor: AppTheme.surfaceContainer,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Confirm', style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold)),
-          content: Text(message, style: const TextStyle(color: AppTheme.onSurfaceVariant)),
+          title: Text('Confirm', style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold)),
+          content: Text(message, style: TextStyle(color: AppTheme.onSurfaceVariant)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: AppTheme.outline)),
+              child: Text('Cancel', style: TextStyle(color: AppTheme.outline)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),

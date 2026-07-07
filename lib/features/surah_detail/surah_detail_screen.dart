@@ -367,7 +367,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     Expanded(
                       child: Text(
                         isEn ? 'Select Surah' : 'Pilih Surah',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -375,7 +375,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.outline),
+                      icon: Icon(Icons.close, color: AppTheme.outline),
                       onPressed: () => Navigator.pop(ctx2),
                     ),
                   ],
@@ -384,11 +384,11 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 TextField(
                   autofocus: true,
                   onChanged: (v) => setSheet(() => query = v),
-                  style: const TextStyle(color: AppTheme.onSurface),
+                  style: TextStyle(color: AppTheme.onSurface),
                   decoration: InputDecoration(
                     hintText: isEn ? 'Search surah by name or number…' : 'Cari surah…',
-                    hintStyle: const TextStyle(color: AppTheme.outline),
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                    hintStyle: TextStyle(color: AppTheme.outline),
+                    prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
@@ -463,7 +463,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     }
 
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppTheme.background,
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
@@ -495,7 +495,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft, end: Alignment.bottomRight,
                     colors: [Color(0xFF0D3040), Color(0xFF0A1C28)],
@@ -514,7 +514,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         const SizedBox(height: 8),
                         Text(
                           '$surahDisplayName — ${isEn ? (surah['meaning'] ?? '') : (surah['meaning_id'] ?? surah['meaning'] ?? '')}',
-                          style: const TextStyle(color: AppTheme.onSurface,
+                          style: TextStyle(color: AppTheme.onSurface,
                             fontSize: 15, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
                         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -541,7 +541,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               ),
               // Reciter Selector
               IconButton(
-                icon: const Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
+                icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
                 tooltip: isEn ? 'Select Reciter' : 'Pilih Qori',
                 onPressed: _showReciterSelection,
               ),
@@ -552,7 +552,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                    border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -564,9 +564,9 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: active ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
+                            color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
                             borderRadius: BorderRadius.circular(20),
-                            border: active ? Border.all(color: AppTheme.primary.withOpacity(0.5)) : null,
+                            border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
                           ),
                           child: Text(
                             lang.toUpperCase(),
@@ -583,12 +583,12 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.translate, color: AppTheme.outline),
+                icon: Icon(Icons.translate, color: AppTheme.outline),
                 tooltip: 'Translation',
                 onPressed: _showTranslationSourcePicker,
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.tune, color: AppTheme.outline),
+                icon: Icon(Icons.tune, color: AppTheme.outline),
                 color: AppTheme.surfaceContainer,
                 tooltip: 'Display',
                 onSelected: (v) => setState(() {
@@ -616,7 +616,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               ),
               if (_firstPageNumber != null)
                 IconButton(
-                  icon: const Icon(Icons.menu_book_outlined, color: AppTheme.primary),
+                  icon: Icon(Icons.menu_book_outlined, color: AppTheme.primary),
                   tooltip: 'Read in Mushaf',
                   onPressed: () => context.go('/mushaf?page=$_firstPageNumber'),
                 ),
@@ -631,7 +631,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
@@ -644,7 +644,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         children: [
                           Text(
                             isEn ? 'SELECT SURAH' : 'PILIH SURAH',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
@@ -659,7 +659,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                               decoration: BoxDecoration(
                                 color: AppTheme.surfaceContainerHigh,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                               ),
                               child: Row(
                                 children: [
@@ -678,12 +678,12 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                                               : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
                                       return Text(
                                         name,
-                                        style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                                        style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
                                         overflow: TextOverflow.ellipsis,
                                       );
                                     }),
                                   ),
-                                  const Icon(Icons.search, color: AppTheme.outline, size: 16),
+                                  Icon(Icons.search, color: AppTheme.outline, size: 16),
                                 ],
                               ),
                             ),
@@ -698,7 +698,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         children: [
                           Text(
                             isEn ? 'AYAH (1-$_maxAyas)' : 'AYAT (1-$_maxAyas)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
@@ -710,7 +710,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                             controller: _ayahController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                            style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
                             onSubmitted: (_) => _goSpecificAyah(),
                             onChanged: (val) {
                               if (val.isNotEmpty) {
@@ -751,9 +751,9 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       ),
                       child: Row(
                         children: [
-                          Text(isEn ? 'GO' : 'BUKA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                           const SizedBox(width: 2),
-                          const Icon(Icons.arrow_forward, size: 12),
+                          Icon(Icons.arrow_forward, size: 12),
                         ],
                       ),
                     ),
@@ -780,8 +780,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
             ),
 
           if (_loadingTrans)
-            const SliverToBoxAdapter(
-              child: const LinearProgressIndicator(
+            SliverToBoxAdapter(
+              child: LinearProgressIndicator(
                 color: AppTheme.primary, backgroundColor: AppTheme.surfaceContainerHigh),
             ),
 
@@ -827,7 +827,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
             ),
             Text(
               'Surah ${widget.surahId} / 114',
-              style: const TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold),
             ),
             _NavButton(
               label: isEn ? 'Next Surah →' : 'Surah Berikut →',
@@ -850,7 +850,7 @@ class _Badge extends StatelessWidget {
     decoration: BoxDecoration(color: AppTheme.surfaceContainer,
       borderRadius: BorderRadius.circular(8),
       border: Border.all(color: AppTheme.outlineVariant)),
-    child: Text(text, style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 11)),
+    child: Text(text, style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 11)),
   );
 }
 
@@ -883,7 +883,7 @@ class _VerseCard extends ConsumerWidget {
     final arabic = verse['text_ar'] as String;
 
     final Color bgColor = isPlaying
-        ? AppTheme.secondary.withOpacity(0.08)
+        ? AppTheme.secondary.withValues(alpha: 0.08)
         : AppTheme.surfaceContainer;
     final Color borderColor = isPlaying
         ? AppTheme.secondary
@@ -907,14 +907,14 @@ class _VerseCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isPlaying ? AppTheme.secondary.withOpacity(0.12) : AppTheme.surfaceContainerHigh,
+                color: isPlaying ? AppTheme.secondary.withValues(alpha: 0.12) : AppTheme.surfaceContainerHigh,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: Row(children: [
                 IslamicStar(
                   size: 32,
-                  color: isPlaying ? AppTheme.secondary.withOpacity(0.12) : AppTheme.primary.withOpacity(0.12),
-                  borderColor: isPlaying ? AppTheme.secondary.withOpacity(0.4) : AppTheme.primary.withOpacity(0.4),
+                  color: isPlaying ? AppTheme.secondary.withValues(alpha: 0.12) : AppTheme.primary.withValues(alpha: 0.12),
+                  borderColor: isPlaying ? AppTheme.secondary.withValues(alpha: 0.4) : AppTheme.primary.withValues(alpha: 0.4),
                   child: Text('$ayahNum',
                     style: TextStyle(
                       color: isPlaying ? AppTheme.secondary : AppTheme.primary, 
@@ -924,16 +924,16 @@ class _VerseCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Text(verseKey, style: const TextStyle(color: AppTheme.outline, fontSize: 12)),
+                Text(verseKey, style: TextStyle(color: AppTheme.outline, fontSize: 12)),
                 if (isPlaying) ...[
                   const SizedBox(width: 10),
-                  const Icon(Icons.volume_up, color: AppTheme.secondary, size: 16),
+                  Icon(Icons.volume_up, color: AppTheme.secondary, size: 16),
                   const SizedBox(width: 4),
-                  const Text('PLAYING', style: TextStyle(color: AppTheme.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text('PLAYING', style: TextStyle(color: AppTheme.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.copy, size: 16, color: AppTheme.outline),
+                  icon: Icon(Icons.copy, size: 16, color: AppTheme.outline),
                   tooltip: 'Copy', padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: () {
@@ -952,7 +952,7 @@ class _VerseCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 IconButton(
-                  icon: const Icon(Icons.menu_book_outlined, size: 16, color: AppTheme.primary),
+                  icon: Icon(Icons.menu_book_outlined, size: 16, color: AppTheme.primary),
                   tooltip: 'Read in Mushaf', padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: () => context.go('/mushaf?verse_key=$verseKey'),
@@ -970,13 +970,13 @@ class _VerseCard extends ConsumerWidget {
                     ),
                   ),
                   if ((showTranslit && settings.showTransliteration) || showTranslation)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 10),
+                    Padding(padding: EdgeInsets.symmetric(vertical: 10),
                       child: Divider(color: AppTheme.outlineVariant)),
                 ],
                 if (showTranslit && settings.showTransliteration) ...[
                   AppTheme.buildFormattedText(
                     transliteration ?? '',
-                    const TextStyle(
+                    TextStyle(
                       color: AppTheme.outline,
                       fontSize: 13,
                       fontStyle: FontStyle.italic,
@@ -984,14 +984,14 @@ class _VerseCard extends ConsumerWidget {
                     ),
                   ),
                   if (showTranslation)
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 8),
+                    Padding(padding: EdgeInsets.symmetric(vertical: 8),
                       child: Divider(color: AppTheme.outlineVariant)),
                 ],
                 if (showTranslation)
                   translation != null
                     ? Text(translation!,
                         style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: settings.translationFontSize, height: 1.7))
-                    : const Text('Loading translation...',
+                    : Text('Loading translation...',
                         style: TextStyle(color: AppTheme.outline, fontSize: 13,
                           fontStyle: FontStyle.italic)),
               ]),
@@ -1012,7 +1012,7 @@ class _NavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: enabled ? AppTheme.primary.withOpacity(0.12) : AppTheme.surfaceContainerHigh,
+      color: enabled ? AppTheme.primary.withValues(alpha: 0.12) : AppTheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1022,7 +1022,7 @@ class _NavButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: enabled ? AppTheme.primary.withOpacity(0.4) : AppTheme.outlineVariant.withOpacity(0.2),
+              color: enabled ? AppTheme.primary.withValues(alpha: 0.4) : AppTheme.outlineVariant.withValues(alpha: 0.2),
             ),
           ),
           child: Text(

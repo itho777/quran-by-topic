@@ -82,7 +82,7 @@ class _TopicScreenState extends State<TopicScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -100,9 +100,9 @@ class _TopicScreenState extends State<TopicScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: active ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
+                        color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
-                        border: active ? Border.all(color: AppTheme.primary.withOpacity(0.5)) : null,
+                        border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
                       ),
                       child: Text(
                         lang.toUpperCase(),
@@ -118,6 +118,11 @@ class _TopicScreenState extends State<TopicScreen> {
               ),
             ),
           ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+            tooltip: 'Settings',
+            onPressed: () => context.push('/settings'),
+          ),
         ],
       ),
       body: Column(
@@ -126,13 +131,13 @@ class _TopicScreenState extends State<TopicScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: TextField(
-              style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
+              style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
               decoration: InputDecoration(
                 hintText: isId ? 'Cari topik...' : 'Search topics...',
-                prefixIcon: const Icon(Icons.search, color: AppTheme.outline, size: 18),
+                prefixIcon: Icon(Icons.search, color: AppTheme.outline, size: 18),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: AppTheme.outline, size: 16),
+                        icon: Icon(Icons.clear, color: AppTheme.outline, size: 16),
                         onPressed: () => setState(() => _searchQuery = ''),
                       )
                     : null,
@@ -150,24 +155,24 @@ class _TopicScreenState extends State<TopicScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.secondary.withOpacity(0.12),
+                      color: AppTheme.secondary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${_filtered.length} ${isId ? 'topik' : 'topics'}',
-                      style: const TextStyle(color: AppTheme.secondary, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: AppTheme.secondary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
+                      color: AppTheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${_verseCounts.values.fold(0, (a, b) => a + b)} ${isId ? 'pemetaan' : 'mappings'}',
-                      style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -178,7 +183,7 @@ class _TopicScreenState extends State<TopicScreen> {
 
           // List
           if (_loading)
-            const Expanded(
+            Expanded(
               child: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
             )
           else if (_filtered.isEmpty)
@@ -187,11 +192,11 @@ class _TopicScreenState extends State<TopicScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.label_off_outlined, size: 48, color: AppTheme.outline),
+                    Icon(Icons.label_off_outlined, size: 48, color: AppTheme.outline),
                     const SizedBox(height: 12),
                     Text(
                       isId ? 'Tidak ada topik.' : 'No topics found.',
-                      style: const TextStyle(color: AppTheme.outline, fontSize: 13),
+                      style: TextStyle(color: AppTheme.outline, fontSize: 13),
                     ),
                   ],
                 ),
@@ -213,7 +218,7 @@ class _TopicScreenState extends State<TopicScreen> {
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                      border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -230,17 +235,17 @@ class _TopicScreenState extends State<TopicScreen> {
                                 width: 34,
                                 height: 34,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.secondary.withOpacity(0.13),
+                                  color: AppTheme.secondary.withValues(alpha: 0.13),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.label_outline, color: AppTheme.secondary, size: 17),
+                                child: Icon(Icons.label_outline, color: AppTheme.secondary, size: 17),
                               ),
                               const SizedBox(width: 12),
                               // Name
                               Expanded(
                                 child: Text(
                                   tagName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppTheme.onSurface,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 13,
@@ -255,12 +260,12 @@ class _TopicScreenState extends State<TopicScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.primary.withOpacity(0.12),
+                                    color: AppTheme.primary.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     '$count',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppTheme.primary,
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -268,7 +273,7 @@ class _TopicScreenState extends State<TopicScreen> {
                                   ),
                                 ),
                               const SizedBox(width: 6),
-                              const Icon(Icons.chevron_right, color: AppTheme.outline, size: 16),
+                              Icon(Icons.chevron_right, color: AppTheme.outline, size: 16),
                             ],
                           ),
                         ),

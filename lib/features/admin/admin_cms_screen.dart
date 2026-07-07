@@ -68,16 +68,16 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
       ),
       child: ListTile(
         title: Text(label,
-            style: const TextStyle(color: AppTheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600)),
+            style: TextStyle(color: AppTheme.onSurface, fontSize: 13, fontWeight: FontWeight.w600)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (hint != null) ...[
-              Text(hint, style: const TextStyle(color: AppTheme.outline, fontSize: 10)),
+              Text(hint, style: TextStyle(color: AppTheme.outline, fontSize: 10)),
               const SizedBox(height: 2),
             ],
             Text(
@@ -94,7 +94,7 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
         ),
         isThreeLine: true,
         trailing: IconButton(
-          icon: const Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
+          icon: Icon(Icons.edit_outlined, color: AppTheme.primary, size: 18),
           onPressed: () => _edit(key, label, multiline: multiline),
         ),
         onTap: () => _edit(key, label, multiline: multiline),
@@ -109,20 +109,20 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
         leading: BackButton(color: AppTheme.primary),
-        title: const Row(children: [
+        title: Row(children: [
           Icon(Icons.web_outlined, color: AppTheme.primary, size: 18),
           SizedBox(width: 8),
           Text('Site CMS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.outline),
+            icon: Icon(Icons.refresh, color: AppTheme.outline),
             onPressed: _loadConfig,
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : RefreshIndicator(
               onRefresh: _loadConfig,
               child: ListView(
@@ -145,11 +145,11 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.06),
+                      color: AppTheme.primary.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
                     ),
-                    child: const Text(
+                    child: Text(
                       '💡 Use verse_key format: sura:ayah — e.g. 2:255 for Ayat Kursi, 1:1 for Al-Fatihah 1',
                       style: TextStyle(color: AppTheme.outline, fontSize: 11, height: 1.5),
                     ),
@@ -176,7 +176,7 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
   Widget _sectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 0),
     child: Text(text.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
             color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
   );
 }

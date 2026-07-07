@@ -85,17 +85,17 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.outline),
+          icon: Icon(Icons.arrow_back, color: AppTheme.outline),
           onPressed: () => context.pop(),
         ),
         title: Row(
           children: [
-            const Icon(Icons.label_outline, color: AppTheme.primary, size: 20),
+            Icon(Icons.label_outline, color: AppTheme.primary, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 tagName,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -103,14 +103,14 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.outline),
+            icon: Icon(Icons.refresh, color: AppTheme.outline),
             onPressed: _load,
             tooltip: 'Refresh',
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,25 +124,25 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.12),
+                          color: AppTheme.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           '${_taggedVerses.length} ${isEn ? 'verses' : 'ayat'}',
-                          style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.secondary.withOpacity(0.12),
+                          color: AppTheme.secondary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           _currentLang.toUpperCase(),
-                          style: const TextStyle(color: AppTheme.secondary, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: AppTheme.secondary, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -158,11 +158,11 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.auto_stories_outlined, size: 48, color: AppTheme.outline),
+                                Icon(Icons.auto_stories_outlined, size: 48, color: AppTheme.outline),
                                 const SizedBox(height: 12),
                                 Text(
                                   isEn ? 'No verses tagged under this topic.' : 'Belum ada ayat untuk topik ini.',
-                                  style: const TextStyle(color: AppTheme.outline, fontSize: 14),
+                                  style: TextStyle(color: AppTheme.outline, fontSize: 14),
                                   textAlign: TextAlign.center,
                                 ),
                               ],
@@ -194,7 +194,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                               decoration: BoxDecoration(
                                 color: AppTheme.surfaceContainer,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
                               ),
                               child: Material(
                                 color: Colors.transparent,
@@ -213,14 +213,14 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
-                                                gradient: const LinearGradient(
+                                                gradient: LinearGradient(
                                                   colors: [AppTheme.primary, AppTheme.outlineVariant],
                                                 ),
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Text(
                                                 verseKey,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.bold,
@@ -228,7 +228,7 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                               ),
                                             ),
                                             const Spacer(),
-                                            const Icon(
+                                            Icon(
                                               Icons.arrow_forward_ios,
                                               size: 12,
                                               color: AppTheme.outline,
@@ -246,11 +246,11 @@ class _TopicDetailScreenState extends State<TopicDetailScreen> {
                                           ),
                                         if (translationText.isNotEmpty) ...[
                                           const SizedBox(height: 10),
-                                          const Divider(color: AppTheme.outlineVariant),
+                                          Divider(color: AppTheme.outlineVariant),
                                           const SizedBox(height: 8),
                                           Text(
                                             translationText,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: AppTheme.onSurfaceVariant,
                                               fontSize: 13,
                                               height: 1.6,

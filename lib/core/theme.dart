@@ -35,32 +35,41 @@ final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((r
 });
 
 class AppTheme {
-  // Brand color palette from Stitch designs (Gold/Teal/Dark)
-  static const Color primary = Color(0xFFE9C176); // Gold
-  static const Color onPrimary = Color(0xFF412D00);
-  static const Color primaryContainer = Color(0xFFC5A059);
-  static const Color onPrimaryContainer = Color(0xFF4E3700);
+  static ThemeMode themeMode = ThemeMode.dark;
 
-  static const Color secondary = Color(0xFF95D1D1); // Teal
-  static const Color onSecondary = Color(0xFF003737);
-  static const Color secondaryContainer = Color(0xFF0C5252);
-  static const Color onSecondaryContainer = Color(0xFF87C3C2);
+  static bool get isDark {
+    if (themeMode == ThemeMode.system) {
+      return WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+    }
+    return themeMode == ThemeMode.dark;
+  }
+
+  // Brand color palette from Stitch designs (Gold/Teal/Dark)
+  static Color get primary => isDark ? const Color(0xFFE9C176) : const Color(0xFF0F5B5B);
+  static Color get onPrimary => isDark ? const Color(0xFF412D00) : const Color(0xFFFFFFFF);
+  static Color get primaryContainer => isDark ? const Color(0xFFC5A059) : const Color(0xFFD4EBEB);
+  static Color get onPrimaryContainer => isDark ? const Color(0xFF4E3700) : const Color(0xFF003737);
+
+  static Color get secondary => isDark ? const Color(0xFF95D1D1) : const Color(0xFF8E7955);
+  static Color get onSecondary => isDark ? const Color(0xFF003737) : const Color(0xFFFFFFFF);
+  static Color get secondaryContainer => isDark ? const Color(0xFF0C5252) : const Color(0xFFF4EFE6);
+  static Color get onSecondaryContainer => isDark ? const Color(0xFF87C3C2) : const Color(0xFF8E7955);
 
   // Background and Surface colors
-  static const Color background = Color(0xFF131313);
-  static const Color surface = Color(0xFF131313);
-  static const Color surfaceContainer = Color(0xFF1E1E1E);
-  static const Color surfaceContainerLow = Color(0xFF1C1B1B);
-  static const Color surfaceContainerHigh = Color(0xFF2A2A2A);
-  static const Color surfaceContainerHighest = Color(0xFF353534);
-  static const Color surfaceDim = Color(0xFF131313);
+  static Color get background => isDark ? const Color(0xFF131313) : const Color(0xFFFAF8F5);
+  static Color get surface => isDark ? const Color(0xFF131313) : const Color(0xFFFCFAF7);
+  static Color get surfaceContainer => isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF4EFE6);
+  static Color get surfaceContainerLow => isDark ? const Color(0xFF1C1B1B) : const Color(0xFFFCFAF7);
+  static Color get surfaceContainerHigh => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEBE4D5);
+  static Color get surfaceContainerHighest => isDark ? const Color(0xFF353534) : const Color(0xFFDDD5C7);
+  static Color get surfaceDim => isDark ? const Color(0xFF131313) : const Color(0xFFFAF8F5);
 
   // Text and Outlines
-  static const Color onSurface = Color(0xFFE5E2E1);
-  static const Color onSurfaceVariant = Color(0xFFD1C5B4);
-  static const Color outline = Color(0xFF9A8F80);
-  static const Color outlineVariant = Color(0xFF4E4639);
-  static const Color bronzeMute = Color(0xFF8E7955);
+  static Color get onSurface => isDark ? const Color(0xFFE5E2E1) : const Color(0xFF2C251C);
+  static Color get onSurfaceVariant => isDark ? const Color(0xFFD1C5B4) : const Color(0xFF4A4235);
+  static Color get outline => isDark ? const Color(0xFF9A8F80) : const Color(0xFF8E8373);
+  static Color get outlineVariant => isDark ? const Color(0xFF4E4639) : const Color(0xFFD6CDBF);
+  static Color get bronzeMute => const Color(0xFF8E7955);
 
   // Status
   static const Color success = Color(0xFF4CAF50);
@@ -71,7 +80,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: background,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         primary: primary,
         onPrimary: onPrimary,
         primaryContainer: primaryContainer,
@@ -83,8 +92,6 @@ class AppTheme {
         surface: surface,
         onSurface: onSurface,
         error: error,
-        background: background,
-        onBackground: onSurface,
       ),
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
         displayLarge: GoogleFonts.inter(
@@ -111,7 +118,7 @@ class AppTheme {
         bodyMedium: GoogleFonts.inter(color: onSurfaceVariant, fontSize: 13),
         labelSmall: GoogleFonts.inter(color: outline, fontSize: 11),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -127,7 +134,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: outlineVariant, width: 1),
+          side: BorderSide(color: outlineVariant, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -135,27 +142,121 @@ class AppTheme {
         fillColor: surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: outlineVariant),
+          borderSide: BorderSide(color: outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: outlineVariant),
+          borderSide: BorderSide(color: outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderSide: BorderSide(color: primary, width: 2),
         ),
-        hintStyle: const TextStyle(color: outline, fontSize: 14),
+        hintStyle: TextStyle(color: outline, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surfaceContainer,
         selectedItemColor: primary,
         unselectedItemColor: outline,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
+        color: outlineVariant,
+        thickness: 1,
+      ),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: background,
+      colorScheme: ColorScheme.light(
+        primary: primary,
+        onPrimary: onPrimary,
+        primaryContainer: primaryContainer,
+        onPrimaryContainer: onPrimaryContainer,
+        secondary: secondary,
+        onSecondary: onSecondary,
+        secondaryContainer: secondaryContainer,
+        onSecondaryContainer: onSecondaryContainer,
+        surface: surface,
+        onSurface: onSurface,
+        error: error,
+      ),
+      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).copyWith(
+        displayLarge: GoogleFonts.inter(
+          color: onSurface,
+          fontWeight: FontWeight.w700,
+          fontSize: 32,
+        ),
+        displayMedium: GoogleFonts.inter(
+          color: onSurface,
+          fontWeight: FontWeight.w600,
+          fontSize: 24,
+        ),
+        headlineMedium: GoogleFonts.inter(
+          color: onSurface,
+          fontWeight: FontWeight.w600,
+          fontSize: 20,
+        ),
+        titleMedium: GoogleFonts.inter(
+          color: onSurface,
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+        bodyLarge: GoogleFonts.inter(color: onSurfaceVariant, fontSize: 15),
+        bodyMedium: GoogleFonts.inter(color: onSurfaceVariant, fontSize: 13),
+        labelSmall: GoogleFonts.inter(color: outline, fontSize: 11),
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: surface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: primary,
+          fontWeight: FontWeight.w700,
+          fontSize: 20,
+        ),
+        iconTheme: IconThemeData(color: primary),
+      ),
+      cardTheme: CardThemeData(
+        color: surfaceContainer,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: outlineVariant, width: 1),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: surfaceContainerHigh,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: primary, width: 2),
+        ),
+        hintStyle: TextStyle(color: outline, fontSize: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      ),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: surfaceContainer,
+        selectedItemColor: primary,
+        unselectedItemColor: outline,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+      dividerTheme: DividerThemeData(
         color: outlineVariant,
         thickness: 1,
       ),
@@ -166,7 +267,7 @@ class AppTheme {
   static TextStyle arabicStyle({
     double fontSize = 32,
     FontWeight fontWeight = FontWeight.w400,
-    Color color = primary,
+    Color color = const Color(0xFF0F5B5B),
   }) {
     return GoogleFonts.amiri(
       fontSize: fontSize,

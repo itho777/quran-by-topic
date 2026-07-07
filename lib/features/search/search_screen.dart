@@ -121,7 +121,7 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       // 1. Get embedding from HuggingFace router (api-inference subdomain is blocked on some networks;
       //    router.huggingface.co is the newer, reachable endpoint that supports BAAI/bge-small-en-v1.5).
-      final hfToken = 'hf_' + 'MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN';
+      final hfToken = 'hf_' 'MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN';
       const hfUrl   = 'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5';
 
       final response = await http.post(
@@ -231,19 +231,19 @@ class _SearchScreenState extends State<SearchScreen> {
               child: TextField(
                 controller: _controller,
                 autofocus: widget.initialQuery.isEmpty,
-                style: const TextStyle(color: AppTheme.onSurface, fontSize: 16),
+                style: TextStyle(color: AppTheme.onSurface, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: _langCode == 'id'
                       ? 'Cari dalam Al-Qur\'an, tafsir & topik…'
                       : 'Search Qur\'an, tafsirs & topics…',
-                  hintStyle: const TextStyle(color: AppTheme.outline, fontSize: 14),
+                  hintStyle: TextStyle(color: AppTheme.outline, fontSize: 14),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                  prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                   suffixIcon: _controller.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, color: AppTheme.outline, size: 18),
+                          icon: Icon(Icons.clear, color: AppTheme.outline, size: 18),
                           onPressed: () {
                             _controller.clear();
                             setState(() {
@@ -267,7 +267,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -284,9 +284,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: active ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
+                          color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
                           borderRadius: BorderRadius.circular(20),
-                          border: active ? Border.all(color: AppTheme.primary.withOpacity(0.5)) : null,
+                          border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
                         ),
                         child: Text(
                           lang.toUpperCase(),
@@ -302,12 +302,17 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
             ),
+            IconButton(
+              icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+              tooltip: 'Settings',
+              onPressed: () => context.push('/settings'),
+            ),
           ],
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: _loading
-              ? const LinearProgressIndicator(color: AppTheme.primary, backgroundColor: AppTheme.surfaceContainerHigh)
+              ? LinearProgressIndicator(color: AppTheme.primary, backgroundColor: AppTheme.surfaceContainerHigh)
               : const SizedBox(height: 1),
         ),
       ),
@@ -373,15 +378,15 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
+              Icon(Icons.error_outline, size: 48, color: AppTheme.error),
               const SizedBox(height: 12),
-              Text('Search error', style: const TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold)),
+              Text('Search error', style: TextStyle(color: AppTheme.error, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text(_error, style: const TextStyle(color: AppTheme.outline, fontSize: 12), textAlign: TextAlign.center),
+              Text(_error, style: TextStyle(color: AppTheme.outline, fontSize: 12), textAlign: TextAlign.center),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => _search(_controller.text),
-                child: const Text('Retry', style: TextStyle(color: AppTheme.primary)),
+                child: Text('Retry', style: TextStyle(color: AppTheme.primary)),
               ),
             ],
           ),
@@ -394,18 +399,18 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search, size: 72, color: AppTheme.outline),
+            Icon(Icons.search, size: 72, color: AppTheme.outline),
             const SizedBox(height: 16),
             Text(
               _langCode == 'id' ? 'Cari dalam Al-Qur\'an' : 'Search within the Qur\'an',
-              style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               _langCode == 'id'
                   ? 'Cari kata dalam terjemahan, tafsir & topik'
                   : 'Search across translations, tafsirs & topic tags',
-              style: const TextStyle(color: AppTheme.outline, fontSize: 12),
+              style: TextStyle(color: AppTheme.outline, fontSize: 12),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -427,9 +432,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             decoration: BoxDecoration(
                               color: AppTheme.surfaceContainer,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                              border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                             ),
-                            child: Text(term, style: const TextStyle(color: AppTheme.outline, fontSize: 12)),
+                            child: Text(term, style: TextStyle(color: AppTheme.outline, fontSize: 12)),
                           ),
                         ))
                     .toList(),
@@ -445,18 +450,18 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off, size: 64, color: AppTheme.outline),
+            Icon(Icons.search_off, size: 64, color: AppTheme.outline),
             const SizedBox(height: 16),
             Text(
               _langCode == 'id'
                   ? 'Tidak ada hasil untuk "${_controller.text}"'
                   : 'No results for "${_controller.text}"',
-              style: const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 15, fontWeight: FontWeight.w600),
+              style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 15, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               _langCode == 'id' ? 'Coba kata yang berbeda' : 'Try a different word',
-              style: const TextStyle(color: AppTheme.outline, fontSize: 12),
+              style: TextStyle(color: AppTheme.outline, fontSize: 12),
             ),
           ],
         ),
@@ -472,14 +477,14 @@ class _SearchScreenState extends State<SearchScreen> {
             color: AppTheme.surfaceContainerLow,
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, size: 14, color: AppTheme.primary),
+                Icon(Icons.auto_awesome, size: 14, color: AppTheme.primary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _langCode == 'id'
                         ? 'Ditemukan ${_results.length} ayat untuk "${_controller.text}"'
                         : 'Found ${_results.length} verses for "${_controller.text}"',
-                    style: const TextStyle(color: AppTheme.outline, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -495,13 +500,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
                     child: _loadingMore
-                        ? const CircularProgressIndicator(color: AppTheme.primary)
+                        ? CircularProgressIndicator(color: AppTheme.primary)
                         : TextButton.icon(
                             onPressed: _loadMore,
-                            icon: const Icon(Icons.expand_more, color: AppTheme.primary),
+                            icon: Icon(Icons.expand_more, color: AppTheme.primary),
                             label: Text(
                               _langCode == 'id' ? 'Muat Lebih Banyak' : 'Load More',
-                              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
                             ),
                           ),
                   ),
@@ -598,8 +603,8 @@ class _ResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: score >= 2
-              ? badgeColor.withOpacity(0.35)
-              : AppTheme.outlineVariant.withOpacity(0.4),
+              ? badgeColor.withValues(alpha: 0.35)
+              : AppTheme.outlineVariant.withValues(alpha: 0.4),
         ),
       ),
       child: Material(
@@ -618,7 +623,7 @@ class _ResultCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: score >= 2
-                      ? badgeColor.withOpacity(0.08)
+                      ? badgeColor.withValues(alpha: 0.08)
                       : AppTheme.surfaceContainerHigh,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 ),
@@ -630,14 +635,14 @@ class _ResultCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: score >= 2
-                              ? [badgeColor.withOpacity(0.3), badgeColor.withOpacity(0.1)]
+                              ? [badgeColor.withValues(alpha: 0.3), badgeColor.withValues(alpha: 0.1)]
                               : [AppTheme.surfaceContainerHighest, AppTheme.surfaceContainerHighest],
                         ),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: score >= 2
-                              ? badgeColor.withOpacity(0.5)
-                              : AppTheme.outlineVariant.withOpacity(0.4),
+                              ? badgeColor.withValues(alpha: 0.5)
+                              : AppTheme.outlineVariant.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Text(
@@ -654,7 +659,7 @@ class _ResultCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         surahName,
-                        style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                        style: TextStyle(color: AppTheme.outline, fontSize: 11),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -662,9 +667,9 @@ class _ResultCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: badgeColor.withOpacity(0.15),
+                        color: badgeColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: badgeColor.withOpacity(0.3)),
+                        border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
                       ),
                       child: Text(
                         badgeLabel,
@@ -672,7 +677,7 @@ class _ResultCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.chevron_right, color: AppTheme.outline, size: 16),
+                    Icon(Icons.chevron_right, color: AppTheme.outline, size: 16),
                   ],
                 ),
               ),
@@ -691,7 +696,7 @@ class _ResultCard extends StatelessWidget {
                         style: AppTheme.arabicStyle(fontSize: 22, color: AppTheme.primary),
                       ),
                       const SizedBox(height: 10),
-                      const Divider(color: AppTheme.outlineVariant, height: 1),
+                      Divider(color: AppTheme.outlineVariant, height: 1),
                       const SizedBox(height: 10),
                     ],
                     // Matched tags (topic pills)
@@ -702,14 +707,14 @@ class _ResultCard extends StatelessWidget {
                         children: matchedTags.map((tagName) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.secondary.withOpacity(0.12),
+                            color: AppTheme.secondary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.secondary.withOpacity(0.4)),
+                            border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.4)),
                           ),
                           child: _HighlightedText(
                             text: tagName,
                             query: query,
-                            baseStyle: const TextStyle(
+                            baseStyle: TextStyle(
                               color: AppTheme.secondary,
                               fontSize: 12,
                               height: 1.4,
@@ -718,7 +723,7 @@ class _ResultCard extends StatelessWidget {
                         )).toList(),
                       ),
                       const SizedBox(height: 8),
-                      const Divider(color: AppTheme.outlineVariant, height: 1),
+                      Divider(color: AppTheme.outlineVariant, height: 1),
                       const SizedBox(height: 8),
                     ],
                     // ── Source excerpts ──────────────────────────────────
@@ -774,9 +779,9 @@ class _SourceExcerpt extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -787,7 +792,7 @@ class _SourceExcerpt extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -847,13 +852,13 @@ class _HighlightedText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = baseStyle ?? const TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 14, height: 1.65);
+    final base = baseStyle ?? TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 14, height: 1.65);
     final ell  = base.copyWith(color: AppTheme.outline);
     final hiColor = base.color ?? AppTheme.primary;
     final hi = base.copyWith(
       color: AppTheme.primary,
       fontWeight: FontWeight.bold,
-      backgroundColor: hiColor.withOpacity(0.18),
+      backgroundColor: hiColor.withValues(alpha: 0.18),
     );
 
     if (text.isEmpty) return const SizedBox.shrink();
@@ -964,10 +969,10 @@ class _ModePill extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? AppTheme.primary.withOpacity(0.12) : AppTheme.surfaceContainer,
+          color: active ? AppTheme.primary.withValues(alpha: 0.12) : AppTheme.surfaceContainer,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: active ? AppTheme.primary : AppTheme.outlineVariant.withOpacity(0.4),
+            color: active ? AppTheme.primary : AppTheme.outlineVariant.withValues(alpha: 0.4),
             width: 1.2,
           ),
         ),

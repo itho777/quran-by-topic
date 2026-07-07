@@ -16,6 +16,13 @@ class MoreScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
         title: const Text('Settings & More', style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: Icon(Icons.arrow_back, color: AppTheme.primary),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -27,7 +34,7 @@ class MoreScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceContainer,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+              border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
             ),
             child: Column(
               children: [
@@ -36,20 +43,20 @@ class MoreScreen extends ConsumerWidget {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.secondary.withOpacity(0.12),
+                      color: AppTheme.secondary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.palette_outlined, color: AppTheme.secondary, size: 18),
+                    child: Icon(Icons.palette_outlined, color: AppTheme.secondary, size: 18),
                   ),
-                  title: const Text('Theme Mode', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                  title: Text('Theme Mode', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
                   subtitle: Text(themeMode.name.toUpperCase(),
-                      style: const TextStyle(color: AppTheme.outline, fontSize: 11)),
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11)),
                   trailing: DropdownButtonHideUnderline(
                     child: DropdownButton<ThemeMode>(
                       value: themeMode,
                       dropdownColor: AppTheme.surfaceContainer,
-                      icon: const Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
-                      style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                      icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
+                      style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
                       onChanged: (newMode) {
                         if (newMode != null) {
                           ref.read(themeModeProvider.notifier).setThemeMode(newMode);
@@ -64,51 +71,51 @@ class MoreScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
+                Divider(height: 1, indent: 16, endIndent: 16),
                 
                 // Show Transliteration
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.12),
+                      color: AppTheme.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.translate, color: AppTheme.primary, size: 18),
+                    child: Icon(Icons.translate, color: AppTheme.primary, size: 18),
                   ),
-                  title: const Text('Show Transliteration', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Display transliteration text under Arabic verses', style: TextStyle(color: AppTheme.outline, fontSize: 11)),
+                  title: Text('Show Transliteration', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Display transliteration text under Arabic verses', style: TextStyle(color: AppTheme.outline, fontSize: 11)),
                   trailing: Switch(
                     value: settings.showTransliteration,
-                    activeColor: AppTheme.primary,
+                    activeThumbColor: AppTheme.primary,
                     onChanged: (val) {
                       ref.read(settingsProvider.notifier).setShowTransliteration(val);
                     },
                   ),
                 ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
+                Divider(height: 1, indent: 16, endIndent: 16),
                 
                 // Default Translation Source
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.bronzeMute.withOpacity(0.12),
+                      color: AppTheme.bronzeMute.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.language, color: AppTheme.bronzeMute, size: 18),
+                    child: Icon(Icons.language, color: AppTheme.bronzeMute, size: 18),
                   ),
-                  title: const Text('Preferred Translation', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                  title: Text('Preferred Translation', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
                   subtitle: Text(
                     settings.defaultTranslationSource == 'id.kemenag' ? 'Kemenag RI (Indonesian)' : 'Sahih International (English)',
-                    style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
                   ),
                   trailing: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: settings.defaultTranslationSource,
                       dropdownColor: AppTheme.surfaceContainer,
-                      icon: const Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
-                      style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                      icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
+                      style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
                       onChanged: (newVal) {
                         if (newVal != null) {
                           ref.read(settingsProvider.notifier).setDefaultTranslationSource(newVal);
@@ -127,7 +134,7 @@ class MoreScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
+                Divider(height: 1, indent: 16, endIndent: 16),
 
                 // Arabic Font Size Slider
                 Padding(
@@ -143,17 +150,17 @@ class MoreScreen extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.secondary.withOpacity(0.12),
+                                  color: AppTheme.secondary.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.format_size, color: AppTheme.secondary, size: 18),
+                                child: Icon(Icons.format_size, color: AppTheme.secondary, size: 18),
                               ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Arabic Font Size', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-                                  Text('${settings.arabicFontSize.toInt()} px', style: const TextStyle(color: AppTheme.outline, fontSize: 11)),
+                                  Text('Arabic Font Size', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                                  Text('${settings.arabicFontSize.toInt()} px', style: TextStyle(color: AppTheme.outline, fontSize: 11)),
                                 ],
                               ),
                             ],
@@ -169,11 +176,11 @@ class MoreScreen extends ConsumerWidget {
                       SliderTheme(
                         data: SliderThemeData(
                           activeTrackColor: AppTheme.primary,
-                          inactiveTrackColor: AppTheme.outlineVariant.withOpacity(0.3),
+                          inactiveTrackColor: AppTheme.outlineVariant.withValues(alpha: 0.3),
                           thumbColor: AppTheme.primary,
-                          overlayColor: AppTheme.primary.withOpacity(0.2),
+                          overlayColor: AppTheme.primary.withValues(alpha: 0.2),
                           valueIndicatorColor: AppTheme.surfaceContainerHigh,
-                          valueIndicatorTextStyle: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                          valueIndicatorTextStyle: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
                         ),
                         child: Slider(
                           value: settings.arabicFontSize,
@@ -189,7 +196,7 @@ class MoreScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
+                Divider(height: 1, indent: 16, endIndent: 16),
 
                 // Translation Font Size Slider
                 Padding(
@@ -205,17 +212,17 @@ class MoreScreen extends ConsumerWidget {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.outline.withOpacity(0.12),
+                                  color: AppTheme.outline.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.text_fields, color: AppTheme.outline, size: 18),
+                                child: Icon(Icons.text_fields, color: AppTheme.outline, size: 18),
                               ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Translation Font Size', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-                                  Text('${settings.translationFontSize.toInt()} px', style: const TextStyle(color: AppTheme.outline, fontSize: 11)),
+                                  Text('Translation Font Size', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                                  Text('${settings.translationFontSize.toInt()} px', style: TextStyle(color: AppTheme.outline, fontSize: 11)),
                                 ],
                               ),
                             ],
@@ -231,11 +238,11 @@ class MoreScreen extends ConsumerWidget {
                       SliderTheme(
                         data: SliderThemeData(
                           activeTrackColor: AppTheme.primary,
-                          inactiveTrackColor: AppTheme.outlineVariant.withOpacity(0.3),
+                          inactiveTrackColor: AppTheme.outlineVariant.withValues(alpha: 0.3),
                           thumbColor: AppTheme.primary,
-                          overlayColor: AppTheme.primary.withOpacity(0.2),
+                          overlayColor: AppTheme.primary.withValues(alpha: 0.2),
                           valueIndicatorColor: AppTheme.surfaceContainerHigh,
-                          valueIndicatorTextStyle: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                          valueIndicatorTextStyle: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
                         ),
                         child: Slider(
                           value: settings.translationFontSize,
@@ -263,7 +270,7 @@ class MoreScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceContainer,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+              border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
             ),
             child: Material(
               color: Colors.transparent,
@@ -276,14 +283,14 @@ class MoreScreen extends ConsumerWidget {
                     builder: (ctx) => AlertDialog(
                       backgroundColor: AppTheme.surfaceContainerHigh,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      title: const Row(
+                      title: Row(
                         children: [
                           Icon(Icons.restore, color: AppTheme.error, size: 20),
                           SizedBox(width: 8),
                           Text('Reset to Defaults', style: TextStyle(color: AppTheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      content: const Text(
+                      content: Text(
                         'This will reset all settings to their factory defaults:\n\n'
                         '• Language: Indonesian\n'
                         '• Translation: Kemenag RI\n'
@@ -296,7 +303,7 @@ class MoreScreen extends ConsumerWidget {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancel', style: TextStyle(color: AppTheme.outline)),
+                          child: Text('Cancel', style: TextStyle(color: AppTheme.outline)),
                         ),
                         FilledButton(
                           style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
@@ -327,7 +334,7 @@ class MoreScreen extends ConsumerWidget {
                     }
                   }
                 },
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   child: Row(
                     children: [
@@ -364,7 +371,7 @@ class MoreScreen extends ConsumerWidget {
             iconColor: AppTheme.outline,
             title: 'App Version',
             subtitle: 'Tafseer ID v1.0.0',
-            trailing: const Text('1.0.0',
+            trailing: Text('1.0.0',
                 style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
@@ -382,7 +389,7 @@ class _SectionLabel extends StatelessWidget {
     padding: const EdgeInsets.only(left: 4),
     child: Text(
       text.toUpperCase(),
-      style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+      style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
     ),
   );
 }
@@ -400,8 +407,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.trailing,
-    this.onTap,
-  });
+  }) : onTap = null;
 
   @override
   Widget build(BuildContext context) {
@@ -409,7 +415,7 @@ class _SettingsTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -424,7 +430,7 @@ class _SettingsTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: iconColor, size: 18),
@@ -435,13 +441,13 @@ class _SettingsTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          style: const TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
+                          style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
                       Text(subtitle,
-                          style: const TextStyle(color: AppTheme.outline, fontSize: 12)),
+                          style: TextStyle(color: AppTheme.outline, fontSize: 12)),
                     ],
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
           ),

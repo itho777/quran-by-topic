@@ -60,14 +60,14 @@ Widget buildQuranPageImage(
           fit: BoxFit.contain,
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(color: AppTheme.primary),
             );
           },
           errorBuilder: (c, e, s) => Center(
             child: Text(
               'Page $pageNum image unavailable',
-              style: const TextStyle(color: AppTheme.outline),
+              style: TextStyle(color: AppTheme.outline),
             ),
           ),
         ),

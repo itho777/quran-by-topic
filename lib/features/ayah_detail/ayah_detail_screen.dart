@@ -412,7 +412,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                     Expanded(
                       child: Text(
                         isEn ? 'Select Surah' : 'Pilih Surah',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -420,7 +420,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.outline),
+                      icon: Icon(Icons.close, color: AppTheme.outline),
                       onPressed: () => Navigator.pop(ctx2),
                     ),
                   ],
@@ -429,11 +429,11 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 TextField(
                   autofocus: true,
                   onChanged: (v) => setSheet(() => query = v),
-                  style: const TextStyle(color: AppTheme.onSurface),
+                  style: TextStyle(color: AppTheme.onSurface),
                   decoration: InputDecoration(
                     hintText: isEn ? 'Search surah by name or number…' : 'Cari surah…',
-                    hintStyle: const TextStyle(color: AppTheme.outline),
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                    hintStyle: TextStyle(color: AppTheme.outline),
+                    prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
@@ -550,7 +550,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     final isEn = _currentLang == 'en';
 
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppTheme.background,
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
@@ -560,7 +560,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       return Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(title: const Text('Error')),
-        body: const Center(
+        body: Center(
           child: Text('Ayah not found.', style: TextStyle(color: AppTheme.error)),
         ),
       );
@@ -581,10 +581,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(surahNameDisplay, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(surahNameDisplay, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             Text(
               '${isEn ? 'Ayah' : 'Ayat'} ${widget.ayahNumber}',
-              style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+              style: TextStyle(color: AppTheme.outline, fontSize: 11),
             ),
           ],
         ),
@@ -597,7 +597,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
           // Reciter Selector
           IconButton(
-            icon: const Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
+            icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
             tooltip: isEn ? 'Select Reciter' : 'Pilih Qori',
             onPressed: _showReciterSelection,
           ),
@@ -608,7 +608,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
               decoration: BoxDecoration(
                 color: AppTheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -620,9 +620,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: active ? AppTheme.primary.withOpacity(0.15) : Colors.transparent,
+                        color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
-                        border: active ? Border.all(color: AppTheme.primary.withOpacity(0.5)) : null,
+                        border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
                       ),
                       child: Text(
                         lang.toUpperCase(),
@@ -644,7 +644,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
           if (_verse != null && _verse!['page_number'] != null)
             IconButton(
-              icon: const Icon(Icons.menu_book_outlined, color: AppTheme.primary),
+              icon: Icon(Icons.menu_book_outlined, color: AppTheme.primary),
               tooltip: isEn ? 'Read in Mushaf' : 'Buka Mushaf',
               onPressed: () {
                 final pageNum = (_verse!['page_number'] as num).toInt();
@@ -652,7 +652,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
               },
             ),
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppTheme.outline),
+            icon: Icon(Icons.share_outlined, color: AppTheme.outline),
             onPressed: _copyActiveAyah,
           ),
         ],
@@ -705,7 +705,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: _isPlaying ? AppTheme.secondary.withOpacity(0.12) : AppTheme.primary.withOpacity(0.12),
+                              color: _isPlaying ? AppTheme.secondary.withValues(alpha: 0.12) : AppTheme.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -719,7 +719,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                           ),
                           Text(surahNameAr, style: AppTheme.arabicStyle(fontSize: 14, color: AppTheme.outline)),
                           IconButton(
-                            icon: const Icon(Icons.copy_outlined, color: AppTheme.outline, size: 18),
+                            icon: Icon(Icons.copy_outlined, color: AppTheme.outline, size: 18),
                             onPressed: _copyActiveAyah,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -742,7 +742,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
@@ -755,7 +755,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                         children: [
                           Text(
                             isEn ? 'SELECT SURAH' : 'PILIH SURAH',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
@@ -770,7 +770,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                               decoration: BoxDecoration(
                                 color: AppTheme.surfaceContainerHigh,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                               ),
                               child: Row(
                                 children: [
@@ -789,12 +789,12 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                                               : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
                                       return Text(
                                         name,
-                                        style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                                        style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
                                         overflow: TextOverflow.ellipsis,
                                       );
                                     }),
                                   ),
-                                  const Icon(Icons.search, color: AppTheme.outline, size: 16),
+                                  Icon(Icons.search, color: AppTheme.outline, size: 16),
                                 ],
                               ),
                             ),
@@ -809,7 +809,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                         children: [
                           Text(
                             isEn ? 'AYAH (1-$_maxAyas)' : 'AYAT (1-$_maxAyas)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
@@ -821,7 +821,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                             controller: _ayahController,
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            style: const TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                            style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
                             onSubmitted: (_) => _goSpecificAyah(),
                             onChanged: (val) {
                               if (val.isNotEmpty) {
@@ -862,9 +862,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                       ),
                       child: Row(
                         children: [
-                          Text(isEn ? 'GO' : 'BUKA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                          Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                           const SizedBox(width: 2),
-                          const Icon(Icons.arrow_forward, size: 12),
+                          Icon(Icons.arrow_forward, size: 12),
                         ],
                       ),
                     ),
@@ -911,7 +911,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
           Text(
             '${widget.ayahNumber} / $totalAyahs',
-            style: const TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold),
           ),
           _NavButton(
             label: isEn ? 'Next →' : 'Berikut →',
@@ -933,7 +933,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         indicatorColor: AppTheme.primary,
         labelColor: AppTheme.primary,
         unselectedLabelColor: AppTheme.outline,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         tabs: [
           Tab(text: isEn ? 'Translation' : 'Terjemahan'),
           Tab(text: 'Tafsir'),
@@ -1029,7 +1029,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             children: [
               Text(
                 isEn ? 'Topics & Themes' : 'Topik & Tema',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1038,10 +1038,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                   return Padding(
                     padding: const EdgeInsets.only(left: 6),
                     child: ChoiceChip(
-                      label: Text(_tagsSlots[idx].label, style: const TextStyle(fontSize: 10)),
+                      label: Text(_tagsSlots[idx].label, style: TextStyle(fontSize: 10)),
                       selected: active,
                       onSelected: (sel) { if (sel) setState(() => _tagsLangIdx = idx); },
-                      selectedColor: AppTheme.primary.withOpacity(0.15),
+                      selectedColor: AppTheme.primary.withValues(alpha: 0.15),
                       backgroundColor: Colors.transparent,
                     ),
                   );
@@ -1061,8 +1061,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
-                          title: Text(tag['name'] as String, style: const TextStyle(fontSize: 13, color: AppTheme.onSurface)),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
+                          title: Text(tag['name'] as String, style: TextStyle(fontSize: 13, color: AppTheme.onSurface)),
+                          trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
                           onTap: () => context.go('/topics/${t['tag_id']}'),
                         ),
                       );
@@ -1083,7 +1083,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         children: [
           Text(
             isEn ? 'Related Verses' : 'Ayat Terkait',
-            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+            style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
           ),
           const SizedBox(height: 12),
           _relatedVerses.isEmpty
@@ -1098,9 +1098,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
-                          title: Text(rVerseKey, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
-                          subtitle: Text(rText, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppTheme.outline)),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
+                          title: Text(rVerseKey, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                          subtitle: Text(rText, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppTheme.outline)),
+                          trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
                           onTap: () => context.go('/mushaf?verse_key=$rVerseKey'),
                         ),
                       );
@@ -1135,7 +1135,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 children: [
                   Icon(icon, size: 16, color: AppTheme.primary),
                   const SizedBox(width: 6),
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13)),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13)),
                   // Admin inline-edit button
                   if (ref.watch(isAdminProvider) && onEdit != null) ...[
                     const SizedBox(width: 8),
@@ -1161,10 +1161,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                   return Padding(
                     padding: const EdgeInsets.only(left: 6),
                     child: ChoiceChip(
-                      label: Text(slots[idx].label, style: const TextStyle(fontSize: 10)),
+                      label: Text(slots[idx].label, style: TextStyle(fontSize: 10)),
                       selected: active,
                       onSelected: (sel) { if (sel) onToggle(idx); },
-                      selectedColor: AppTheme.primary.withOpacity(0.15),
+                      selectedColor: AppTheme.primary.withValues(alpha: 0.15),
                       backgroundColor: Colors.transparent,
                     ),
                   );
@@ -1195,9 +1195,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.info_outline, size: 36, color: AppTheme.outline),
+          Icon(Icons.info_outline, size: 36, color: AppTheme.outline),
           const SizedBox(height: 8),
-          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.outline, fontSize: 12)),
+          Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppTheme.outline, fontSize: 12)),
         ],
       ),
     );
@@ -1214,7 +1214,7 @@ class _NavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: enabled ? AppTheme.primary.withOpacity(0.12) : AppTheme.surfaceContainerHigh,
+      color: enabled ? AppTheme.primary.withValues(alpha: 0.12) : AppTheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -1224,7 +1224,7 @@ class _NavButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: enabled ? AppTheme.primary.withOpacity(0.4) : AppTheme.outlineVariant.withOpacity(0.2),
+              color: enabled ? AppTheme.primary.withValues(alpha: 0.4) : AppTheme.outlineVariant.withValues(alpha: 0.2),
             ),
           ),
           child: Text(

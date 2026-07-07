@@ -68,7 +68,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.admin_panel_settings_outlined, color: AppTheme.primary, size: 20),
             SizedBox(width: 10),
@@ -77,14 +77,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.outline),
+            icon: Icon(Icons.refresh, color: AppTheme.outline),
             onPressed: _loadCounts,
             tooltip: 'Refresh counts',
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -100,29 +100,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+                      border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary.withOpacity(0.12),
+                            color: AppTheme.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.dataset_outlined, color: AppTheme.primary, size: 28),
+                          child: Icon(Icons.dataset_outlined, color: AppTheme.primary, size: 28),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Database Overview',
+                              Text('Database Overview',
                                   style: TextStyle(color: AppTheme.onSurface, fontSize: 17, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 4),
                               Text(
                                 'Manage Quran content, translations, tafsirs, and tags',
-                                style: const TextStyle(color: AppTheme.outline, fontSize: 12),
+                                style: TextStyle(color: AppTheme.outline, fontSize: 12),
                               ),
                             ],
                           ),
@@ -218,7 +218,7 @@ class _StatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.surfaceContainer,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+          border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -228,7 +228,7 @@ class _StatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: AppTheme.primary, size: 18),
@@ -238,9 +238,9 @@ class _StatCard extends StatelessWidget {
               children: [
                 Text(
                   count == 0 ? '—' : _fmt(count),
-                  style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 22),
+                  style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 22),
                 ),
-                Text(label, style: const TextStyle(color: AppTheme.outline, fontSize: 11)),
+                Text(label, style: TextStyle(color: AppTheme.outline, fontSize: 11)),
               ],
             ),
           ],
@@ -276,14 +276,14 @@ class _QuickAction extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.25)),
+            border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -293,12 +293,12 @@ class _QuickAction extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text(subtitle, style: const TextStyle(color: AppTheme.outline, fontSize: 12)),
+                    Text(title, style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(subtitle, style: TextStyle(color: AppTheme.outline, fontSize: 12)),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+              Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
             ],
           ),
         ),
@@ -313,6 +313,6 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+    style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
   );
 }

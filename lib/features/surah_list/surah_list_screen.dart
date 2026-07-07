@@ -110,7 +110,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                     Expanded(
                       child: Text(
                         isEn ? 'Select Surah' : 'Pilih Surah',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -118,7 +118,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.outline),
+                      icon: Icon(Icons.close, color: AppTheme.outline),
                       onPressed: () => Navigator.pop(ctx2),
                     ),
                   ],
@@ -127,19 +127,19 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                 TextField(
                   autofocus: true,
                   onChanged: (v) => setSheet(() => query = v),
-                  style: const TextStyle(color: AppTheme.onSurface),
+                  style: TextStyle(color: AppTheme.onSurface),
                   decoration: InputDecoration(
                     hintText: isEn ? 'Search surah by name or number…' : 'Cari surah…',
-                    hintStyle: const TextStyle(color: AppTheme.outline),
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.outline),
+                    hintStyle: TextStyle(color: AppTheme.outline),
+                    prefixIcon: Icon(Icons.search, color: AppTheme.outline),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.outlineVariant),
+                      borderSide: BorderSide(color: AppTheme.outlineVariant),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primary),
+                      borderSide: BorderSide(color: AppTheme.primary),
                     ),
                   ),
                 ),
@@ -182,10 +182,10 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                         ),
                         subtitle: Text(
                           '${s['ayas'] ?? ''} ${isEn ? 'verses' : 'ayat'}',
-                          style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                          style: TextStyle(color: AppTheme.outline, fontSize: 11),
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check, color: AppTheme.primary)
+                            ? Icon(Icons.check, color: AppTheme.primary)
                             : null,
                         onTap: () {
                           setState(() {
@@ -264,10 +264,15 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
               ),
             ),
           ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+            tooltip: 'Settings',
+            onPressed: () => context.push('/settings'),
+          ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : CustomScrollView(
               slivers: [
                 // Last Read Card (live from BookmarksManager)
@@ -305,7 +310,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                           color: AppTheme.primaryContainer.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(14),
                                         ),
-                                        child: const Icon(Icons.history, color: AppTheme.primaryContainer),
+                                        child: Icon(Icons.history, color: AppTheme.primaryContainer),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -314,7 +319,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                           children: [
                                             Text(
                                               isEn ? 'LAST READ' : 'TERAKHIR DIBACA',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: AppTheme.outline,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
@@ -326,7 +331,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                               _lastRead != null
                                                   ? '${_lastRead!['surahName']}, ${isEn ? 'Ayah' : 'Ayat'} ${_lastRead!['ayahNumber']}'
                                                   : (isEn ? 'Al-Fatihah, Ayah 1' : 'Al-Fatihah, Ayat 1'),
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: AppTheme.onSurface,
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
@@ -339,7 +344,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                         _lastRead != null
                                             ? _getTimeAgo(_lastRead!['timestamp'] as int, isEn)
                                             : (isEn ? 'Not started' : 'Belum mulai'),
-                                        style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
@@ -349,11 +354,11 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                     children: [
                                       Text(
                                         isEn ? 'Progress' : 'Kemajuan',
-                                        style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
                                       ),
                                       Text(
                                         '${_lastRead != null ? ((_lastRead!['surahId'] as int) / 114.0 * 100).toStringAsFixed(0) : '0'}%',
-                                        style: const TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: AppTheme.outline, fontSize: 10, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
@@ -364,7 +369,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                       value: _lastRead != null ? (_lastRead!['surahId'] as int) / 114.0 : 0.0,
                                       minHeight: 6,
                                       backgroundColor: AppTheme.surfaceContainerHigh,
-                                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryContainer),
+                                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryContainer),
                                     ),
                                   ),
                                 ],
@@ -407,7 +412,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                 children: [
                                   Text(
                                     isEn ? 'SELECT SURAH' : 'PILIH SURAH',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppTheme.outline,
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
@@ -442,12 +447,12 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                                       : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
                                               return Text(
                                                 name,
-                                                style: const TextStyle(color: AppTheme.onSurface, fontSize: 14),
+                                                style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
                                                 overflow: TextOverflow.ellipsis,
                                               );
                                             }),
                                           ),
-                                          const Icon(Icons.search, color: AppTheme.outline, size: 18),
+                                          Icon(Icons.search, color: AppTheme.outline, size: 18),
                                         ],
                                       ),
                                     ),
@@ -462,7 +467,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                 children: [
                                   Text(
                                     isEn ? 'AYAH (1-$_maxAyas)' : 'AYAT (1-$_maxAyas)',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppTheme.outline,
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold,
@@ -474,7 +479,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                     controller: _ayahController,
                                     keyboardType: TextInputType.number,
                                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    style: const TextStyle(color: AppTheme.onSurface),
+                                    style: TextStyle(color: AppTheme.onSurface),
                                     onSubmitted: (_) => _goSpecificAyah(),
                                     onChanged: (val) {
                                       if (val.isNotEmpty) {
@@ -515,9 +520,9 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Text(isEn ? 'GO' : 'BUKA', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                  Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                   const SizedBox(width: 4),
-                                  const Icon(Icons.arrow_forward, size: 14),
+                                  Icon(Icons.arrow_forward, size: 14),
                                 ],
                               ),
                             ),
@@ -538,7 +543,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           isEn ? 'All 114 Surahs' : 'Seluruh 114 Surah',
-                          style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),
                     ),
@@ -577,7 +582,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                         borderColor: AppTheme.primary.withValues(alpha: 0.4),
                                         child: Text(
                                           '${s['id']}',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: AppTheme.primary,
                                             fontWeight: FontWeight.w700,
                                             fontSize: 12,
@@ -595,7 +600,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                                   isEn
                                                       ? (s['name_en'] ?? '')
                                                       : (s['name_id'] ?? s['name_en'] ?? ''),
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     color: AppTheme.onSurface,
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 14,
@@ -612,7 +617,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                                     isEn
                                                         ? (s['type'] ?? '')
                                                         : (s['type'] == 'Meccan' ? 'Makkiyah' : 'Madaniyah'),
-                                                    style: const TextStyle(color: AppTheme.outline, fontSize: 10),
+                                                    style: TextStyle(color: AppTheme.outline, fontSize: 10),
                                                   ),
                                                 ),
                                               ],
@@ -622,7 +627,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                               isEn
                                                   ? (s['meaning'] ?? '')
                                                   : (s['meaning_id'] ?? s['meaning'] ?? ''),
-                                              style: const TextStyle(color: AppTheme.outline, fontSize: 12),
+                                              style: TextStyle(color: AppTheme.outline, fontSize: 12),
                                             ),
                                           ],
                                         ),
@@ -633,7 +638,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                           Text(s['name_ar'] ?? '', style: AppTheme.arabicStyle(fontSize: 16)),
                                           Text(
                                             isEn ? '${s['ayas']} verses' : '${s['ayas']} ayat',
-                                            style: const TextStyle(color: AppTheme.outline, fontSize: 11),
+                                            style: TextStyle(color: AppTheme.outline, fontSize: 11),
                                           ),
                                         ],
                                       ),

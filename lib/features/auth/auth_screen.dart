@@ -100,7 +100,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: TabBar(
@@ -112,7 +112,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: Colors.white,
                   unselectedLabelColor: AppTheme.outline,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: 'Sign In'),
@@ -125,7 +125,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               // ── Form fields ─────────────────────────────────────────────
               AnimatedBuilder(
                 animation: _tabController,
-                builder: (_, __) => Column(
+                builder: (_, _) => Column(
                   children: [
                     if (_tabController.index == 1) ...[
                       _buildField(
@@ -162,15 +162,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.error.withOpacity(0.1),
+                    color: AppTheme.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                    border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppTheme.error, size: 16),
+                      Icon(Icons.error_outline, color: AppTheme.error, size: 16),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(_error!, style: const TextStyle(color: AppTheme.error, fontSize: 13))),
+                      Expanded(child: Text(_error!, style: TextStyle(color: AppTheme.error, fontSize: 13))),
                     ],
                   ),
                 ),
@@ -192,9 +192,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : AnimatedBuilder(
                           animation: _tabController,
-                          builder: (_, __) => Text(
+                          builder: (_, _) => Text(
                             _tabController.index == 0 ? 'Sign In' : 'Create Account',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                 ),
@@ -203,12 +203,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
               // ── Divider ──────────────────────────────────────────────────
               Row(children: [
-                const Expanded(child: Divider(color: AppTheme.outlineVariant)),
+                Expanded(child: Divider(color: AppTheme.outlineVariant)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('or', style: TextStyle(color: AppTheme.outline.withOpacity(0.7), fontSize: 12)),
+                  child: Text('or', style: TextStyle(color: AppTheme.outline.withValues(alpha: 0.7), fontSize: 12)),
                 ),
-                const Expanded(child: Divider(color: AppTheme.outlineVariant)),
+                Expanded(child: Divider(color: AppTheme.outlineVariant)),
               ]),
               const SizedBox(height: 20),
 
@@ -219,7 +219,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 child: OutlinedButton.icon(
                   onPressed: _loading ? null : _googleSignIn,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppTheme.outlineVariant),
+                    side: BorderSide(color: AppTheme.outlineVariant),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     foregroundColor: AppTheme.onSurface,
                   ),
@@ -233,7 +233,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               // ── Skip / Continue as Guest ─────────────────────────────────
               TextButton(
                 onPressed: () => context.go('/'),
-                child: const Text('Continue as Guest →',
+                child: Text('Continue as Guest →',
                     style: TextStyle(color: AppTheme.outline, fontSize: 13)),
               ),
               const SizedBox(height: 16),
@@ -259,7 +259,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               end: Alignment.bottomRight,
             ),
             boxShadow: [
-              BoxShadow(color: AppTheme.primary.withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8)),
+              BoxShadow(color: AppTheme.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
             ],
           ),
           child: const Center(
@@ -267,12 +267,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           ),
         ),
         const SizedBox(height: 16),
-        const Text('Tafseer.id',
+        Text('Tafseer.id',
             style: TextStyle(color: AppTheme.onSurface, fontSize: 26, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         Text('Sign in to sync your settings & bookmarks across devices',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.outline.withOpacity(0.8), fontSize: 13)),
+            style: TextStyle(color: AppTheme.outline.withValues(alpha: 0.8), fontSize: 13)),
       ],
     );
   }
@@ -289,21 +289,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscure,
-      style: const TextStyle(color: AppTheme.onSurface, fontSize: 15),
+      style: TextStyle(color: AppTheme.onSurface, fontSize: 15),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppTheme.outline, fontSize: 13),
+        labelStyle: TextStyle(color: AppTheme.outline, fontSize: 13),
         prefixIcon: Icon(icon, color: AppTheme.outline, size: 18),
         suffixIcon: suffix,
         filled: true,
         fillColor: AppTheme.surfaceContainer,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.outlineVariant),
+          borderSide: BorderSide(color: AppTheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+          borderSide: BorderSide(color: AppTheme.primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -319,7 +319,7 @@ class _GoogleIcon extends StatelessWidget {
     return Container(
       width: 20,
       height: 20,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
       ),

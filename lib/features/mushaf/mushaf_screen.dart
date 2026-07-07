@@ -1016,6 +1016,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final isMobileLandscape = mediaQuery.orientation == Orientation.landscape && mediaQuery.size.shortestSide < 600;
+    final showStudyPanel = _studyPanelOpen && !isMobileLandscape;
+
     final activeTabTitle = {
       'translation': _currentLang == 'en' ? 'Translation' : 'Terjemahan',
       'transliteration': _currentLang == 'en' ? 'Transliteration' : 'Transliterasi',
@@ -1045,9 +1049,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       int pageNum = index + 1;
                       return Center(
                         child: Padding(
-                          padding: EdgeInsets.only(
-                            top: _menusVisible ? 90.0 : 20.0,
-                            bottom: _studyPanelOpen ? 280.0 : (_menusVisible ? 80.0 : 20.0),
+                          padding: const EdgeInsets.only(
+                            top: 90.0,
+                            bottom: 90.0,
                           ),
                         child: Container(
                           decoration: BoxDecoration(
@@ -1062,6 +1066,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           ),
                           child: InteractiveViewer(
                             maxScale: 3.0,
+                            boundaryMargin: const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0),
                             child: buildQuranPageImage(
                               context,
                               pageNum,
@@ -1252,7 +1257,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            bottom: _studyPanelOpen ? 0 : -320,
+            bottom: showStudyPanel ? 0 : -320,
             left: 0,
             right: 0,
             child: Container(

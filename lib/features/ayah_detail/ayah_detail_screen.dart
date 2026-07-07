@@ -362,12 +362,6 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     );
   }
 
-  void _goSpecificAyah() {
-    final ayah = int.tryParse(_ayahController.text) ?? 1;
-    final clamped = ayah.clamp(1, _maxAyas);
-    context.go('/mushaf?verse_key=$_selectedSurahId:$clamped');
-  }
-
   void _swipeToAyah(int ayahNum) {
     if (_surah == null) return;
     final totalAyahs = (_surah!['ayas'] as int?) ?? 0;
@@ -376,7 +370,175 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     }
   }
 
-  void _showSurahPicker() {
+  void _showJumpDialog() {
+    final isEn = _currentLang == 'en';
+    // Pre-select the current surah
+    setState(() => _selectedSurahId = widget.surahId);
+    _ayahController.text = widget.ayahNumber.toString();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceContainerHigh,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx2, setSheet) {
+          return Padding(
+            padding: EdgeInsets.only(
+              top: 20,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx2).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isEn ? 'Jump to Ayah' : 'Lompat ke Ayat',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppTheme.outline),
+                      onPressed: () => Navigator.pop(ctx2),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Surah selector
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEn ? 'SURAH' : 'SURAH',
+                            style: TextStyle(
+                              color: AppTheme.outline,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: () => _showSurahSearchSheet(ctx2, setSheet),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceContainer,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Builder(builder: (_) {
+                                      final s = _dropdownSurahs.isNotEmpty
+                                          ? _dropdownSurahs.firstWhere(
+                                              (x) => x['id'] == _selectedSurahId,
+                                              orElse: () => _dropdownSurahs.first,
+                                            )
+                                          : null;
+                                      final name = s == null
+                                          ? ''
+                                          : isEn
+                                              ? '${s['id']}. ${s['name_en'] ?? ''}'
+                                              : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
+                                      return Text(
+                                        name,
+                                        style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
+                                      );
+                                    }),
+                                  ),
+                                  Icon(Icons.search, color: AppTheme.outline, size: 16),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Ayah number input
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEn ? 'AYAH' : 'AYAT',
+                            style: TextStyle(
+                              color: AppTheme.outline,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _ayahController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: '1',
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Go button
+                    ElevatedButton(
+                      onPressed: () {
+                        final ayah = int.tryParse(_ayahController.text) ?? 1;
+                        final clamped = ayah.clamp(1, _maxAyas);
+                        Navigator.pop(ctx2);
+                        if (mounted) {
+                          context.go('/surahs/$_selectedSurahId/ayahs/$clamped');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        isEn ? 'GO' : 'BUKA',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  void _showSurahSearchSheet(BuildContext parentCtx, StateSetter setParent) {
     final isEn = _currentLang == 'en';
     showModalBottomSheet(
       context: context,
@@ -453,9 +615,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                           height: 36,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppTheme.primary
-                                : AppTheme.surfaceContainer,
+                            color: isSelected ? AppTheme.primary : AppTheme.surfaceContainer,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -479,6 +639,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                             _selectedSurahId = s['id'] as int;
                             _ayahController.text = '1';
                           });
+                          setParent(() {});
                           Navigator.pop(ctx2);
                         },
                       );
@@ -655,242 +816,106 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             icon: Icon(Icons.share_outlined, color: AppTheme.outline),
             onPressed: _copyActiveAyah,
           ),
+          // Jump to Ayah
+          IconButton(
+            icon: Icon(Icons.search, color: AppTheme.primary, size: 22),
+            tooltip: isEn ? 'Go to Ayah' : 'Lompat ke Ayat',
+            onPressed: _showJumpDialog,
+          ),
         ],
       ),
-      body: Column(
-          children: [
-            // ── Arabic + Transliteration Card (inside swipe zone) ─────────
-            Flexible(
-              flex: 0,
-              child: GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity == null) return;
-                  if (details.primaryVelocity! < -400) {
-                    _swipeToAyah(widget.ayahNumber + 1);
-                  } else if (details.primaryVelocity! > 400) {
-                    _swipeToAyah(widget.ayahNumber - 1);
-                  }
-                },
-                child: Container(
-                  color: AppTheme.surfaceContainer,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Column(
-                    children: [
-                      Text(
-                        arabicText,
-                        textDirection: TextDirection.rtl,
-                        textAlign: TextAlign.center,
-                        style: AppTheme.arabicStyle(
-                          fontSize: ref.watch(settingsProvider).arabicFontSize * 0.82,
-                          color: _isPlaying ? AppTheme.secondary : AppTheme.primary,
-                        ),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, _) => [
+          // ── Arabic + Transliteration Card ───────────────────────────────
+          SliverToBoxAdapter(
+            child: GestureDetector(
+              onHorizontalDragEnd: (details) {
+                if (details.primaryVelocity == null) return;
+                if (details.primaryVelocity! < -400) {
+                  _swipeToAyah(widget.ayahNumber + 1);
+                } else if (details.primaryVelocity! > 400) {
+                  _swipeToAyah(widget.ayahNumber - 1);
+                }
+              },
+              child: Container(
+                color: AppTheme.surfaceContainer,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: Column(
+                  children: [
+                    Text(
+                      arabicText,
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.arabicStyle(
+                        fontSize: ref.watch(settingsProvider).arabicFontSize * 0.82,
+                        color: _isPlaying ? AppTheme.secondary : AppTheme.primary,
                       ),
-                      if (ref.watch(settingsProvider).showTransliteration) ...[
-                        const SizedBox(height: 12),
-                        AppTheme.buildFormattedText(
-                          _getText(_transliterationTexts, _translitSource, isEn ? 'No transliteration available.' : 'Transliterasi tidak tersedia.'),
-                          TextStyle(
-                            color: AppTheme.onSurfaceVariant,
-                            fontSize: ref.watch(settingsProvider).translationFontSize - 1,
-                            fontStyle: FontStyle.italic,
-                            height: 1.6,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                    ),
+                    if (ref.watch(settingsProvider).showTransliteration) ...[
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: _isPlaying ? AppTheme.secondary.withValues(alpha: 0.12) : AppTheme.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              verseKey,
-                              style: TextStyle(
-                                color: _isPlaying ? AppTheme.secondary : AppTheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          Text(surahNameAr, style: AppTheme.arabicStyle(fontSize: 14, color: AppTheme.outline)),
-                          IconButton(
-                            icon: Icon(Icons.copy_outlined, color: AppTheme.outline, size: 18),
-                            onPressed: _copyActiveAyah,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
+                      AppTheme.buildFormattedText(
+                        _getText(_transliterationTexts, _translitSource, isEn ? 'No transliteration available.' : 'Transliterasi tidak tersedia.'),
+                        TextStyle(
+                          color: AppTheme.onSurfaceVariant,
+                          fontSize: ref.watch(settingsProvider).translationFontSize - 1,
+                          fontStyle: FontStyle.italic,
+                          height: 1.6,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── Prev / Next Navigation (outside swipe zone — always tappable) ─
-            _buildNavigation(totalAyahs, isEn),
-
-            // ── Go to Ayah Row (Exactly same style and logic as Home) ───────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isEn ? 'SELECT SURAH' : 'PILIH SURAH',
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: _isPlaying ? AppTheme.secondary.withValues(alpha: 0.12) : AppTheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            verseKey,
                             style: TextStyle(
-                              color: AppTheme.outline,
-                              fontSize: 8,
+                              color: _isPlaying ? AppTheme.secondary : AppTheme.primary,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
+                              fontSize: 11,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: _showSurahPicker,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Builder(builder: (_) {
-                                      final s = _dropdownSurahs.isNotEmpty
-                                          ? _dropdownSurahs.firstWhere(
-                                              (x) => x['id'] == _selectedSurahId,
-                                              orElse: () => _dropdownSurahs.first,
-                                            )
-                                          : null;
-                                      final name = s == null
-                                          ? ''
-                                          : isEn
-                                              ? '${s['id']}. ${s['name_en'] ?? ''}'
-                                              : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
-                                      return Text(
-                                        name,
-                                        style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
-                                        overflow: TextOverflow.ellipsis,
-                                      );
-                                    }),
-                                  ),
-                                  Icon(Icons.search, color: AppTheme.outline, size: 16),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isEn ? 'AYAH (1-$_maxAyas)' : 'AYAT (1-$_maxAyas)',
-                            style: TextStyle(
-                              color: AppTheme.outline,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          TextField(
-                            controller: _ayahController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
-                            onSubmitted: (_) => _goSpecificAyah(),
-                            onChanged: (val) {
-                              if (val.isNotEmpty) {
-                                final numVal = int.tryParse(val);
-                                if (numVal != null) {
-                                    if (numVal > _maxAyas) {
-                                      _ayahController.text = _maxAyas.toString();
-                                      _ayahController.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: _ayahController.text.length),
-                                      );
-                                    } else if (numVal < 1) {
-                                      _ayahController.text = '1';
-                                      _ayahController.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: _ayahController.text.length),
-                                      );
-                                    }
-                                  }
-                                }
-                              },
-                            decoration: InputDecoration(
-                              hintText: '1',
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: _goSpecificAyah,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryContainer,
-                        foregroundColor: AppTheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                          const SizedBox(width: 2),
-                          Icon(Icons.arrow_forward, size: 12),
-                        ],
-                      ),
+                        Text(surahNameAr, style: AppTheme.arabicStyle(fontSize: 14, color: AppTheme.outline)),
+                        IconButton(
+                          icon: Icon(Icons.copy_outlined, color: AppTheme.outline, size: 18),
+                          onPressed: _copyActiveAyah,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-
-            // ── Tabs ───────────────────────────────────────────────────────
-            _buildTabBar(isEn),
-
-            // ── Tab Content ────────────────────────────────────────────────
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildTranslationTab(isEn),
-                  _buildTafsirTab(isEn),
-                  _buildNuzulTab(isEn),
-                  _buildTopicsTab(isEn),
-                  _buildRelatedTab(isEn),
-                ],
-              ),
-            ),
+          ),
+          // ── Prev / Next Navigation ───────────────────────────────────────
+          SliverToBoxAdapter(child: _buildNavigation(totalAyahs, isEn)),
+          // ── Pinned TabBar ────────────────────────────────────────────────
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _TabBarDelegate(_buildTabBar(isEn)),
+          ),
+        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildTranslationTab(isEn),
+            _buildTafsirTab(isEn),
+            _buildNuzulTab(isEn),
+            _buildTopicsTab(isEn),
+            _buildRelatedTab(isEn),
           ],
         ),
+      ),
     );
   }
 
@@ -1018,97 +1043,79 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       return tag != null && tag['lang'] == currentLangKey;
     }).toList();
 
-    return Container(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      color: AppTheme.surfaceContainerLow,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isEn ? 'Topics & Themes' : 'Topik & Tema',
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(_tagsSlots.length, (idx) {
-                  final active = _tagsLangIdx == idx;
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: ChoiceChip(
-                      label: Text(_tagsSlots[idx].label, style: TextStyle(fontSize: 10)),
-                      selected: active,
-                      onSelected: (sel) { if (sel) setState(() => _tagsLangIdx = idx); },
-                      selectedColor: AppTheme.primary.withValues(alpha: 0.15),
-                      backgroundColor: Colors.transparent,
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          filteredTopics.isEmpty
-              ? _buildEmptyState(isEn ? 'No topics categorized for this verse.' : 'Belum ada pengelompokan topik untuk ayat ini.')
-              : Expanded(
-                  child: ListView.builder(
-                    itemCount: filteredTopics.length,
-                    itemBuilder: (ctx, i) {
-                      final t = filteredTopics[i];
-                      final tag = t['tags'] as Map<String, dynamic>;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text(tag['name'] as String, style: TextStyle(fontSize: 13, color: AppTheme.onSurface)),
-                          trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
-                          onTap: () => context.go('/topics/${t['tag_id']}'),
-                        ),
-                      );
-                    },
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              isEn ? 'Topics & Themes' : 'Topik & Tema',
+              style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(_tagsSlots.length, (idx) {
+                final active = _tagsLangIdx == idx;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: ChoiceChip(
+                    label: Text(_tagsSlots[idx].label, style: TextStyle(fontSize: 10)),
+                    selected: active,
+                    onSelected: (sel) { if (sel) setState(() => _tagsLangIdx = idx); },
+                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
+                    backgroundColor: Colors.transparent,
                   ),
-                ),
-        ],
-      ),
+                );
+              }),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (filteredTopics.isEmpty)
+          _buildEmptyState(isEn ? 'No topics categorized for this verse.' : 'Belum ada pengelompokan topik untuk ayat ini.')
+        else
+          ...filteredTopics.map((t) {
+            final tag = t['tags'] as Map<String, dynamic>;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: Text(tag['name'] as String, style: TextStyle(fontSize: 13, color: AppTheme.onSurface)),
+                trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
+                onTap: () => context.go('/topics/${t['tag_id']}'),
+              ),
+            );
+          }),
+      ],
     );
   }
 
   Widget _buildRelatedTab(bool isEn) {
-    return Container(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      color: AppTheme.surfaceContainerLow,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            isEn ? 'Related Verses' : 'Ayat Terkait',
-            style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          _relatedVerses.isEmpty
-              ? _buildEmptyState(isEn ? 'No related verses discovered.' : 'Tidak ditemukan ayat terkait.')
-              : Expanded(
-                  child: ListView.builder(
-                    itemCount: _relatedVerses.length,
-                    itemBuilder: (ctx, i) {
-                      final r = _relatedVerses[i];
-                      final rVerseKey = r['verse_key'] as String;
-                      final rText = r['text'] as String;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          title: Text(rVerseKey, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
-                          subtitle: Text(rText, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppTheme.outline)),
-                          trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
-                          onTap: () => context.go('/mushaf?verse_key=$rVerseKey'),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-        ],
-      ),
+      children: [
+        Text(
+          isEn ? 'Related Verses' : 'Ayat Terkait',
+          style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        if (_relatedVerses.isEmpty)
+          _buildEmptyState(isEn ? 'No related verses discovered.' : 'Tidak ditemukan ayat terkait.')
+        else
+          ..._relatedVerses.map((r) {
+            final rVerseKey = r['verse_key'] as String;
+            final rText = r['text'] as String;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: Text(rVerseKey, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                subtitle: Text(rText, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppTheme.outline)),
+                trailing: Icon(Icons.arrow_forward_ios, size: 12, color: AppTheme.outline),
+                onTap: () => context.go('/mushaf?verse_key=$rVerseKey'),
+              ),
+            );
+          }),
+      ],
     );
   }
 
@@ -1122,78 +1129,76 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     required bool isEn,
     Future<void> Function(String newText)? onEdit,
   }) {
-    return Container(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      color: AppTheme.surfaceContainerLow,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 16, color: AppTheme.primary),
-                  const SizedBox(width: 6),
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13)),
-                  // Admin inline-edit button
-                  if (ref.watch(isAdminProvider) && onEdit != null) ...[
-                    const SizedBox(width: 8),
-                    AdminEditButton(
-                      tooltip: 'Edit $title',
-                      onTap: () async {
-                        await AdminEditDialog.show(
-                          context,
-                          title: 'Edit $title',
-                          initialText: content,
-                          onSave: onEdit,
-                        );
-                        setState(() {});
-                      },
-                    ),
-                  ],
+      children: [
+        // ── Source toggle header ─────────────────────────────────────────
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: AppTheme.primary),
+                const SizedBox(width: 6),
+                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13)),
+                // Admin inline-edit button
+                if (ref.watch(isAdminProvider) && onEdit != null) ...[
+                  const SizedBox(width: 8),
+                  AdminEditButton(
+                    tooltip: 'Edit $title',
+                    onTap: () async {
+                      await AdminEditDialog.show(
+                        context,
+                        title: 'Edit $title',
+                        initialText: content,
+                        onSave: onEdit,
+                      );
+                      setState(() {});
+                    },
+                  ),
                 ],
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(slots.length, (idx) {
-                  final active = selectedIdx == idx;
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: ChoiceChip(
-                      label: Text(slots[idx].label, style: TextStyle(fontSize: 10)),
-                      selected: active,
-                      onSelected: (sel) { if (sel) onToggle(idx); },
-                      selectedColor: AppTheme.primary.withValues(alpha: 0.15),
-                      backgroundColor: Colors.transparent,
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                content,
-                style: TextStyle(
-                  color: AppTheme.onSurfaceVariant,
-                  fontSize: ref.watch(settingsProvider).translationFontSize,
-                  height: 1.65,
-                ),
-              ),
+              ],
             ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(slots.length, (idx) {
+                final active = selectedIdx == idx;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: ChoiceChip(
+                    label: Text(slots[idx].label, style: TextStyle(fontSize: 10)),
+                    selected: active,
+                    onSelected: (sel) { if (sel) onToggle(idx); },
+                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
+                    backgroundColor: Colors.transparent,
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // ── Content text ─────────────────────────────────────────────────
+        Text(
+          content,
+          style: TextStyle(
+            color: AppTheme.onSurfaceVariant,
+            fontSize: ref.watch(settingsProvider).translationFontSize,
+            height: 1.7,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 32),
+      ],
     );
   }
 
   Widget _buildEmptyState(String message) {
-    return Expanded(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.info_outline, size: 36, color: AppTheme.outline),
           const SizedBox(height: 8),
@@ -1204,6 +1209,26 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Delegate that lets SliverPersistentHeader host the TabBar with a fixed height
+// ─────────────────────────────────────────────────────────────────────────────
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget tabBar;
+  const _TabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => 48.0;
+  @override
+  double get maxExtent => 48.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return tabBar;
+  }
+
+  @override
+  bool shouldRebuild(_TabBarDelegate oldDelegate) => tabBar != oldDelegate.tabBar;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 class _NavButton extends StatelessWidget {
   final String label;

@@ -23,7 +23,7 @@ String _buildPageCss(int? selectedId, int? playingId) {
       pointer-events: auto !important;
       transition: fill 0.2s, fill-opacity 0.2s;
     }
-    svg path:not(.ayahPolygon), svg g:not(.ayahPolygon), svg use {
+    svg *:not(.ayahPolygon) {
       pointer-events: none !important;
     }
     ${selectedId != null ? '''

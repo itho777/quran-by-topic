@@ -423,7 +423,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Text(
                         'Al-Qur\'an',
                         style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                              color: AppTheme.primaryContainer,
+                              color: AppTheme.primary,
                               fontWeight: FontWeight.bold,
                               letterSpacing: -0.5,
                               fontSize: 22,
@@ -459,7 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: isEn
-                                      ? AppTheme.primaryContainer
+                                      ? AppTheme.primary
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -482,7 +482,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: !isEn
-                                      ? AppTheme.primaryContainer
+                                      ? AppTheme.primary
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
@@ -623,7 +623,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     minHeight: 6,
                                     backgroundColor: AppTheme.surfaceContainerHigh,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppTheme.primaryContainer,
+                                      AppTheme.primary,
                                     ),
                                   ),
                                 ),

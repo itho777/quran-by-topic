@@ -1,15 +1,15 @@
-name: Build Android APK
+name: Build Mobile App
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-android:
+    name: Build Android APK
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.4' # Match the project's flutter channel/version
+          flutter-version: '3.44.4'
           channel: 'stable'
           cache: true
 
@@ -33,9 +33,43 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          flutter pub get
+          cd ios && pod install --repo-update
+
+      - name: Build iOS (No Codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Zip iOS App Bundle
+        run: |
+          cd build/ios/iphoneos
+          zip -r Runner.zip Runner.app
+
+      - name: Upload iOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ios-app
+          path: build/ios/iphoneos/Runner.zip
           retention-days: 7

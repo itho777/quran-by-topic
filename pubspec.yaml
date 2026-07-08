@@ -44,6 +44,14 @@ dependencies:
   flutter_svg: ^2.0.10+1
   url_launcher: ^6.3.0
   audioplayers: ^6.0.0
+  path: ^1.9.0
+
+  # Offline download & local caching
+  sqflite: ^2.3.3
+  dio: ^5.7.0
+  path_provider: ^2.1.4
+  connectivity_plus: ^6.1.0
+  permission_handler: ^11.3.1
 
 
 dev_dependencies:

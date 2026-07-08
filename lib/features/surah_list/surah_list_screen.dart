@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../shared/widgets/islamic_star.dart';
+import '../../core/local_db.dart';
 
 class SurahListScreen extends ConsumerStatefulWidget {
   const SurahListScreen({super.key});
@@ -47,9 +48,20 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
   }
 
   Future<void> _load() async {
-    final res = await Supabase.instance.client.from('surahs').select();
-    final list = List<Map<String, dynamic>>.from(res);
-    list.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+    List<Map<String, dynamic>> list = [];
+    try {
+      final res = await Supabase.instance.client.from('surahs').select();
+      list = List<Map<String, dynamic>>.from(res);
+      list.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+      // Async save to SQLite cache
+      final db = LocalDatabase.instance;
+      await db.saveSurahs(list);
+    } catch (e) {
+      debugPrint('SurahList online load failed, trying local DB: $e');
+      final db = LocalDatabase.instance;
+      list = await db.getSurahs();
+    }
+    
     if (mounted) {
       setState(() {
         _surahs = list;

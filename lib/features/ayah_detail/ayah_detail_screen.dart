@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../core/settings_manager.dart';
 import '../../core/auth_provider.dart';
+import '../../core/local_db.dart';
 import '../admin/admin_cms_widgets.dart';
 import '../../shared/widgets/reciter_picker_sheet.dart';
 import '../mushaf/source_picker_sheet.dart';
@@ -265,6 +266,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
 
   Future<void> _loadAllData() async {
     setState(() => _loading = true);
+    final localDb = LocalDatabase.instance;
     try {
       final db = Supabase.instance.client;
 
@@ -275,23 +277,27 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       _verseId = verseId;
       final String verseKey = (verseRes['verse_key'] as String?) ?? '';
 
+      // Cache surah and verse details
+      await localDb.saveSurahs([surahRes]);
+      await localDb.saveVerses([verseRes], widget.surahId);
+
       final transRes = await db.from('translations').select().eq('verse_id', verseId);
       for (final row in List<Map<String, dynamic>>.from(transRes)) {
         final srcId = row['source_id'] as String?;
         if (srcId != null) {
-          _translationTexts[srcId] = (row['text'] as String?) ?? '';
+          final txt = (row['text'] as String?) ?? '';
+          _translationTexts[srcId] = txt;
+          unawaited(localDb.saveTextData('translations', verseKey, srcId, txt));
         }
       }
 
       // Populate transliteration from verse field or from translations table
       final translit = verseRes['transliteration'] as String?;
       if (translit != null && translit.isNotEmpty) {
-        // Store under all possible translit key aliases
         _transliterationTexts['id.transliteration'] = translit;
         _transliterationTexts['en.transliteration'] = translit;
         _transliterationTexts['id.kemenag_translit'] = translit;
       }
-      // Also populate from translations table (may have richer transliteration data)
       for (final key in ['id.transliteration', 'en.transliteration', 'id.kemenag_translit']) {
         if (_translationTexts.containsKey(key)) {
           _transliterationTexts[key] = _translationTexts[key]!;
@@ -302,7 +308,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       for (final row in List<Map<String, dynamic>>.from(tafsirRes)) {
         final srcId = row['source_id'] as String?;
         if (srcId != null) {
-          _tafsirTexts[srcId] = (row['text'] as String?) ?? '';
+          final txt = (row['text'] as String?) ?? '';
+          _tafsirTexts[srcId] = txt;
+          unawaited(localDb.saveTextData('tafsirs', verseKey, srcId, txt));
         }
       }
 
@@ -310,7 +318,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       for (final row in List<Map<String, dynamic>>.from(nuzulRes)) {
         final srcId = row['source_id'] as String?;
         if (srcId != null) {
-          _nuzulTexts[srcId] = (row['text'] as String?) ?? '';
+          final txt = (row['text'] as String?) ?? '';
+          _nuzulTexts[srcId] = txt;
+          unawaited(localDb.saveTextData('asbabun_nuzul', verseKey, srcId, txt));
         }
       }
 
@@ -347,8 +357,49 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         }
       } catch (_) {}
     } catch (e) {
-      debugPrint('AyahDetail load error: $e');
-      setState(() => _loading = false);
+      debugPrint('AyahDetailScreen online load failed, trying local cache: $e');
+      final cachedSurah = await localDb.getSurah(widget.surahId);
+      final cachedVerse = await localDb.getVerse('${widget.surahId}:${widget.ayahNumber}');
+      
+      if (cachedVerse != null) {
+        final String verseKey = (cachedVerse['verse_key'] as String?) ?? '';
+        final localTrans = await localDb.getAllTextDataForVerse('translations', verseKey);
+        final localTafsirs = await localDb.getAllTextDataForVerse('tafsirs', verseKey);
+        final localNuzul = await localDb.getAllTextDataForVerse('asbabun_nuzul', verseKey);
+        
+        final isBookmarked = await BookmarksManager.isBookmarked(verseKey);
+
+        setState(() {
+          _surah = cachedSurah;
+          _verse = cachedVerse;
+          _translationTexts.clear();
+          _translationTexts.addAll(localTrans);
+          _tafsirTexts.clear();
+          _tafsirTexts.addAll(localTafsirs);
+          _nuzulTexts.clear();
+          _nuzulTexts.addAll(localNuzul);
+          _topics = [];
+          _isBookmarked = isBookmarked;
+          _loading = false;
+        });
+
+        // Populate transliteration
+        final translit = cachedVerse['transliteration'] as String?;
+        if (translit != null && translit.isNotEmpty) {
+          _transliterationTexts['id.transliteration'] = translit;
+          _transliterationTexts['en.transliteration'] = translit;
+          _transliterationTexts['id.kemenag_translit'] = translit;
+        }
+        for (final key in ['id.transliteration', 'en.transliteration', 'id.kemenag_translit']) {
+          if (_translationTexts.containsKey(key)) {
+            _transliterationTexts[key] = _translationTexts[key]!;
+          }
+        }
+      } else {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 

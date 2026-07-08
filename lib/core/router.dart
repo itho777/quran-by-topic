@@ -14,6 +14,7 @@ import '../features/bookmarks/bookmarks_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/library/library_screen.dart';
 import '../features/admin/admin_dashboard_screen.dart';
 import '../features/admin/admin_screens.dart';
 import '../features/admin/admin_cms_screen.dart';
@@ -131,6 +132,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/bookmarks',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: BookmarksScreen()),
+          ),
+          GoRoute(
+            path: '/library',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: LibraryScreen()),
           ),
           GoRoute(
             path: '/settings',

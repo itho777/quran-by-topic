@@ -12,6 +12,7 @@ import '../../shared/widgets/islamic_star.dart';
 import '../../shared/widgets/reciter_picker_sheet.dart';
 import '../../core/quran_sources.dart';
 import '../mushaf/source_picker_sheet.dart';
+import '../../core/local_db.dart';
 
 class SurahDetailScreen extends ConsumerStatefulWidget {
   final int surahId;
@@ -30,13 +31,6 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   bool _loading = true;
   bool _loadingTrans = false;
 
-  static const Map<String, String> _transOptions = {
-    'id.kemenag': 'Indonesian — Kemenag',
-    'en.sahih': 'English — Sahih International',
-    'en.yusufali': 'English — Yusuf Ali',
-    'en.pickthall': 'English — Pickthall',
-    'en.shakir': 'English — Shakir',
-  };
   String _selectedSource = 'id.kemenag';
   bool _showTranslation = true;
   bool _showArabic = true;
@@ -149,37 +143,54 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final surahRes = await Supabase.instance.client
-        .from('surahs').select().eq('id', widget.surahId).single();
-    List<Map<String, dynamic>> versesList;
-    try {
-      final versesRes = await Supabase.instance.client
-          .from('verses')
-          .select('id, ayah_number, verse_key, text_ar, transliteration')
-          .eq('sura_id', widget.surahId);
-      versesList = List<Map<String, dynamic>>.from(versesRes);
-    } catch (_) {
-      final versesRes = await Supabase.instance.client
-          .from('verses')
-          .select('id, ayah_number, verse_key, text_ar')
-          .eq('sura_id', widget.surahId);
-      versesList = List<Map<String, dynamic>>.from(versesRes);
-    }
-    versesList.sort((a, b) =>
-        (a['ayah_number'] as int).compareTo(b['ayah_number'] as int));
-
+    final db = LocalDatabase.instance;
+    Map<String, dynamic>? surahRes;
+    List<Map<String, dynamic>> versesList = [];
     int? firstPage;
-    if (versesList.isNotEmpty) {
-      final firstVerseId = versesList.first['id'] as int;
+
+    try {
+      final onlineSurah = await Supabase.instance.client
+          .from('surahs').select().eq('id', widget.surahId).single();
+      surahRes = onlineSurah;
+      await db.saveSurahs([onlineSurah]);
+
+      List<Map<String, dynamic>> onlineVerses;
       try {
-        final pageRes = await Supabase.instance.client
+        final versesRes = await Supabase.instance.client
             .from('verses')
-            .select('page_number')
-            .eq('id', firstVerseId)
-            .single();
-        firstPage = pageRes['page_number'] as int?;
-      } catch (_) {}
+            .select('id, ayah_number, verse_key, text_ar, transliteration')
+            .eq('sura_id', widget.surahId);
+        onlineVerses = List<Map<String, dynamic>>.from(versesRes);
+      } catch (_) {
+        final versesRes = await Supabase.instance.client
+            .from('verses')
+            .select('id, ayah_number, verse_key, text_ar')
+            .eq('sura_id', widget.surahId);
+        onlineVerses = List<Map<String, dynamic>>.from(versesRes);
+      }
+      versesList = onlineVerses;
+      versesList.sort((a, b) =>
+          (a['ayah_number'] as int).compareTo(b['ayah_number'] as int));
+
+      await db.saveVerses(versesList, widget.surahId);
+
+      if (versesList.isNotEmpty) {
+        final firstVerseId = versesList.first['id'] as int;
+        try {
+          final pageRes = await Supabase.instance.client
+              .from('verses')
+              .select('page_number')
+              .eq('id', firstVerseId)
+              .single();
+          firstPage = pageRes['page_number'] as int?;
+        } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('SurahDetail online load failed, trying local DB: $e');
+      surahRes = await db.getSurah(widget.surahId);
+      versesList = await db.getVerses(widget.surahId);
     }
+
     setState(() {
       _surah = surahRes;
       _verses = versesList;
@@ -192,24 +203,76 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   Future<void> _loadTranslations() async {
     if (_verses.isEmpty) return;
     setState(() => _loadingTrans = true);
+    final db = LocalDatabase.instance;
     final verseIds = _verses.map((v) => v['id'] as int).toList();
+    final verseKeys = _verses.map((v) => (v['verse_key'] as String?) ?? '').toList();
 
-    final res = await Supabase.instance.client
-        .from('translations')
-        .select('verse_id, text')
-        .eq('source_id', _selectedSource)
-        .inFilter('verse_id', verseIds);
     final map = <int, String>{};
-    for (final r in res) { if (r['verse_id'] != null) { map[r['verse_id'] as int] = (r['text'] as String?) ?? ''; } }
+    try {
+      final res = await Supabase.instance.client
+          .from('translations')
+          .select('verse_id, text')
+          .eq('source_id', _selectedSource)
+          .inFilter('verse_id', verseIds);
+      
+      for (final r in res) {
+        if (r['verse_id'] != null) {
+          final vId = r['verse_id'] as int;
+          final txt = (r['text'] as String?) ?? '';
+          map[vId] = txt;
+          
+          final vMap = _verses.firstWhere((v) => v['id'] == vId, orElse: () => {});
+          final vKey = vMap['verse_key'] as String?;
+          if (vKey != null) {
+            unawaited(db.saveTextData('translations', vKey, _selectedSource, txt));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('SurahDetail translation online load failed, trying local DB: $e');
+      final localTrans = await db.getBatchTextData('translations', _selectedSource, verseKeys);
+      for (final v in _verses) {
+        final vKey = v['verse_key'] as String?;
+        final vId = v['id'] as int?;
+        if (vKey != null && vId != null && localTrans.containsKey(vKey)) {
+          map[vId] = localTrans[vKey]!;
+        }
+      }
+    }
 
-    final translitSource = ref.read(settingsProvider).appLanguage == 'en' ? 'en.transliteration' : 'id.kemenag_translit';
-    final translitRes = await Supabase.instance.client
-        .from('translations')
-        .select('verse_id, text')
-        .eq('source_id', translitSource)
-        .inFilter('verse_id', verseIds);
     final translitMap = <int, String>{};
-    for (final r in translitRes) { if (r['verse_id'] != null) { translitMap[r['verse_id'] as int] = (r['text'] as String?) ?? ''; } }
+    final translitSource = ref.read(settingsProvider).appLanguage == 'en' ? 'en.transliteration' : 'id.kemenag_translit';
+    try {
+      final translitRes = await Supabase.instance.client
+          .from('translations')
+          .select('verse_id, text')
+          .eq('source_id', translitSource)
+          .inFilter('verse_id', verseIds);
+      
+      for (final r in translitRes) {
+        if (r['verse_id'] != null) {
+          final vId = r['verse_id'] as int;
+          final txt = (r['text'] as String?) ?? '';
+          translitMap[vId] = txt;
+
+          final vMap = _verses.firstWhere((v) => v['id'] == vId, orElse: () => {});
+          final vKey = vMap['verse_key'] as String?;
+          if (vKey != null) {
+            unawaited(db.saveTextData('translations', vKey, translitSource, txt));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('SurahDetail transliteration online load failed, trying local DB: $e');
+      final localTranslit = await db.getBatchTextData('translations', translitSource, verseKeys);
+      for (final v in _verses) {
+        final vKey = v['verse_key'] as String?;
+        final vId = v['id'] as int?;
+        if (vKey != null && vId != null && localTranslit.containsKey(vKey)) {
+          translitMap[vId] = localTranslit[vKey]!;
+        }
+      }
+    }
 
     setState(() {
       _translations = map;
@@ -232,7 +295,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     setState(() {
       _playingAyahNum = ayahNum;
     });
-    
+
     // Auto scroll to active verse card
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final key = _ayahKeys[ayahNum];
@@ -253,8 +316,18 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     );
 
     try {
-      final url = _getAudioUrl(ayahNum, useMirror: !isFallback);
-      await _audioPlayer.play(UrlSource(url));
+      // Check for a locally cached full-surah file first
+      final reciter = ref.read(settingsProvider).selectedReciter;
+      final localPath = await LocalDatabase.instance.getAudioFile(reciter, widget.surahId);
+
+      if (localPath != null) {
+        // Play from local file if it exists on disk
+        await _audioPlayer.play(DeviceFileSource(localPath));
+      } else {
+        // Stream from network
+        final url = _getAudioUrl(ayahNum, useMirror: !isFallback);
+        await _audioPlayer.play(UrlSource(url));
+      }
       if (mounted) setState(() => _isPlaying = true);
     } catch (e) {
       if (!isFallback) {

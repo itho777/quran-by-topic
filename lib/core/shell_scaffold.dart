@@ -17,7 +17,8 @@ class ShellScaffold extends ConsumerWidget {
     if (location.startsWith('/mushaf')) return 2;
     if (location.startsWith('/topics')) return 3;
     if (location.startsWith('/bookmarks')) return 4;
-    if (location.startsWith('/profile')) return 5;
+    if (location.startsWith('/library')) return 5;
+    if (location.startsWith('/profile')) return 6;
     return 0;
   }
 
@@ -36,7 +37,8 @@ class ShellScaffold extends ConsumerWidget {
         break;
       case 3: context.go('/topics'); break;
       case 4: context.go('/bookmarks'); break;
-      case 5: context.go('/profile'); break;
+      case 5: context.go('/library'); break;
+      case 6: context.go('/profile'); break;
     }
   }
 
@@ -83,6 +85,11 @@ class ShellScaffold extends ConsumerWidget {
                     icon: Icon(Icons.bookmark_border_outlined),
                     activeIcon: Icon(Icons.bookmark),
                     label: 'Saved',
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.download_for_offline_outlined),
+                    activeIcon: Icon(Icons.download_for_offline_rounded),
+                    label: 'Library',
                   ),
                   // Profile — shows a dot badge when signed in
                   BottomNavigationBarItem(

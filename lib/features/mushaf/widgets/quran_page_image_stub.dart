@@ -54,8 +54,18 @@ function _initSvg() {
   });
 }
 
+// Called by Flutter via runJavaScript to live-update highlights and scroll them into view
 window.updateHighlight = function(sel, play) {
   if (_styleEl) _styleEl.textContent = _buildCss(sel, play);
+  var activeId = play !== null ? play : sel;
+  if (activeId !== null) {
+    setTimeout(function() {
+      var el = document.getElementById('verse-' + activeId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 80);
+  }
 };
 ''';
 

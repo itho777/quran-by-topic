@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/theme.dart';
 
@@ -85,6 +86,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   int? _selectedVerseId;
 
   String _selectedVerseKey = '';
+
+  bool _isBookmarked = false;
 
   bool _loadingDetails = false;
 
@@ -179,6 +182,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   void initState() {
 
     super.initState();
+
+    WakelockPlus.enable().ignore();
 
     // Build a fast page→coords index from the static quranCoordsData list.
 
@@ -335,6 +340,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   @override
   void dispose() {
+    WakelockPlus.disable().ignore();
     _menuCollapseTimer?.cancel();
     _studyMenuCollapseTimer?.cancel();
 
@@ -707,6 +713,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final vKey = (verse['verse_key'] as String?) ?? '';
 
+    if (vId != _selectedVerseId) {
+      if (!_isPlaying) {
+        _audioPlayer.stop().ignore();
+      }
+    }
+
     if (mounted) {
 
       setState(() {
@@ -744,6 +756,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       surahName: surahName,
 
     );
+
+    _checkBookmarkStatus();
 
   }
 
@@ -827,6 +841,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       });
 
     }
+
+    _checkBookmarkStatus();
 
     // Scroll to the playing verse at the top of the text section
 
@@ -1200,6 +1216,64 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     );
 
+  }
+
+  Future<void> _checkBookmarkStatus() async {
+    if (_selectedVerseKey.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isBookmarked = false;
+        });
+      }
+      return;
+    }
+    final bookmarked = await BookmarksManager.isBookmarked(_selectedVerseKey);
+    if (mounted) {
+      setState(() {
+        _isBookmarked = bookmarked;
+      });
+    }
+  }
+
+  Future<void> _toggleBookmarkActive() async {
+    if (_selectedVerseId == null || _pageVerses.isEmpty) return;
+    final current = _pageVerses.firstWhere(
+      (v) => v['id'] == _selectedVerseId,
+      orElse: () => _pageVerses.first,
+    );
+    final surahId = current['sura_id'] as int? ?? 1;
+    final ayahNum = current['ayah_number'] as int? ?? 1;
+    final s = _surahNames[surahId];
+    final surahName = s != null ? (s['name_en'] ?? '') : 'Surah $surahId';
+    final verseKey = current['verse_key'] as String? ?? '';
+    final textAr = current['text_ar'] as String? ?? '';
+    final translation = _translations[_selectedVerseId] ?? '';
+
+    final added = await BookmarksManager.toggleBookmark(
+      surahId: surahId,
+      ayahNumber: ayahNum,
+      surahName: surahName,
+      verseKey: verseKey,
+      textAr: textAr,
+      translation: translation,
+    );
+
+    setState(() {
+      _isBookmarked = added;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            added
+                ? (_currentLang == 'en' ? 'Added to Bookmarks' : 'Ditambahkan ke Bookmark')
+                : (_currentLang == 'en' ? 'Removed from Bookmarks' : 'Dihapus dari Bookmark'),
+          ),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   // Computed max ayahs for the currently selected jump-surah
@@ -2184,213 +2258,137 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       ),
 
                       // Controls
-
-                      // ── Language Toggle Pill ──────────────────────────────
-
-                      Container(
-
-                        margin: const EdgeInsets.only(right: 4),
-
-                        padding: const EdgeInsets.all(2),
-
-                        decoration: BoxDecoration(
-
-                          color: AppTheme.surfaceContainerHigh,
-
-                          borderRadius: BorderRadius.circular(20),
-
-                          border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
-
-                        ),
-
-                        child: Row(
-
-                          mainAxisSize: MainAxisSize.min,
-
-                          children: ['en', 'id'].map((lang) {
-
-                            final active = _currentLang == lang;
-
-                            return GestureDetector(
-
-                              onTap: () {
-
-                                ref.read(settingsProvider.notifier).setAppLanguage(lang);
-
-                                setState(() {
-
-                                  if (lang == 'en') {
-
-                                    _selectedSource = 'en.sahih';
-
-                                    _translitSource = 'en.transliteration';
-
-                                    _tafsirSource = 'en.katsir';
-
-                                    _nuzulSource = 'en.wahidi';
-
-                                  } else {
-
-                                    _selectedSource = 'id.kemenag';
-
-                                    _translitSource = 'id.kemenag_translit';
-
-                                    _tafsirSource = 'id.jalalayn';
-
-                                    _nuzulSource = 'id.kemenag_nuzul';
-
-                                  }
-
-                                });
-
-                                _loadPageTexts();
-
-                              },
-
-                              child: AnimatedContainer(
-
-                                duration: const Duration(milliseconds: 200),
-
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-
+                      Expanded(
+                        flex: 2,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // ── Language Toggle Pill ──────────────────────────────
+                              Container(
+                                margin: const EdgeInsets.only(right: 4),
+                                padding: const EdgeInsets.all(2),
                                 decoration: BoxDecoration(
-
-                                  color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-
+                                  color: AppTheme.surfaceContainerHigh,
                                   borderRadius: BorderRadius.circular(20),
-
-                                  border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-
+                                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
                                 ),
-
-                                child: Text(
-
-                                  lang.toUpperCase(),
-
-                                  style: TextStyle(
-
-                                    color: active ? AppTheme.primary : AppTheme.outline,
-
-                                    fontSize: 11,
-
-                                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
-
-                                  ),
-
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: ['en', 'id'].map((lang) {
+                                    final active = _currentLang == lang;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        ref.read(settingsProvider.notifier).setAppLanguage(lang);
+                                        setState(() {
+                                          if (lang == 'en') {
+                                            _selectedSource = 'en.sahih';
+                                            _translitSource = 'en.transliteration';
+                                            _tafsirSource = 'en.katsir';
+                                            _nuzulSource = 'en.wahidi';
+                                          } else {
+                                            _selectedSource = 'id.kemenag';
+                                            _translitSource = 'id.kemenag_translit';
+                                            _tafsirSource = 'id.jalalayn';
+                                            _nuzulSource = 'id.kemenag_nuzul';
+                                          }
+                                        });
+                                        _loadPageTexts();
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
+                                        ),
+                                        child: Text(
+                                          lang.toUpperCase(),
+                                          style: TextStyle(
+                                            color: active ? AppTheme.primary : AppTheme.outline,
+                                            fontSize: 11,
+                                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
-
                               ),
 
-                            );
+                              IconButton(
+                                icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),
+                                onPressed: _toggleAudio,
+                              ),
 
-                          }).toList(),
+                              // Reciter selector
+                              IconButton(
+                                icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
+                                tooltip: _currentLang == 'en' ? 'Select Reciter' : 'Pilih Qori',
+                                onPressed: _showReciterPicker,
+                              ),
 
+                              IconButton(
+                                icon: Icon(Icons.info_outline, color: AppTheme.primary),
+                                onPressed: () async {
+                                  if (_selectedVerseId != null && _pageVerses.isNotEmpty) {
+                                    final current = _pageVerses.firstWhere(
+                                      (v) => v['id'] == _selectedVerseId,
+                                      orElse: () => _pageVerses.first,
+                                    );
+                                    final sId = current['sura_id'];
+                                    final aNum = current['ayah_number'];
+                                    if (sId == null || aNum == null) return;
+                                    ref.read(hideNavBarProvider.notifier).state = false;
+                                    await context.push('/surahs/$sId/ayahs/$aNum');
+                                    if (mounted) {
+                                      ref.read(hideNavBarProvider.notifier).state = true;
+                                    }
+                                  }
+                                },
+                              ),
+
+                              IconButton(
+                                icon: Icon(Icons.explore_outlined, color: AppTheme.primary),
+                                onPressed: _showJumpDialog,
+                              ),
+
+                              // Bookmark button
+                              IconButton(
+                                icon: Icon(
+                                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                                  color: _isBookmarked ? Colors.amber : AppTheme.primary,
+                                ),
+                                tooltip: _currentLang == 'en' ? 'Bookmark' : 'Bookmark',
+                                onPressed: _toggleBookmarkActive,
+                              ),
+
+                              IconButton(
+                                icon: Icon(Icons.share, color: AppTheme.primary),
+                                tooltip: _currentLang == 'en' ? 'Copy & Share' : 'Salin & Bagikan',
+                                onPressed: _copyActiveAyah,
+                              ),
+
+                              // Panel toggle icon — small, compact
+                              IconButton(
+                                icon: Icon(
+                                  _studyPanelOpen ? Icons.expand_more : Icons.chrome_reader_mode_outlined,
+                                  color: _studyPanelOpen ? AppTheme.outline : AppTheme.primary,
+                                ),
+                                tooltip: _studyPanelOpen ? 'Close panel' : 'Open study panel',
+                                onPressed: () => setState(() => _studyPanelOpen = !_studyPanelOpen),
+                              ),
+
+                              IconButton(
+                                icon: Icon(Icons.settings_outlined, color: AppTheme.outline, size: 20),
+                                tooltip: _currentLang == 'en' ? 'Settings' : 'Pengaturan',
+                                onPressed: () => context.push('/settings'),
+                              ),
+                            ],
+                          ),
                         ),
-
-                      ),
-
-                      IconButton(
-
-                        icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),
-
-                        onPressed: _toggleAudio,
-
-                      ),
-
-                      // Reciter selector
-
-                      IconButton(
-
-                        icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
-
-                        tooltip: _currentLang == 'en' ? 'Select Reciter' : 'Pilih Qori',
-
-                        onPressed: _showReciterPicker,
-
-                      ),
-
-                      IconButton(
-
-                        icon: Icon(Icons.info_outline, color: AppTheme.primary),
-
-                        onPressed: () async {
-
-                          if (_selectedVerseId != null && _pageVerses.isNotEmpty) {
-
-                            final current = _pageVerses.firstWhere(
-
-                              (v) => v['id'] == _selectedVerseId,
-
-                              orElse: () => _pageVerses.first,
-
-                            );
-
-                            final sId = current['sura_id'];
-
-                            final aNum = current['ayah_number'];
-
-                            if (sId == null || aNum == null) return;
-
-                            ref.read(hideNavBarProvider.notifier).state = false;
-
-                            await context.push('/surahs/$sId/ayahs/$aNum');
-
-                            if (mounted) {
-
-                              ref.read(hideNavBarProvider.notifier).state = true;
-
-                            }
-
-                          }
-
-                        },
-
-                      ),
-
-                      IconButton(
-
-                        icon: Icon(Icons.explore_outlined, color: AppTheme.primary),
-
-                        onPressed: _showJumpDialog,
-
-                      ),
-
-                      IconButton(
-
-                        icon: Icon(Icons.share, color: AppTheme.primary),
-
-                        tooltip: _currentLang == 'en' ? 'Copy & Share' : 'Salin & Bagikan',
-
-                        onPressed: _copyActiveAyah,
-
-                      ),
-
-                      // Panel toggle icon — small, compact
-
-                      IconButton(
-
-                        icon: Icon(
-
-                          _studyPanelOpen ? Icons.expand_more : Icons.chrome_reader_mode_outlined,
-
-                          color: _studyPanelOpen ? AppTheme.outline : AppTheme.primary,
-
-                        ),
-
-                        tooltip: _studyPanelOpen ? 'Close panel' : 'Open study panel',
-
-                        onPressed: () => setState(() => _studyPanelOpen = !_studyPanelOpen),
-
-                      ),
-
-                      IconButton(
-
-                        icon: Icon(Icons.settings_outlined, color: AppTheme.outline, size: 20),
-
-                        tooltip: _currentLang == 'en' ? 'Settings' : 'Pengaturan',
-
-                        onPressed: () => context.push('/settings'),
-
                       ),
 
                     ],

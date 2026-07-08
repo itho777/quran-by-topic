@@ -99,6 +99,27 @@ class MoreScreen extends ConsumerWidget {
                   ),
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Mushaf Full Width
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.fit_screen_outlined, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text('Mushaf Full Width', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text('Stretch pages to fill screen width (tap/pinch to scroll vertically)', style: TextStyle(color: AppTheme.outline, fontSize: 11)),
+                  trailing: Switch(
+                    value: settings.mushafFullWidth,
+                    activeThumbColor: AppTheme.primary,
+                    onChanged: (val) {
+                      ref.read(settingsProvider.notifier).setMushafFullWidth(val);
+                    },
+                  ),
+                ),
                 
                 // Default Translation Source
                 ListTile(
@@ -477,7 +498,7 @@ class _SettingsTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                ?trailing,
+                if (trailing != null) trailing!,
               ],
             ),
           ),

@@ -9,6 +9,7 @@ class SettingsState {
   final String defaultTranslationSource;
   final String appLanguage;
   final String selectedReciter;
+  final bool mushafFullWidth;
 
   SettingsState({
     required this.arabicFontSize,
@@ -17,6 +18,7 @@ class SettingsState {
     required this.defaultTranslationSource,
     required this.appLanguage,
     required this.selectedReciter,
+    this.mushafFullWidth = false,
   });
 
   SettingsState copyWith({
@@ -26,6 +28,7 @@ class SettingsState {
     String? defaultTranslationSource,
     String? appLanguage,
     String? selectedReciter,
+    bool? mushafFullWidth,
   }) {
     return SettingsState(
       arabicFontSize: arabicFontSize ?? this.arabicFontSize,
@@ -34,6 +37,7 @@ class SettingsState {
       defaultTranslationSource: defaultTranslationSource ?? this.defaultTranslationSource,
       appLanguage: appLanguage ?? this.appLanguage,
       selectedReciter: selectedReciter ?? this.selectedReciter,
+      mushafFullWidth: mushafFullWidth ?? this.mushafFullWidth,
     );
   }
 }
@@ -47,6 +51,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           defaultTranslationSource: 'id.kemenag',
           appLanguage: 'id', // Default to Indonesian
           selectedReciter: 'Alafasy_128kbps',
+          mushafFullWidth: false,
         )) {
     _loadSettings();
   }
@@ -60,6 +65,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final defaultSource = prefs.getString('default_translation_source') ?? 'id.kemenag';
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
+      final fullWidth = prefs.getBool('mushaf_full_width') ?? false;
 
       state = SettingsState(
         arabicFontSize: arabicSize,
@@ -68,6 +74,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         defaultTranslationSource: defaultSource,
         appLanguage: lang,
         selectedReciter: reciter,
+        mushafFullWidth: fullWidth,
       );
     } catch (_) {}
   }
@@ -114,6 +121,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await _cloudSync();
   }
 
+  Future<void> setMushafFullWidth(bool val) async {
+    state = state.copyWith(mushafFullWidth: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('mushaf_full_width', val);
+  }
+
   /// Reset ALL settings to factory defaults and clear persisted preferences.
   Future<void> resetToDefaults() async {
     state = SettingsState(
@@ -123,6 +136,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       defaultTranslationSource: 'id.kemenag',
       appLanguage: 'id',
       selectedReciter: 'Alafasy_128kbps',
+      mushafFullWidth: false,
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -146,6 +160,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         'translation_font_size': state.translationFontSize,
         'show_transliteration': state.showTransliteration,
         'selected_reciter': state.selectedReciter,
+        'mushaf_full_width': state.mushafFullWidth,
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
     } catch (_) {}
@@ -174,6 +189,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         defaultTranslationSource: (data['default_translation_source'] as String?) ?? state.defaultTranslationSource,
         appLanguage: (data['app_language'] as String?) ?? state.appLanguage,
         selectedReciter: (data['selected_reciter'] as String?) ?? state.selectedReciter,
+        mushafFullWidth: (data['mushaf_full_width'] as bool?) ?? state.mushafFullWidth,
       );
       state = newState;
       await prefs.setDouble('arabic_font_size', newState.arabicFontSize);
@@ -182,6 +198,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       await prefs.setString('default_translation_source', newState.defaultTranslationSource);
       await prefs.setString('app_language', newState.appLanguage);
       await prefs.setString('selected_reciter', newState.selectedReciter);
+      await prefs.setBool('mushaf_full_width', newState.mushafFullWidth);
     } catch (_) {}
   }
 }

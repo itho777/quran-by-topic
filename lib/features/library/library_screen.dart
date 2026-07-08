@@ -133,9 +133,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     // Mushaf Pages
     _mushaf.add(_DownloadItem(
       sourceType: 'mushaf',
-      sourceId: 'hafs_smart_v2',
-      label: 'Mushaf Hafs Smart v2',
-      subtitle: '604 pages · ~9 MB SVG',
+      sourceId: 'hafs_kfqc',
+      label: 'Mushaf KFQC · Quranpedia Vector',
+      subtitle: '604 pages · ~9 MB · Interactive SVG',
       icon: Icons.auto_stories_rounded,
     ));
 

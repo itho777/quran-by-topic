@@ -52,6 +52,8 @@ Widget buildQuranPageImage(
   void Function(int surah, int ayah)? onVerseTapped,
   int? selectedVerseId,
   int? playingVerseId,
+  // ignored on web — SVG naturally fills width via CSS
+  bool fullWidth = false,
 }) {
   final viewType = 'quran-svg-page-$pageNum';
 

@@ -2039,6 +2039,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                               playingVerseId: _playingVerseId,
 
+                              fullWidth: ref.watch(settingsProvider).mushafFullWidth,
+
                             ),
 
                           ),

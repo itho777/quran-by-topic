@@ -24,7 +24,7 @@ import 'local_db.dart';
 // ---------------------------------------------------------------------------
 
 const _mushafBaseUrl =
-    'https://quran.ksu.edu.sa/svg/hafs_smart_v2';
+    'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg';
 
 const _audioBaseUrl =
     'https://download.quranicaudio.com/quran';
@@ -220,7 +220,7 @@ class DownloadService {
   ///   `{appDocDir}/mushaf/page_{pageNum:03d}.svg`
   Stream<DownloadProgress> downloadMushafPages() async* {
     const sourceType = 'mushaf';
-    const sourceId = 'hafs_smart_v2';
+    const sourceId = 'hafs_kfqc';
 
     DownloadProgress progress = DownloadProgress(
       sourceType: sourceType,
@@ -243,7 +243,7 @@ class DownloadService {
         final String fileName =
             'page_${page.toString().padLeft(3, '0')}.svg';
         final String filePath = '${mushafDir.path}/$fileName';
-        final String url = '$_mushafBaseUrl/$page.svg';
+        final String url = '$_mushafBaseUrl/${page.toString().padLeft(3, '0')}.svg';
 
         try {
           await _dio.download(url, filePath);

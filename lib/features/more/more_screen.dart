@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 
@@ -16,13 +17,17 @@ class MoreScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
         title: const Text('Settings & More', style: TextStyle(fontWeight: FontWeight.bold)),
-        leading: Navigator.canPop(context)
-            ? IconButton(
-                icon: Icon(Icons.arrow_back, color: AppTheme.primary),
-                tooltip: 'Back',
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppTheme.primary),
+          tooltip: 'Back',
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -374,6 +379,31 @@ class MoreScreen extends ConsumerWidget {
             trailing: Text('1.0.0',
                 style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
+          const SizedBox(height: 32),
+          Center(
+            child: Opacity(
+              opacity: 0.8,
+              child: Image.asset(
+                AppTheme.isDark
+                    ? 'assets/images/logo_dark.png'
+                    : 'assets/images/logo_light.png',
+                height: 48,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              'Read, Study, and Reflect',
+              style: TextStyle(
+                color: AppTheme.outline,
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );

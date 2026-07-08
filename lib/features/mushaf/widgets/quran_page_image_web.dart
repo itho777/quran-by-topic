@@ -26,6 +26,9 @@ String _buildPageCss(int? selectedId, int? playingId) {
     svg *:not(.ayahPolygon) {
       pointer-events: none !important;
     }
+    svg path:not(.ayahPolygon) {
+      fill: #000000 !important;
+    }
     ${selectedId != null ? '''
     #verse-$selectedId {
       fill: #E9C176 !important;
@@ -65,6 +68,17 @@ Widget buildQuranPageImage(
     if (style != null) {
       style.text = _buildPageCss(selectedVerseId, playingVerseId);
     }
+    
+    // Auto-scroll the active verse (playing or selected) into view (centered)
+    final activeId = playingVerseId ?? selectedVerseId;
+    if (activeId != null) {
+      html.window.animationFrame.then((_) {
+        final element = state.container!.querySelector('#verse-$activeId');
+        if (element != null) {
+          element.scrollIntoView(html.ScrollAlignment.CENTER);
+        }
+      });
+    }
   }
 
   if (!_pageStates.containsKey(pageNum) || state.container == null) {
@@ -73,7 +87,7 @@ Widget buildQuranPageImage(
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.display = 'flex'
-        ..style.alignItems = 'center'
+        ..style.alignItems = 'flex-start'
         ..style.justifyContent = 'center'
         ..style.overflow = 'hidden'
         ..style.cursor = 'pointer';
@@ -112,9 +126,9 @@ void _loadSvgIntoContainer(
     // maintaining aspect ratio (the SVG viewBox is 235x235 = square).
     final svgWrapper = html.DivElement()
       ..style.width = '100%'
-      ..style.height = '100%'
+      ..style.height = 'auto'
       ..style.display = 'flex'
-      ..style.alignItems = 'center'
+      ..style.alignItems = 'flex-start'
       ..style.justifyContent = 'center';
 
     svgWrapper.setInnerHtml(
@@ -174,14 +188,25 @@ void _loadSvgIntoContainer(
     if (svg != null) {
       svg.style
         ..width = '100%'
-        ..height = '100%';
-      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        ..height = 'auto';
+      svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
     }
 
     final style = html.StyleElement()
       ..text = _buildPageCss(state.selectedVerseId, state.playingVerseId);
     container.append(style);
     container.append(svgWrapper);
+
+    // Auto-scroll the active verse (playing or selected) into view (centered) after load
+    final activeId = state.playingVerseId ?? state.selectedVerseId;
+    if (activeId != null) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        final element = container.querySelector('#verse-$activeId');
+        if (element != null) {
+          element.scrollIntoView(html.ScrollAlignment.CENTER);
+        }
+      });
+    }
 
     // Attach click handler on the wrapper so it catches bubbled events from all SVG children.
     svgWrapper.onClick.listen((event) {

@@ -17,6 +17,14 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // Advanced search options state
+  bool _showAdvanced = false;
+  bool _searchQuran = true;
+  bool _searchTranslation = true;
+  bool _searchTafsir = true;
+  bool _searchNuzul = true;
+  bool _searchTag = true;
+  bool _semanticSearch = false;
   final _searchController = TextEditingController();
   String get _currentLang => ref.watch(settingsProvider).appLanguage;
   int _selectedSurahId = 1;
@@ -87,8 +95,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       String rotationMode = 'manual';
 
       for (final row in List<Map<String, dynamic>>.from(cfgRes)) {
-        final k = row['key'] as String;
-        final v = row['value'] as String;
+        final k = row['key'] as String?;  // may be null
+        if (k == null) continue;
+        final v = (row['value'] as String?) ?? '';
         if (k == 'featured_ayah_key') verseKey = v;
         if (k == 'featured_ayah_note') note = v;
         if (k == 'home_hero_title') heroTitle = v;
@@ -114,7 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (vRes != null) {
           suraId = vRes['sura_id'] as int;
           ayahNum = vRes['ayah_number'] as int;
-          verseKey = vRes['verse_key'] as String;
+          verseKey = (vRes['verse_key'] as String?) ?? '';
           note = 'Daily Reflection';
         }
       } else if (rotationMode == 'daily_playlist') {
@@ -128,7 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           final now = DateTime.now();
           final daysSinceEpoch = now.difference(DateTime(1970, 1, 1)).inDays;
           final item = playlist[daysSinceEpoch % playlist.length];
-          verseKey = item['verse_key'] as String;
+          verseKey = (item['verse_key'] as String?) ?? '';
           note = item['note'] as String? ?? 'Daily Selection';
           
           final parts = verseKey.split(':');
@@ -239,7 +248,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _doSearch() {
     final q = _searchController.text.trim();
     if (q.isNotEmpty) {
-      context.go('/search?q=${Uri.encodeComponent(q)}');
+      final params = <String, String>{
+        'q': q,
+      };
+      if (_semanticSearch) {
+        params['mode'] = 'semantic';
+      } else {
+        params['mode'] = 'keyword';
+        final List<String> sources = [];
+        if (_searchQuran) sources.add('quran');
+        if (_searchTranslation) sources.add('translation');
+        if (_searchTafsir) sources.add('tafsir');
+        if (_searchNuzul) sources.add('nuzul');
+        if (_searchTag) sources.add('tag');
+        params['sources'] = sources.join(',');
+      }
+      final uri = Uri(
+        path: '/search',
+        queryParameters: params,
+      );
+      context.go(uri.toString());
     }
   }
 
@@ -409,25 +437,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: Icon(Icons.arrow_back, color: AppTheme.primary),
-                          onPressed: () {},
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Text(
-                        'Al-Qur\'an',
-                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
-                              fontSize: 22,
-                            ),
+                      // tafseer.id brand logo image
+                      Image.asset(
+                        AppTheme.isDark
+                            ? 'assets/images/logo_dark.png'
+                            : 'assets/images/logo_light.png',
+                        height: 42,
+                        fit: BoxFit.contain,
                       ),
                       if (_homeTagline.isNotEmpty) ...[
                         const SizedBox(height: 2),
@@ -504,7 +520,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       const SizedBox(width: 8),
                       IconButton(
                         icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
-                        onPressed: () => context.go('/settings'),
+                        onPressed: () => context.push('/settings'),
                       ),
                     ],
                   ),
@@ -714,6 +730,90 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             onChanged: (_) => setState(() {}),
                             onSubmitted: (_) => _doSearch(),
                             textInputAction: TextInputAction.search,
+                          ),
+                          const SizedBox(height: 6),
+                          // Advanced Search toggle row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              TextButton.icon(
+                                icon: Icon(
+                                  _showAdvanced ? Icons.tune : Icons.tune_outlined,
+                                  size: 16,
+                                  color: AppTheme.primary,
+                                ),
+                                label: Text(
+                                  isEn ? 'Advanced Search' : 'Pencarian Lanjutan',
+                                  style: TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w600),
+                                ),
+                                onPressed: () => setState(() => _showAdvanced = !_showAdvanced),
+                              ),
+                              if (_searchController.text.trim().isNotEmpty)
+                                TextButton(
+                                  onPressed: _doSearch,
+                                  child: Text(
+                                    isEn ? 'SEARCH' : 'CARI',
+                                    style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          // Advanced Search panel (hidden by default)
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeInOut,
+                            child: _showAdvanced
+                                ? Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Semantic toggle
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(children: [
+                                                Icon(Icons.auto_awesome, color: AppTheme.secondary, size: 16),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  isEn ? 'Semantic (AI)' : 'Semantik (AI)',
+                                                  style: TextStyle(color: AppTheme.onSurface, fontSize: 13, fontWeight: FontWeight.bold),
+                                                ),
+                                              ]),
+                                              Switch(
+                                                value: _semanticSearch,
+                                                activeColor: AppTheme.primary,
+                                                onChanged: (v) => setState(() => _semanticSearch = v),
+                                              ),
+                                            ],
+                                          ),
+                                          if (!_semanticSearch) ...[
+                                            const Divider(height: 20),
+                                            Text(
+                                              isEn ? 'SEARCH IN:' : 'CARI DI DALAM:',
+                                              style: TextStyle(color: AppTheme.outline, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Wrap(spacing: 12, runSpacing: 8, children: [
+                                              _buildAdvancedCheckbox(label: isEn ? 'Arabic Text' : 'Teks Arab', value: _searchQuran, onChanged: (v) => setState(() => _searchQuran = v ?? true)),
+                                              _buildAdvancedCheckbox(label: isEn ? 'Translation' : 'Terjemahan', value: _searchTranslation, onChanged: (v) => setState(() => _searchTranslation = v ?? true)),
+                                              _buildAdvancedCheckbox(label: 'Tafsir', value: _searchTafsir, onChanged: (v) => setState(() => _searchTafsir = v ?? true)),
+                                              _buildAdvancedCheckbox(label: 'Asbabun Nuzul', value: _searchNuzul, onChanged: (v) => setState(() => _searchNuzul = v ?? true)),
+                                              _buildAdvancedCheckbox(label: isEn ? 'Topics / Tags' : 'Topik / Tag', value: _searchTag, onChanged: (v) => setState(() => _searchTag = v ?? true)),
+                                            ]),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
                           ),
                           const SizedBox(height: 16),
                           // Surah + Ayah select row
@@ -1030,6 +1130,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+  Widget _buildAdvancedCheckbox({
+    required String label,
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 22, height: 22,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: AppTheme.onSurface, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
 }
 
 class _QuickCard extends StatelessWidget {

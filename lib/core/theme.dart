@@ -44,31 +44,31 @@ class AppTheme {
     return themeMode == ThemeMode.dark;
   }
 
-  // Brand color palette inspired by Naviq travel platform (Electric Indigo/Coral/Slate)
-  static Color get primary => isDark ? const Color(0xFFE9C176) : const Color(0xFF5A56E3);
+  // Brand color palette inspired by DESIGN.md (Serene Path / Emerald & Gold)
+  static Color get primary => isDark ? const Color(0xFFE9C176) : const Color(0xFF00443E);
   static Color get onPrimary => isDark ? const Color(0xFF412D00) : const Color(0xFFFFFFFF);
-  static Color get primaryContainer => isDark ? const Color(0xFFC5A059) : const Color(0xFFECEBFC);
-  static Color get onPrimaryContainer => isDark ? const Color(0xFF4E3700) : const Color(0xFF1D165C);
+  static Color get primaryContainer => isDark ? const Color(0xFFC5A059) : const Color(0xFF0D5D56);
+  static Color get onPrimaryContainer => isDark ? const Color(0xFF4E3700) : const Color(0xFF8FD3CA);
 
-  static Color get secondary => isDark ? const Color(0xFF95D1D1) : const Color(0xFFFF6A55);
+  static Color get secondary => isDark ? const Color(0xFF95D1D1) : const Color(0xFF735C00);
   static Color get onSecondary => isDark ? const Color(0xFF003737) : const Color(0xFFFFFFFF);
-  static Color get secondaryContainer => isDark ? const Color(0xFF0C5252) : const Color(0xFFFFEFEF);
-  static Color get onSecondaryContainer => isDark ? const Color(0xFF87C3C2) : const Color(0xFF8E2415);
+  static Color get secondaryContainer => isDark ? const Color(0xFF0C5252) : const Color(0xFFFED65B);
+  static Color get onSecondaryContainer => isDark ? const Color(0xFF87C3C2) : const Color(0xFF745C00);
 
   // Background and Surface colors
-  static Color get background => isDark ? const Color(0xFF131313) : const Color(0xFFF7F9FC);
-  static Color get surface => isDark ? const Color(0xFF131313) : const Color(0xFFFFFFFF);
-  static Color get surfaceContainer => isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFAFBFD);
-  static Color get surfaceContainerLow => isDark ? const Color(0xFF1C1B1B) : const Color(0xFFF7F9FC);
-  static Color get surfaceContainerHigh => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F4F8);
-  static Color get surfaceContainerHighest => isDark ? const Color(0xFF353534) : const Color(0xFFE5EBF2);
-  static Color get surfaceDim => isDark ? const Color(0xFF131313) : const Color(0xFFF3F6FA);
+  static Color get background => isDark ? const Color(0xFF131313) : const Color(0xFFF8FAF8);
+  static Color get surface => isDark ? const Color(0xFF131313) : const Color(0xFFF8FAF8);
+  static Color get surfaceContainer => isDark ? const Color(0xFF1E1E1E) : const Color(0xFFECEEED);
+  static Color get surfaceContainerLow => isDark ? const Color(0xFF1C1B1B) : const Color(0xFFF2F4F2);
+  static Color get surfaceContainerHigh => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE7E9E7);
+  static Color get surfaceContainerHighest => isDark ? const Color(0xFF353534) : const Color(0xFFE1E3E1);
+  static Color get surfaceDim => isDark ? const Color(0xFF131313) : const Color(0xFFD8DAD9);
 
   // Text and Outlines
-  static Color get onSurface => isDark ? const Color(0xFFE5E2E1) : const Color(0xFF1E2229);
-  static Color get onSurfaceVariant => isDark ? const Color(0xFFD1C5B4) : const Color(0xFF4B5563);
-  static Color get outline => isDark ? const Color(0xFF9A8F80) : const Color(0xFF9CA3AF);
-  static Color get outlineVariant => isDark ? const Color(0xFF4E4639) : const Color(0xFFE4E7EC);
+  static Color get onSurface => isDark ? const Color(0xFFE5E2E1) : const Color(0xFF191C1C);
+  static Color get onSurfaceVariant => isDark ? const Color(0xFFD1C5B4) : const Color(0xFF3F4947);
+  static Color get outline => isDark ? const Color(0xFF9A8F80) : const Color(0xFF6F7977);
+  static Color get outlineVariant => isDark ? const Color(0xFF4E4639) : const Color(0xFFBEC9C6);
   static Color get bronzeMute => const Color(0xFF8E7955);
 
   // Status

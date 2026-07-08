@@ -15,7 +15,8 @@ import '../mushaf/source_picker_sheet.dart';
 
 class SurahDetailScreen extends ConsumerStatefulWidget {
   final int surahId;
-  const SurahDetailScreen({super.key, required this.surahId});
+  final bool autoplay;
+  const SurahDetailScreen({super.key, required this.surahId, this.autoplay = false});
 
   @override
   ConsumerState<SurahDetailScreen> createState() => _SurahDetailScreenState();
@@ -65,7 +66,11 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     super.initState();
     _selectedSurahId = widget.surahId;
     _selectedSource = ref.read(settingsProvider).defaultTranslationSource;
-    _load();
+    _load().then((_) {
+      if (widget.autoplay && mounted) {
+        _playAudioForVerse(1);
+      }
+    });
     _loadSurahsList();
 
     // Bind audio listeners
@@ -195,7 +200,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
         .eq('source_id', _selectedSource)
         .inFilter('verse_id', verseIds);
     final map = <int, String>{};
-    for (final r in res) { map[r['verse_id'] as int] = r['text'] as String; }
+    for (final r in res) { if (r['verse_id'] != null) { map[r['verse_id'] as int] = (r['text'] as String?) ?? ''; } }
 
     final translitSource = ref.read(settingsProvider).appLanguage == 'en' ? 'en.transliteration' : 'id.kemenag_translit';
     final translitRes = await Supabase.instance.client
@@ -204,7 +209,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
         .eq('source_id', translitSource)
         .inFilter('verse_id', verseIds);
     final translitMap = <int, String>{};
-    for (final r in translitRes) { translitMap[r['verse_id'] as int] = r['text'] as String; }
+    for (final r in translitRes) { if (r['verse_id'] != null) { translitMap[r['verse_id'] as int] = (r['text'] as String?) ?? ''; } }
 
     setState(() {
       _translations = map;
@@ -620,6 +625,11 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   tooltip: 'Read in Mushaf',
                   onPressed: () => context.go('/mushaf?page=$_firstPageNumber'),
                 ),
+              IconButton(
+                icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+                tooltip: isEn ? 'Settings' : 'Pengaturan',
+                onPressed: () => context.push('/settings'),
+              ),
             ],
           ),
 
@@ -803,7 +813,14 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       showArabic: _showArabic,
                       showTranslit: _showTranslit,
                       showTranslation: _showTranslation,
-                      isPlaying: _playingAyahNum == aNum,
+                      isPlaying: _playingAyahNum == aNum && _isPlaying,
+                      onPlayTapped: () {
+                        if (_playingAyahNum == aNum && _isPlaying) {
+                          _toggleAudio();
+                        } else {
+                          _playAudioForVerse(aNum);
+                        }
+                      },
                     ),
                   );
                 },
@@ -863,6 +880,7 @@ class _VerseCard extends ConsumerWidget {
   final bool showTranslit;
   final bool showTranslation;
   final bool isPlaying;
+  final VoidCallback onPlayTapped;
 
   const _VerseCard({
     required this.surahId,
@@ -873,14 +891,15 @@ class _VerseCard extends ConsumerWidget {
     required this.showTranslit,
     required this.showTranslation,
     required this.isPlaying,
+    required this.onPlayTapped,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final ayahNum = verse['ayah_number'] as int;
-    final verseKey = verse['verse_key'] as String;
-    final arabic = verse['text_ar'] as String;
+    final verseKey = (verse['verse_key'] as String?) ?? '';
+    final arabic = (verse['text_ar'] as String?) ?? '';
 
     final Color bgColor = isPlaying
         ? AppTheme.secondary.withValues(alpha: 0.08)
@@ -932,6 +951,16 @@ class _VerseCard extends ConsumerWidget {
                   Text('PLAYING', style: TextStyle(color: AppTheme.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
                 const Spacer(),
+                IconButton(
+                  icon: Icon(isPlaying ? Icons.pause_circle_filled : Icons.play_circle_outline, 
+                    size: 20, 
+                    color: isPlaying ? AppTheme.secondary : AppTheme.primary),
+                  tooltip: isPlaying ? 'Pause' : 'Play', 
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: onPlayTapped,
+                ),
+                const SizedBox(width: 12),
                 IconButton(
                   icon: Icon(Icons.copy, size: 16, color: AppTheme.outline),
                   tooltip: 'Copy', padding: EdgeInsets.zero,

@@ -642,6 +642,28 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                                           ),
                                         ],
                                       ),
+                                      const SizedBox(width: 8),
+                                      // Play button — tap to play ayah 1 and open surah
+                                      GestureDetector(
+                                        onTap: () => context.go('/surahs/${s['id']}?autoplay=1'),
+                                        child: Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primary.withValues(alpha: 0.12),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: AppTheme.primary.withValues(alpha: 0.35),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.play_arrow_rounded,
+                                            color: AppTheme.primary,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),

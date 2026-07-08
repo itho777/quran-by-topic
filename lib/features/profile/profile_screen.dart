@@ -196,7 +196,7 @@ class ProfileScreen extends ConsumerWidget {
                   title: 'App Settings',
                   subtitle: 'Theme, font size, display options',
                   trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
-                  onTap: () => context.go('/settings'),
+                  onTap: () => context.push('/settings'),
                 ),
                 const SizedBox(height: 20),
 
@@ -274,7 +274,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => context.go('/settings'),
+                onPressed: () => context.push('/settings'),
                 child: Text('App Settings →', style: TextStyle(color: AppTheme.outline)),
               ),
             ],

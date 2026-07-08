@@ -247,29 +247,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   Widget _buildHeader() {
     return Column(
       children: [
-        // Geometric Islamic star decoration
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1A4A6B), Color(0xFF0D3040)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(color: AppTheme.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8)),
-            ],
-          ),
-          child: const Center(
-            child: Text('☪', style: TextStyle(fontSize: 38, color: Colors.white)),
-          ),
+        Image.asset(
+          AppTheme.isDark
+              ? 'assets/images/logo_dark.png'
+              : 'assets/images/logo_light.png',
+          height: 120,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 16),
-        Text('Tafseer.id',
-            style: TextStyle(color: AppTheme.onSurface, fontSize: 26, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
         Text('Sign in to sync your settings & bookmarks across devices',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.outline.withValues(alpha: 0.8), fontSize: 13)),

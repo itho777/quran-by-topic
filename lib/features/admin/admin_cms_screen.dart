@@ -128,6 +128,20 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  // Brand Logo Header
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Image.asset(
+                        AppTheme.isDark
+                            ? 'assets/images/logo_dark.png'
+                            : 'assets/images/logo_light.png',
+                        height: 72,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   // ── Home Page Content ───────────────────────────────────
                   _sectionLabel('Home Page'),
                   const SizedBox(height: 8),

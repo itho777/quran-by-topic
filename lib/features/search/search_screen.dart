@@ -14,6 +14,14 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  // Advanced search options state
+  bool _searchQuran = true;
+  bool _searchTranslation = true;
+  bool _searchTafsir = true;
+  bool _searchNuzul = true;
+  bool _searchTag = true;
+  bool _showAdvancedOptions = false;
+  bool _initializedParams = false;
   late final TextEditingController _controller;
   List<Map<String, dynamic>> _results = [];
   bool _loading = false;
@@ -31,9 +39,42 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery);
-    _loadSurahNames().then((_) {
-      if (widget.initialQuery.isNotEmpty) _search(widget.initialQuery);
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initializedParams) {
+      _initializedParams = true;
+      _initializeFromQueryParams();
+      _loadSurahNames().then((_) {
+        if (widget.initialQuery.isNotEmpty) _search(widget.initialQuery);
+      });
+    }
+  }
+
+  void _initializeFromQueryParams() {
+    if (!mounted) return;
+    try {
+      final state = GoRouterState.of(context);
+      final mode = state.uri.queryParameters['mode'];
+      if (mode == 'semantic') {
+        _searchMode = 'semantic';
+      } else {
+        _searchMode = 'keyword';
+      }
+      
+      final sourcesParam = state.uri.queryParameters['sources'];
+      if (sourcesParam != null && sourcesParam.isNotEmpty) {
+        final sources = sourcesParam.split(',');
+        _searchQuran = sources.contains('quran');
+        _searchTranslation = sources.contains('translation');
+        _searchTafsir = sources.contains('tafsir');
+        _searchNuzul = sources.contains('nuzul');
+        _searchTag = sources.contains('tag');
+        _showAdvancedOptions = true;
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadSurahNames() async {
@@ -62,17 +103,34 @@ class _SearchScreenState extends State<SearchScreen> {
       _didSearch = true;
     });
 
-    try {
-      if (_searchMode == 'semantic') {
-        await _performSemanticSearch(query);
-      } else {
-        await _performKeywordSearch(query);
+    int _attempts = 0;
+    while (true) {
+      try {
+        if (_searchMode == 'semantic') {
+          await _performSemanticSearch(query);
+        } else {
+          await _performKeywordSearch(query);
+        }
+        break; // success
+      } catch (e) {
+        final isTimeout = e.toString().contains('57014') ||
+            e.toString().contains('statement timeout') ||
+            e.toString().contains('query_canceled');
+        if (isTimeout && _attempts < 1) {
+          _attempts++;
+          // Brief pause before retry
+          await Future.delayed(const Duration(milliseconds: 600));
+          continue;
+        }
+        setState(() => _error = isTimeout
+            ? 'Search timed out. Please try again or narrow your query.'
+            : e.toString());
+        break;
+      } finally {
+        if (!(_loading)) break; // already cleared
       }
-    } catch (e) {
-      setState(() => _error = e.toString());
-    } finally {
-      setState(() => _loading = false);
     }
+    setState(() => _loading = false);
   }
 
   Future<void> _performKeywordSearch(String query) async {
@@ -80,7 +138,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final res = await Supabase.instance.client.rpc('search_verses', params: {
       'query': query.trim(),
       'lang_code': _langCode,
-      'result_limit': 50,
+      'result_limit': 100, // retrieve slightly more for filtering overhead
       'offset_val': 0,
     });
     final list = List<Map<String, dynamic>>.from(res);
@@ -88,7 +146,6 @@ class _SearchScreenState extends State<SearchScreen> {
     // 2. Map direct database fields to widget expectations. Parse context_snippet JSON array.
     final mapped = list.map((r) {
       final tagsList = List<String>.from(r['matched_tags'] as List? ?? []);
-      // context_snippet is a JSON array: [{source_name, source_type, text}, ...]
       List<Map<String, dynamic>> sources = [];
       final raw = r['context_snippet'] as String?;
       if (raw != null && raw.isNotEmpty) {
@@ -99,6 +156,56 @@ class _SearchScreenState extends State<SearchScreen> {
           }
         } catch (_) {}
       }
+
+      // Check which sources matched the query keywords to satisfy checkboxes
+      final queryLower = query.toLowerCase();
+      final words = queryLower.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
+      bool hasQuranMatch = false;
+      bool hasTranslationMatch = false;
+      bool hasTafsirMatch = false;
+      bool hasNuzulMatch = false;
+      bool hasTagMatch = false;
+
+      // 1. Check Quran (Arabic text match)
+      final arText = (r['text_ar'] as String? ?? '').toLowerCase();
+      if (words.isNotEmpty && words.every((w) => arText.contains(w))) {
+        hasQuranMatch = true;
+      }
+
+      // 2. Check Tag match
+      if (tagsList.isNotEmpty) {
+        hasTagMatch = true;
+      }
+
+      // 3. Check matches inside context sources
+      for (final src in sources) {
+        final type = src['source_type'] as String? ?? '';
+        if (type == 'Translation') hasTranslationMatch = true;
+        if (type == 'Tafsir') hasTafsirMatch = true;
+        if (type == 'Asbabun Nuzul') hasNuzulMatch = true;
+      }
+
+      final note = r['match_note'] as String? ?? '';
+      if (note == 'Translation') hasTranslationMatch = true;
+      if (note == 'Tafsir') hasTafsirMatch = true;
+      if (note == 'Asbabun Nuzul') hasNuzulMatch = true;
+
+      // Keep results that match at least one selected category
+      bool keep = false;
+      if (_searchQuran && hasQuranMatch) keep = true;
+      if (_searchTranslation && hasTranslationMatch) keep = true;
+      if (_searchTafsir && hasTafsirMatch) keep = true;
+      if (_searchNuzul && hasNuzulMatch) keep = true;
+      if (_searchTag && hasTagMatch) keep = true;
+
+      // If nothing is selected, display all as fallback
+      if (!_searchQuran && !_searchTranslation && !_searchTafsir && !_searchNuzul && !_searchTag) {
+        keep = true;
+      }
+
+      if (!keep) return null;
+
       return {
         'verse_key': r['verse_key'],
         'text_ar': r['text_ar'],
@@ -109,11 +216,11 @@ class _SearchScreenState extends State<SearchScreen> {
         '_match_note': r['match_note'] as String?,
         '_context_sources': sources,
       };
-    }).toList();
+    }).whereType<Map<String, dynamic>>().toList();
 
     setState(() {
       _results = mapped;
-      _hasMore = list.length >= 50;
+      _hasMore = list.length >= 100;
     });
   }
 
@@ -303,6 +410,18 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             IconButton(
+              icon: Icon(
+                _showAdvancedOptions ? Icons.tune : Icons.tune_outlined,
+                color: _showAdvancedOptions ? AppTheme.primary : AppTheme.outline,
+              ),
+              tooltip: 'Advanced Search Options',
+              onPressed: () {
+                setState(() {
+                  _showAdvancedOptions = !_showAdvancedOptions;
+                });
+              },
+            ),
+            IconButton(
               icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
               tooltip: 'Settings',
               onPressed: () => context.push('/settings'),
@@ -324,10 +443,103 @@ class _SearchScreenState extends State<SearchScreen> {
     return Column(
       children: [
         _buildModeSelector(),
+        if (_showAdvancedOptions && _searchMode == 'keyword') _buildAdvancedOptionsPanel(),
         Expanded(
           child: _buildMainContent(),
         ),
       ],
+    );
+  }
+
+  Widget _buildAdvancedOptionsPanel() {
+    final isEn = _langCode == 'en';
+    return Container(
+      color: AppTheme.surfaceContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            isEn ? 'SEARCH WITHIN CATEGORIES:' : 'CARI DI DALAM KATEGORI:',
+            style: TextStyle(color: AppTheme.outline, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _buildCheckboxOption(
+                label: isEn ? 'Arabic Text' : 'Teks Arab',
+                value: _searchQuran,
+                onChanged: (val) {
+                  setState(() => _searchQuran = val ?? true);
+                  _search(_controller.text);
+                },
+              ),
+              _buildCheckboxOption(
+                label: isEn ? 'Translation' : 'Terjemahan',
+                value: _searchTranslation,
+                onChanged: (val) {
+                  setState(() => _searchTranslation = val ?? true);
+                  _search(_controller.text);
+                },
+              ),
+              _buildCheckboxOption(
+                label: isEn ? 'Tafsir' : 'Tafsir',
+                value: _searchTafsir,
+                onChanged: (val) {
+                  setState(() => _searchTafsir = val ?? true);
+                  _search(_controller.text);
+                },
+              ),
+              _buildCheckboxOption(
+                label: isEn ? 'Asbabun Nuzul' : 'Asbabun Nuzul',
+                value: _searchNuzul,
+                onChanged: (val) {
+                  setState(() => _searchNuzul = val ?? true);
+                  _search(_controller.text);
+                },
+              ),
+              _buildCheckboxOption(
+                label: isEn ? 'Topics / Tags' : 'Topik / Tag',
+                value: _searchTag,
+                onChanged: (val) {
+                  setState(() => _searchTag = val ?? true);
+                  _search(_controller.text);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheckboxOption({
+    required String label,
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(color: AppTheme.onSurface, fontSize: 13)),
+        ],
+      ),
     );
   }
 
@@ -613,7 +825,30 @@ class _ResultCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: (surahId != null && ayahNum != null)
-              ? () => context.go('/surahs/$surahId/ayahs/$ayahNum')
+              ? () {
+                  String base = '/surahs/$surahId/ayahs/$ayahNum';
+                  final p = <String, String>{};
+                  if (sources.isNotEmpty) {
+                    final s = sources.first;
+                    final sType = s['source_type'] as String? ?? '';
+                    final sId   = s['source_id']   as String? ?? '';
+                    if (sType == 'Tafsir' && sId.isNotEmpty) {
+                      p['tab'] = '1'; p['tafsir'] = sId;
+                    } else if (sType == 'Asbabun Nuzul') {
+                      p['tab'] = '2';
+                    } else if (sType == 'Translation') {
+                      p['tab'] = '0';
+                    }
+                  } else if (matchNote == 'Tafsir') {
+                    p['tab'] = '1';
+                  } else if (matchNote == 'Asbabun Nuzul') {
+                    p['tab'] = '2';
+                  }
+                  final url = p.isEmpty ? base
+                      : '$base?' + p.entries.map((e) =>
+                          '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+                  context.go(url);
+                }
               : null,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -740,9 +975,12 @@ class _ResultCard extends StatelessWidget {
                             _SourceExcerpt(
                               sourceName: sources[i]['source_name'] as String? ?? '',
                               sourceType: sources[i]['source_type'] as String? ?? '',
+                              sourceId: sources[i]['source_id'] as String? ?? '',
                               text: sources[i]['text'] as String? ?? '',
                               query: query,
                               color: _sourceColor(sources[i]['source_type'] as String? ?? ''),
+                              surahId: surahId,
+                              ayahNum: ayahNum,
                             ),
                           ],
                         ],
@@ -762,27 +1000,59 @@ class _ResultCard extends StatelessWidget {
 class _SourceExcerpt extends StatelessWidget {
   final String sourceName;
   final String sourceType;
+  final String sourceId;
   final String text;
   final String query;
   final Color color;
+  final int? surahId;
+  final int? ayahNum;
 
   const _SourceExcerpt({
     required this.sourceName,
     required this.sourceType,
+    required this.sourceId,
     required this.text,
     required this.query,
     required this.color,
+    this.surahId,
+    this.ayahNum,
   });
+
+  String _buildTapUrl() {
+    if (surahId == null || ayahNum == null) return '';
+    final p = <String, String>{};
+    if (sourceType == 'Tafsir' && sourceId.isNotEmpty) {
+      p['tab'] = '1'; p['tafsir'] = sourceId;
+    } else if (sourceType == 'Asbabun Nuzul') {
+      p['tab'] = '2';
+    } else if (sourceType == 'Translation') {
+      p['tab'] = '0';
+    }
+    final base = '/surahs/$surahId/ayahs/$ayahNum';
+    if (p.isEmpty) return base;
+    return '$base?' + p.entries.map((e) =>
+        '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+    final url = _buildTapUrl();
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
+        onTap: url.isNotEmpty ? () => context.go(url) : null,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: url.isNotEmpty
+                  ? color.withValues(alpha: 0.45)
+                  : color.withValues(alpha: 0.25)),
+          ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -818,6 +1088,8 @@ class _SourceExcerpt extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    ),
       ),
     );
   }

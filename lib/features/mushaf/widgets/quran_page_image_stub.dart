@@ -1,83 +1,160 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/theme.dart';
-import '../../../core/local_db.dart';
 
-// Quranpedia vector SVG base URL (same source as the web version).
-const _kSvgBaseUrl =
+// CDN base — same source used by the web version
+const _kCdnBase =
     'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg';
 
-// The quranpedia SVG pages use viewBox "0 0 345 550".
-const double _kPageAspectRatio = 345.0 / 550.0;
+// In-memory SVG text cache (survives widget rebuilds, cleared on hot-restart)
+final Map<int, String> _memCache = {};
 
-// In-memory SVG cache so that toggling verse selection does not re-fetch.
-final Map<int, String> _svgTextCache = {};
+// ─────────────────────────────────────────────────────────────────────────────
+// CSS / JS — identical to quran_page_image_web.dart
+// ─────────────────────────────────────────────────────────────────────────────
+const _kSharedScript = r'''
+var _styleEl = null;
 
-/// Fetches the raw SVG XML for [pageNum]:
-///   1. Local SQLite cache → read file bytes
-///   2. In-memory network cache
-///   3. Remote quranpedia CDN
-Future<String> _loadSvgText(int pageNum) async {
-  // 1. Local file cached by the Library download manager
-  final localPath = await LocalDatabase.instance.getMushafPage(pageNum);
-  if (localPath != null && File(localPath).existsSync()) {
-    return File(localPath).readAsString();
-  }
-
-  // 2. In-memory cache (avoids re-downloading on rebuild)
-  if (_svgTextCache.containsKey(pageNum)) {
-    return _svgTextCache[pageNum]!;
-  }
-
-  // 3. Network fetch
-  final paddedPage = pageNum.toString().padLeft(3, '0');
-  final url = '$_kSvgBaseUrl/$paddedPage.svg';
-  final response = await http.get(Uri.parse(url));
-  if (response.statusCode == 200) {
-    final text = response.body;
-    _svgTextCache[pageNum] = text;
-    return text;
-  }
-  throw Exception('Failed to load SVG for page $pageNum (HTTP ${response.statusCode})');
+function _buildCss(sel, play) {
+  return [
+    '.ayahPolygon{fill:#000!important;fill-opacity:0!important;cursor:pointer!important;pointer-events:auto!important;transition:fill .2s,fill-opacity .2s}',
+    'svg *:not(.ayahPolygon){pointer-events:none!important}',
+    'svg path:not(.ayahPolygon){fill:#000!important}',
+    sel != null ? '#verse-'+sel+'{fill:#E9C176!important;fill-opacity:0.25!important}' : '',
+    play != null ? '#verse-'+play+'{fill:#95D1D1!important;fill-opacity:0.30!important}' : '',
+  ].join('');
 }
 
-/// Injects a CSS <style> block into the SVG XML to highlight the selected
-/// and playing verses by their `id="verse-N"` attribute.
-String _applyVerseStyles(String svgText, int? selectedId, int? playingId) {
-  // Build the style block
-  final selectedCss = selectedId != null
-      ? '#verse-$selectedId { fill: #E9C176 !important; fill-opacity: 0.25 !important; }'
-      : '';
-  final playingCss = playingId != null
-      ? '#verse-$playingId { fill: #95D1D1 !important; fill-opacity: 0.30 !important; }'
-      : '';
+function _initSvg() {
+  var svgEl = document.querySelector('#wrap svg');
+  if (!svgEl) return;
+  svgEl.style.width  = '100%';
+  svgEl.style.height = 'auto';
+  svgEl.setAttribute('preserveAspectRatio', 'xMidYMin meet');
 
-  final styleBlock = '''
+  _styleEl = document.createElement('style');
+  _styleEl.textContent = _buildCss(null, null);
+  svgEl.insertBefore(_styleEl, svgEl.firstChild);
+
+  document.getElementById('wrap').addEventListener('click', function(e) {
+    var t = e.target;
+    while (t && t.id !== 'wrap') {
+      var s = t.getAttribute('surah');
+      var a = t.getAttribute('ayah');
+      if (s && a && s !== '' && a !== '') {
+        window.location.href = 'verse://' + s + '/' + a;
+        return;
+      }
+      t = t.parentElement;
+    }
+    window.location.href = 'tap://page';
+  });
+}
+
+window.updateHighlight = function(sel, play) {
+  if (_styleEl) _styleEl.textContent = _buildCss(sel, play);
+};
+''';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HTML builder — SVG always embedded inline (no iframe src, no fetch in JS)
+// ─────────────────────────────────────────────────────────────────────────────
+String _buildHtml(String svgText, bool fullWidth) {
+  final overflow  = fullWidth ? 'auto'   : 'hidden';
+  final wrapStyle = fullWidth
+      ? 'width:100%;'
+      : 'width:100%;height:100%;display:flex;align-items:flex-start;justify-content:center;';
+
+  return '''
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <style>
-  .ayahPolygon { fill: #000000; fill-opacity: 0; }
-  $selectedCss
-  $playingCss
-</style>''';
-
-  // Insert right before </svg> so it takes highest specificity
-  final idx = svgText.lastIndexOf('</svg>');
-  if (idx != -1) {
-    return svgText.substring(0, idx) + styleBlock + svgText.substring(idx);
-  }
-  return svgText;
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:$overflow;background:transparent;touch-action:pan-y}
+#wrap{$wrapStyle}
+svg{width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+<div id="wrap">$svgText</div>
+<script>$_kSharedScript</script>
+<script>_initSvg();</script>
+</body>
+</html>
+''';
 }
 
-/// Builds the Quran page widget for native (Android/iOS/desktop) targets.
+// ─────────────────────────────────────────────────────────────────────────────
+// SVG loader — memory cache → disk cache → CDN download
+// ─────────────────────────────────────────────────────────────────────────────
+
+Future<String?> _localCacheDir() async {
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    final mushaf = Directory('${dir.path}/mushaf');
+    if (!await mushaf.exists()) await mushaf.create(recursive: true);
+    return mushaf.path;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Loads the SVG for [pageNum]:
+///   1. In-memory cache  (instant)
+///   2. App-documents disk cache (fast, survives app restarts)
+///   3. CDN download + save to disk
 ///
-/// Loads a vector SVG from the local cache (downloaded via Library) or
-/// directly from the quranpedia CDN, then injects dynamic CSS to highlight
-/// the selected and playing verses.
+/// Returns null if offline and not cached.
+Future<String?> _loadSvg(int pageNum) async {
+  // 1. Memory
+  if (_memCache.containsKey(pageNum)) return _memCache[pageNum];
+
+  final padded = pageNum.toString().padLeft(3, '0');
+
+  // 2. Disk
+  final cacheDir = await _localCacheDir();
+  if (cacheDir != null) {
+    final file = File('$cacheDir/$padded.svg');
+    if (await file.exists()) {
+      final text = await file.readAsString();
+      _memCache[pageNum] = text;
+      return text;
+    }
+  }
+
+  // 3. CDN
+  try {
+    final url = '$_kCdnBase/$padded.svg';
+    final response = await http.get(Uri.parse(url))
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode == 200) {
+      final text = response.body;
+      _memCache[pageNum] = text;
+      // Save to disk in background
+      if (cacheDir != null) {
+        File('$cacheDir/$padded.svg').writeAsString(text).ignore();
+      }
+      return text;
+    }
+  } catch (_) {}
+
+  return null; // offline, not cached
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API — same signature as the web version
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Builds the native (Android / iOS) Mushaf page widget.
 ///
-/// [fullWidth] — when true the page fills the container width and may extend
-/// beyond the visible height (user can pan/zoom). When false (default) the
-/// entire page fits inside the container with letterboxing.
+/// Pages are served via WebView (same HTML/CSS/JS as the web version) so that
+/// CSS class-selectors and verse highlighting work identically.
+/// SVGs are cached on disk after first load, so subsequent views are instant.
 Widget buildQuranPageImage(
   BuildContext context,
   int pageNum, {
@@ -88,116 +165,128 @@ Widget buildQuranPageImage(
   int? playingVerseId,
   bool fullWidth = false,
 }) {
-  return FutureBuilder<String>(
-    future: _loadSvgText(pageNum),
-    builder: (context, snapshot) {
-      return LayoutBuilder(
-        builder: (ctx, constraints) {
-          final containerW = constraints.maxWidth;
-          final containerH = constraints.maxHeight;
-
-          double renderedW, renderedH, offsetX, offsetY;
-
-          if (fullWidth) {
-            // ── Full-width mode ──────────────────────────────────────────────
-            // Page spans the full container width; height scales proportionally.
-            renderedW = containerW;
-            renderedH = containerW / _kPageAspectRatio;
-            offsetX = 0.0;
-            offsetY = 0.0;
-          } else {
-            // ── Fit-page mode (BoxFit.contain) ──────────────────────────────
-            final containerRatio = containerW / containerH;
-            if (containerRatio > _kPageAspectRatio) {
-              // Wider container → pillarboxed (margins left/right)
-              renderedH = containerH;
-              renderedW = containerH * _kPageAspectRatio;
-              offsetX = (containerW - renderedW) / 2;
-              offsetY = 0.0;
-            } else {
-              // Taller container → letterboxed (margins top/bottom)
-              renderedW = containerW;
-              renderedH = containerW / _kPageAspectRatio;
-              offsetX = 0.0;
-              offsetY = (containerH - renderedH) / 2;
-            }
-          }
-
-          // ── Content ────────────────────────────────────────────────────────
-          Widget pageContent;
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            // Loading skeleton
-            pageContent = Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
-            );
-          } else if (snapshot.hasError) {
-            // Offline and not cached
-            pageContent = Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.cloud_off_outlined, color: AppTheme.outline, size: 36),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Page $pageNum not available offline.\nDownload it in the Library.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.outline, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          } else {
-            // Inject dynamic verse highlight styles, then render SVG
-            final styledSvg = _applyVerseStyles(
-              snapshot.data!,
-              selectedVerseId,
-              playingVerseId,
-            );
-            pageContent = SvgPicture.string(
-              styledSvg,
-              width: renderedW,
-              height: renderedH,
-              fit: BoxFit.fill, // We already calculated the exact size above
-              placeholderBuilder: (_) =>
-                  Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-            );
-          }
-
-          return GestureDetector(
-            onTapUp: (details) {
-              if (onTapWithPosition != null) {
-                final localPos = details.localPosition;
-                final imgX = localPos.dx - offsetX;
-                final imgY = localPos.dy - offsetY;
-                final relX = imgX / renderedW;
-                final relY = imgY / renderedH;
-                // Only fire if the tap is inside the actual image area
-                if (relX >= 0.0 && relX <= 1.0 && relY >= 0.0 && relY <= 1.0) {
-                  onTapWithPosition(relX, relY);
-                }
-              }
-              onTap?.call();
-            },
-            child: SizedBox(
-              width: containerW,
-              height: fullWidth ? renderedH : containerH,
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: offsetX,
-                    top: offsetY,
-                    child: pageContent,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    },
+  return _QuranPageWebView(
+    pageNum:         pageNum,
+    onTap:           onTap,
+    onVerseTapped:   onVerseTapped,
+    selectedVerseId: selectedVerseId,
+    playingVerseId:  playingVerseId,
+    fullWidth:       fullWidth,
   );
+}
+
+class _QuranPageWebView extends StatefulWidget {
+  final int pageNum;
+  final VoidCallback? onTap;
+  final void Function(int surah, int ayah)? onVerseTapped;
+  final int? selectedVerseId;
+  final int? playingVerseId;
+  final bool fullWidth;
+
+  const _QuranPageWebView({
+    required this.pageNum,
+    this.onTap,
+    this.onVerseTapped,
+    this.selectedVerseId,
+    this.playingVerseId,
+    this.fullWidth = false,
+  });
+
+  @override
+  State<_QuranPageWebView> createState() => _QuranPageWebViewState();
+}
+
+class _QuranPageWebViewState extends State<_QuranPageWebView> {
+  late WebViewController _controller;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.transparent)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageFinished: (_) {
+          if (mounted) setState(() => _loaded = true);
+          _pushHighlight();
+        },
+        onNavigationRequest: (req) {
+          final uri = Uri.tryParse(req.url);
+          if (uri == null) return NavigationDecision.navigate;
+
+          if (uri.scheme == 'verse') {
+            widget.onTap?.call();
+            final surah = int.tryParse(uri.host) ?? 0;
+            final ayah  = int.tryParse(uri.pathSegments.firstOrNull ?? '') ?? 0;
+            if (surah > 0 && ayah > 0) widget.onVerseTapped?.call(surah, ayah);
+            return NavigationDecision.prevent;
+          }
+          if (uri.scheme == 'tap') {
+            widget.onTap?.call();
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
+      ));
+    _loadPage();
+  }
+
+  Future<void> _loadPage() async {
+    if (mounted) setState(() => _loaded = false);
+
+    final svgText = await _loadSvg(widget.pageNum);
+    if (!mounted) return;
+
+    if (svgText != null) {
+      _controller.loadHtmlString(_buildHtml(svgText, widget.fullWidth));
+    } else {
+      // Offline fallback
+      _controller.loadHtmlString('''
+<!DOCTYPE html>
+<html>
+<body style="display:flex;align-items:center;justify-content:center;
+             height:100vh;margin:0;font-family:sans-serif;color:#888;
+             text-align:center;padding:24px;box-sizing:border-box">
+  <div>
+    <div style="font-size:36px;margin-bottom:12px">&#x1F4F4;</div>
+    <p>Page ${widget.pageNum} not available offline.</p>
+    <p style="font-size:12px;margin-top:8px">Connect to the internet to load Mushaf pages.</p>
+  </div>
+</body>
+</html>''');
+    }
+  }
+
+  void _pushHighlight() {
+    final selJs  = widget.selectedVerseId  != null ? '${widget.selectedVerseId}'  : 'null';
+    final playJs = widget.playingVerseId   != null ? '${widget.playingVerseId}'   : 'null';
+    _controller.runJavaScript(
+        'if(window.updateHighlight) window.updateHighlight($selJs, $playJs);');
+  }
+
+  @override
+  void didUpdateWidget(_QuranPageWebView old) {
+    super.didUpdateWidget(old);
+
+    if (old.pageNum != widget.pageNum || old.fullWidth != widget.fullWidth) {
+      _loadPage();
+      return;
+    }
+    if (old.selectedVerseId != widget.selectedVerseId ||
+        old.playingVerseId  != widget.playingVerseId) {
+      _pushHighlight();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        WebViewWidget(controller: _controller),
+        if (!_loaded)
+          Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      ],
+    );
+  }
 }

@@ -65,8 +65,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final defaultSource = prefs.getString('default_translation_source') ?? 'id.kemenag';
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
-      final fullWidth = prefs.getBool('mushaf_full_width_v2') ?? true;
 
+      // mushafFullWidth is intentionally NOT loaded from storage.
+      // It always defaults to true on each app launch.
       state = SettingsState(
         arabicFontSize: arabicSize,
         translationFontSize: transSize,
@@ -74,7 +75,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         defaultTranslationSource: defaultSource,
         appLanguage: lang,
         selectedReciter: reciter,
-        mushafFullWidth: fullWidth,
+        mushafFullWidth: true,
       );
     } catch (_) {}
   }
@@ -121,10 +122,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await _cloudSync();
   }
 
-  Future<void> setMushafFullWidth(bool val) async {
+  // mushafFullWidth is session-only — not persisted to disk or cloud.
+  void setMushafFullWidth(bool val) {
     state = state.copyWith(mushafFullWidth: val);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('mushaf_full_width_v2', val);
   }
 
   /// Reset ALL settings to factory defaults and clear persisted preferences.
@@ -160,7 +160,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         'translation_font_size': state.translationFontSize,
         'show_transliteration': state.showTransliteration,
         'selected_reciter': state.selectedReciter,
-        'mushaf_full_width': state.mushafFullWidth,
+        // mushafFullWidth is not synced to cloud — session-only preference.
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
     } catch (_) {}
@@ -182,6 +182,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         return;
       }
       final prefs = await SharedPreferences.getInstance();
+      // mushafFullWidth is not pulled from cloud — it is always true on launch.
       final newState = SettingsState(
         arabicFontSize: (data['arabic_font_size'] as num?)?.toDouble() ?? state.arabicFontSize,
         translationFontSize: (data['translation_font_size'] as num?)?.toDouble() ?? state.translationFontSize,
@@ -189,7 +190,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         defaultTranslationSource: (data['default_translation_source'] as String?) ?? state.defaultTranslationSource,
         appLanguage: (data['app_language'] as String?) ?? state.appLanguage,
         selectedReciter: (data['selected_reciter'] as String?) ?? state.selectedReciter,
-        mushafFullWidth: (data['mushaf_full_width'] as bool?) ?? state.mushafFullWidth,
+        mushafFullWidth: true,
       );
       state = newState;
       await prefs.setDouble('arabic_font_size', newState.arabicFontSize);
@@ -198,7 +199,6 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       await prefs.setString('default_translation_source', newState.defaultTranslationSource);
       await prefs.setString('app_language', newState.appLanguage);
       await prefs.setString('selected_reciter', newState.selectedReciter);
-      await prefs.setBool('mushaf_full_width_v2', newState.mushafFullWidth);
     } catch (_) {}
   }
 }

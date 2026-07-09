@@ -1298,6 +1298,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 return Padding(
                   padding: const EdgeInsets.only(left: 6),
                   child: ChoiceChip(
+                    showCheckmark: false,
                     label: Text(_tagsSlots[idx].label, style: TextStyle(fontSize: 10)),
                     selected: active,
                     onSelected: (sel) { if (sel) setState(() => _tagsLangIdx = idx); },
@@ -1414,6 +1415,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                       return Padding(
                         padding: const EdgeInsets.only(left: 6),
                         child: ChoiceChip(
+                          showCheckmark: false,
                           label: Text(slots[idx].label,
                             style: TextStyle(
                               fontSize: 10,

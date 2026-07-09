@@ -107,6 +107,18 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   bool _playAfterPageLoad = false;
 
+  final List<String> _debugLogs = [];
+
+  void _addDebugLog(String msg) {
+    debugPrint(msg);
+    if (mounted) {
+      setState(() {
+        _debugLogs.insert(0, msg);
+        if (_debugLogs.length > 20) _debugLogs.removeLast();
+      });
+    }
+  }
+
   late StreamSubscription _playerStateSubscription;
 
   late StreamSubscription _playerCompleteSubscription;
@@ -253,6 +265,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     }
 
+    debugPrint('MushafScreen initState: _currentPage = $_currentPage');
+
     // Always collapse the root bottom nav bar immediately when entering the Mushaf screen.
 
     // Capture the notifier before the callback to avoid using ref after dispose.
@@ -283,6 +297,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     _playerCompleteSubscription = _audioPlayer.onPlayerComplete.listen((event) async {
 
+      _addDebugLog('onPlayerComplete: fired! playing=$_playingVerseId, verses=${_pageVerses.length}');
+
       if (_playingVerseId != null && _pageVerses.isNotEmpty) {
 
         final currentIndex = _pageVerses.indexWhere((v) => v['id'] == _playingVerseId);
@@ -300,6 +316,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           // Advance to the next page
 
           if (_currentPage < 604) {
+
+            _addDebugLog('onPlayerComplete: last verse, set playAfterPageLoad=true, next page');
 
             _playAfterPageLoad = true;
 
@@ -340,6 +358,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   @override
   void dispose() {
+    debugPrint('MushafScreen dispose');
     WakelockPlus.disable().ignore();
     _menuCollapseTimer?.cancel();
     _studyMenuCollapseTimer?.cancel();
@@ -431,6 +450,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   Future<void> _loadPageData(int pageNum) async {
 
+    _addDebugLog('loadPageData: page=$pageNum, playAfter=$_playAfterPageLoad');
+
     if (mounted) setState(() => _loading = true);
 
     try {
@@ -505,11 +526,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         }
 
+        _addDebugLog('loadPageData done: check playAfter=$_playAfterPageLoad');
+
         if (_playAfterPageLoad) {
 
           _playAfterPageLoad = false;
 
           final firstVerse = versesList.first;
+
+          _addDebugLog('loadPageData done: auto-play first verse ID=${firstVerse['id']}');
 
           await _playAudioForVerse(firstVerse);
 
@@ -714,9 +739,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     final vKey = (verse['verse_key'] as String?) ?? '';
 
     if (vId != _selectedVerseId) {
+
       if (!_isPlaying) {
+
         _audioPlayer.stop().ignore();
+
       }
+
     }
 
     if (mounted) {
@@ -826,6 +855,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final vId = verse['id'] as int;
 
+    _addDebugLog('playAudioForVerse: $surahId:$ayahNum ID=$vId (fallback=$isFallback)');
+
     if (mounted) {
 
       setState(() {
@@ -836,15 +867,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         _selectedVerseKey = (verse['verse_key'] as String?) ?? '';
 
-        _isPlaying = true; // Highlight immediately while audio loads
+        _isPlaying = true;
 
       });
 
     }
 
     _checkBookmarkStatus();
-
-    // Scroll to the playing verse at the top of the text section
 
     _scrollToActiveVerse(vId, alignment: 0.0);
 
@@ -953,19 +982,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 
   void _onPageChanged(int index) {
-
     int pageNum = index + 1;
+    _addDebugLog('onPageChanged: index=$index, pageNum=$pageNum, playAfter=$_playAfterPageLoad');
 
     setState(() {
-
       _currentPage = pageNum;
-
     });
 
     _onUserInteraction();
-
     _loadPageData(pageNum);
-
   }
 
   void _nextPage() {
@@ -2463,6 +2488,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         // Tab selector â€” compact dropdown
                         _buildStudyTabDropdown(),
 
+                        const Spacer(),
+
                         // Source selector button for active tab
 
 
@@ -2905,6 +2932,49 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           // (Panel toggle now lives in the top bar â€” no big FAB needed)
 
+          Positioned(
+            left: 10,
+            top: 100,
+            child: IgnorePointer(
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                ),
+                constraints: const BoxConstraints(maxWidth: 300, maxHeight: 250),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'DEBUG LOGS',
+                        style: TextStyle(
+                          color: Colors.greenAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const Divider(color: Colors.greenAccent, height: 8),
+                      ..._debugLogs.map((log) => Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Text(
+                              log,
+                              style: const TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 9,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
 
       ),

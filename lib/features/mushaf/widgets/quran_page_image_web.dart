@@ -96,6 +96,7 @@ Widget buildQuranPageImage(
         ..style.justifyContent = 'center'
         ..style.overflowY = 'hidden'
         ..style.overflowX = 'hidden'
+        ..style.backgroundColor = 'transparent'
         ..style.cursor = 'pointer';
 
       state.container = container;
@@ -147,7 +148,8 @@ void _loadSvgIntoContainer(
       ..style.height = '100%'
       ..style.display = 'flex'
       ..style.alignItems = 'center'
-      ..style.justifyContent = 'center';
+      ..style.justifyContent = 'center'
+      ..style.backgroundColor = 'transparent';
 
     svgWrapper.setInnerHtml(
       svgText,

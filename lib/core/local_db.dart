@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// A singleton wrapper around a SQLite database used for offline caching of
 /// translations, tafsirs, Mushaf pages, audio files, and download manifests.
@@ -154,6 +155,7 @@ class LocalDatabase {
 
   /// Persists the list of all [surahs] to local SQLite database.
   Future<void> saveSurahs(List<Map<String, dynamic>> surahs) async {
+    if (kIsWeb) return;
     final db = await database;
     final batch = db.batch();
     for (final s in surahs) {
@@ -177,12 +179,14 @@ class LocalDatabase {
 
   /// Returns the cached list of all surahs from SQLite database.
   Future<List<Map<String, dynamic>>> getSurahs() async {
+    if (kIsWeb) return [];
     final db = await database;
     return db.query('surahs', orderBy: 'id ASC');
   }
 
   /// Returns the cached surah by [surahId] or `null`.
   Future<Map<String, dynamic>?> getSurah(int surahId) async {
+    if (kIsWeb) return null;
     final db = await database;
     final rows = await db.query(
       'surahs',
@@ -199,6 +203,7 @@ class LocalDatabase {
 
   /// Persists a list of [verses] belonging to [suraId] to SQLite database.
   Future<void> saveVerses(List<Map<String, dynamic>> verses, int suraId) async {
+    if (kIsWeb) return;
     final db = await database;
     final batch = db.batch();
     for (final v in verses) {
@@ -220,6 +225,7 @@ class LocalDatabase {
 
   /// Returns the cached list of verses for [suraId] ordered by ayah number.
   Future<List<Map<String, dynamic>>> getVerses(int suraId) async {
+    if (kIsWeb) return [];
     final db = await database;
     return db.query(
       'verses',
@@ -231,6 +237,7 @@ class LocalDatabase {
 
   /// Returns the cached verse details for [verseKey] or `null`.
   Future<Map<String, dynamic>?> getVerse(String verseKey) async {
+    if (kIsWeb) return null;
     final db = await database;
     final rows = await db.query(
       'verses',
@@ -253,6 +260,7 @@ class LocalDatabase {
     String sourceId,
     String text,
   ) async {
+    if (kIsWeb) return;
     final db = await database;
     await db.insert(
       table,
@@ -273,6 +281,7 @@ class LocalDatabase {
     String verseKey,
     String sourceId,
   ) async {
+    if (kIsWeb) return null;
     final db = await database;
     final rows = await db.query(
       table,
@@ -290,6 +299,7 @@ class LocalDatabase {
     String table,
     String verseKey,
   ) async {
+    if (kIsWeb) return {};
     final db = await database;
     final rows = await db.query(
       table,
@@ -309,6 +319,7 @@ class LocalDatabase {
     String sourceId,
     List<String> verseKeys,
   ) async {
+    if (kIsWeb) return {};
     if (verseKeys.isEmpty) return {};
     final db = await database;
     
@@ -332,6 +343,7 @@ class LocalDatabase {
 
   /// Upserts the local [filePath] for a Mushaf [pageNum].
   Future<void> saveMushafPage(int pageNum, String filePath) async {
+    if (kIsWeb) return;
     final db = await database;
     await db.insert(
       'mushaf_pages',
@@ -346,6 +358,7 @@ class LocalDatabase {
 
   /// Returns the local file path for Mushaf [pageNum], or `null` if not cached.
   Future<String?> getMushafPage(int pageNum) async {
+    if (kIsWeb) return null;
     final db = await database;
     final rows = await db.query(
       'mushaf_pages',
@@ -368,6 +381,7 @@ class LocalDatabase {
     int surahNum,
     String filePath,
   ) async {
+    if (kIsWeb) return;
     final db = await database;
     await db.insert(
       'audio_files',
@@ -383,6 +397,7 @@ class LocalDatabase {
 
   /// Returns the local file path for [reciterId] / [surahNum], or `null`.
   Future<String?> getAudioFile(String reciterId, int surahNum) async {
+    if (kIsWeb) return null;
     final db = await database;
     final rows = await db.query(
       'audio_files',
@@ -408,6 +423,7 @@ class LocalDatabase {
     int downloadedItems = 0,
     String status = 'idle',
   }) async {
+    if (kIsWeb) return;
     final db = await database;
     await db.insert(
       'download_manifest',
@@ -425,6 +441,7 @@ class LocalDatabase {
 
   /// Returns every row in `download_manifest`.
   Future<List<Map<String, dynamic>>> getAllManifests() async {
+    if (kIsWeb) return [];
     final db = await database;
     return db.query('download_manifest');
   }
@@ -434,6 +451,7 @@ class LocalDatabase {
     String sourceType,
     String sourceId,
   ) async {
+    if (kIsWeb) return null;
     final db = await database;
     final rows = await db.query(
       'download_manifest',
@@ -450,6 +468,7 @@ class LocalDatabase {
 
   /// Returns the number of rows in [table] that match [sourceId].
   Future<int> countCached(String table, String sourceId) async {
+    if (kIsWeb) return 0;
     final db = await database;
     final result = await db.rawQuery(
       'SELECT COUNT(*) AS cnt FROM $table WHERE source_id = ?',
@@ -460,6 +479,7 @@ class LocalDatabase {
 
   /// Deletes all rows in [table] for [sourceId].
   Future<void> deleteSource(String table, String sourceId) async {
+    if (kIsWeb) return;
     final db = await database;
     await db.delete(
       table,
@@ -470,6 +490,7 @@ class LocalDatabase {
 
   /// Deletes all rows from `mushaf_pages`.
   Future<void> deleteMushafPages() async {
+    if (kIsWeb) return;
     final db = await database;
     await db.delete('mushaf_pages');
   }
@@ -477,6 +498,7 @@ class LocalDatabase {
   /// Deletes audio rows for [reciterId].  If [surahNum] is provided, only that
   /// surah is deleted; otherwise all surahs for the reciter are removed.
   Future<void> deleteAudioFiles(String reciterId, {int? surahNum}) async {
+    if (kIsWeb) return;
     final db = await database;
     if (surahNum != null) {
       await db.delete(

@@ -559,15 +559,12 @@ class _DownloadCard extends StatelessWidget {
         tooltip: 'Retry',
       );
     }
-    return FilledButton.icon(
+    return IconButton(
       onPressed: onDownload,
-      icon: const Icon(Icons.download_rounded, size: 18),
-      label: const Text('Download'),
-      style: FilledButton.styleFrom(
-        backgroundColor: AppTheme.primary,
-        foregroundColor: AppTheme.onPrimary,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        textStyle: const TextStyle(fontSize: 13),
+      icon: Icon(Icons.download_rounded, color: AppTheme.primary, size: 26),
+      tooltip: 'Download',
+      style: IconButton.styleFrom(
+        backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );

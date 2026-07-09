@@ -91,7 +91,8 @@ Widget buildQuranPageImage(
         ..style.display = 'flex'
         ..style.alignItems = 'flex-start'
         ..style.justifyContent = 'center'
-        ..style.overflow = 'hidden'
+        ..style.overflowY = 'auto'
+        ..style.overflowX = 'hidden'
         ..style.cursor = 'pointer';
 
       state.container = container;

@@ -333,37 +333,61 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   @override
   Widget build(BuildContext context) {
+    String fmtBytes(int bytes) {
+      if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: NestedScrollView(
         headerSliverBuilder: (ctx, inner) => [
           SliverAppBar(
-            expandedHeight: 140,
             pinned: true,
-            backgroundColor: AppTheme.background,
+            backgroundColor: AppTheme.surfaceContainer,
+            title: const Text('Offline Library',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             automaticallyImplyLeading: false,
-            flexibleSpace: FlexibleSpaceBar(
-              collapseMode: CollapseMode.pin,
-              background: _buildHeader(),
-            ),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                color: AppTheme.surfaceContainer,
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: AppTheme.primary,
-                  unselectedLabelColor: AppTheme.onSurfaceVariant,
-                  indicatorColor: AppTheme.primary,
-                  labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: const TextStyle(fontSize: 11),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.translate_rounded, size: 18), text: 'Trans.'),
-                    Tab(icon: Icon(Icons.menu_book_rounded, size: 18), text: 'Tafsir'),
-                    Tab(icon: Icon(Icons.auto_stories_rounded, size: 18), text: 'Mushaf'),
-                    Tab(icon: Icon(Icons.headphones_rounded, size: 18), text: 'Audio'),
-                  ],
-                ),
+              preferredSize: const Size.fromHeight(84),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    color: AppTheme.surfaceContainer,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Icon(Icons.storage_rounded, size: 14, color: AppTheme.outline),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Mushaf: ${fmtBytes(_mushafBytes)}  •  Audio: ${fmtBytes(_audioBytes)}  •  Text: ${fmtBytes(_textBytes)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 0.5),
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: AppTheme.primary,
+                    unselectedLabelColor: AppTheme.onSurfaceVariant,
+                    indicatorColor: AppTheme.primary,
+                    labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                    unselectedLabelStyle: const TextStyle(fontSize: 11),
+                    tabs: const [
+                      Tab(icon: Icon(Icons.translate_rounded, size: 18), text: 'Trans.'),
+                      Tab(icon: Icon(Icons.menu_book_rounded, size: 18), text: 'Tafsir'),
+                      Tab(icon: Icon(Icons.auto_stories_rounded, size: 18), text: 'Mushaf'),
+                      Tab(icon: Icon(Icons.headphones_rounded, size: 18), text: 'Audio'),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -379,51 +403,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                   _buildList(_audio),
                 ],
               ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    String fmtBytes(int bytes) {
-      if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary.withOpacity(0.9),
-            AppTheme.secondary.withOpacity(0.7),
-          ],
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 48, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Text('Offline Library',
-              style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.onPrimary)),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _StoragePill(icon: Icons.auto_stories_rounded,
-                  label: 'Mushaf ${fmtBytes(_mushafBytes)}'),
-              _StoragePill(icon: Icons.headphones_rounded,
-                  label: 'Audio ${fmtBytes(_audioBytes)}'),
-              _StoragePill(icon: Icons.text_snippet_rounded,
-                  label: 'Text ${fmtBytes(_textBytes)}'),
-            ],
-          ),
-        ],
       ),
     );
   }

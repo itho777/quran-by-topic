@@ -31,9 +31,11 @@ function _buildCss(sel, play) {
 function _initSvg() {
   var svgEl = document.querySelector('#wrap svg');
   if (!svgEl) return;
-  svgEl.style.width  = '100%';
-  svgEl.style.height = 'auto';
-  svgEl.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+  svgEl.style.maxWidth  = '100%';
+  svgEl.style.maxHeight = '100%';
+  svgEl.style.width     = 'auto';
+  svgEl.style.height    = 'auto';
+  svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
   _styleEl = document.createElement('style');
   _styleEl.textContent = _buildCss(null, null);
@@ -72,14 +74,18 @@ window.updateHighlight = function(sel, play) {
 // ─────────────────────────────────────────────────────────────────────────────
 // HTML builder — SVG always embedded inline (no iframe src, no fetch in JS)
 // ─────────────────────────────────────────────────────────────────────────────
+// KFQC Mushaf page aspect ratio: viewBox="0 0 345 550"
+const _kPageAspectRatio = 550.0 / 345.0;
+
 String _buildHtml(String svgText, bool fullWidth) {
-  final overflow  = fullWidth ? 'auto' : 'hidden';
-  final wrapStyle = fullWidth
-      ? 'width:100%;'
-      : 'width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;';
-  final svgStyle = fullWidth
-      ? 'width:100%;height:auto;display:block;'
-      : 'max-width:100%;max-height:100%;width:auto;height:auto;display:block;';
+  // Always overflow:hidden — scrolling is handled by Flutter's InteractiveViewer
+  // in fullWidth mode, or the page fits the viewport in fit-to-page mode.
+  const overflow = 'hidden';
+  // In both modes the SVG fills and centers within its container.
+  const wrapStyle =
+      'width:100%;height:100%;display:flex;align-items:center;justify-content:center;';
+  const svgStyle =
+      'max-width:100%;max-height:100%;width:auto;height:auto;display:block;';
 
   return '''
 <!DOCTYPE html>
@@ -88,7 +94,7 @@ String _buildHtml(String svgText, bool fullWidth) {
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:$overflow;background:transparent;touch-action:pan-y}
+html,body{width:100%;height:100%;overflow:$overflow;background:transparent;touch-action:none}
 #wrap{$wrapStyle}
 svg{$svgStyle}
 </style>
@@ -178,6 +184,28 @@ Widget buildQuranPageImage(
   int? playingVerseId,
   bool fullWidth = false,
 }) {
+  // In fullWidth mode we size the widget to the SVG's true aspect ratio so that
+  // Flutter's InteractiveViewer can pan the entire page natively — no gesture
+  // conflict and no clipping.  In fit-to-page mode the widget fills the parent
+  // and the SVG scales down to fit the viewport.
+  if (fullWidth) {
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final w = constraints.maxWidth;
+      final h = w * _kPageAspectRatio;
+      return SizedBox(
+        width:  w,
+        height: h,
+        child:  _QuranPageWebView(
+          pageNum:         pageNum,
+          onTap:           onTap,
+          onVerseTapped:   onVerseTapped,
+          selectedVerseId: selectedVerseId,
+          playingVerseId:  playingVerseId,
+          fullWidth:       fullWidth,
+        ),
+      );
+    });
+  }
   return _QuranPageWebView(
     pageNum:         pageNum,
     onTap:           onTap,

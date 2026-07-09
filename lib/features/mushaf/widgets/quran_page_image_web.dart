@@ -2,6 +2,9 @@ import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 
+// KFQC Mushaf page aspect ratio: viewBox="0 0 345 550"
+const _kPageAspectRatio = 550.0 / 345.0;
+
 // Tracks which page view-types have been registered with HtmlElementView.
 // We use one HtmlElementView per page slot (reused by swapping SVG content).
 final Map<int, _SvgPageState> _pageStates = {};
@@ -89,15 +92,27 @@ Widget buildQuranPageImage(
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.display = 'flex'
-        ..style.alignItems = fullWidth ? 'flex-start' : 'center'
+        ..style.alignItems = 'center'
         ..style.justifyContent = 'center'
-        ..style.overflowY = fullWidth ? 'auto' : 'hidden'
+        ..style.overflowY = 'hidden'
         ..style.overflowX = 'hidden'
         ..style.cursor = 'pointer';
 
       state.container = container;
       _loadSvgIntoContainer(container, pageNum, state, fullWidth);
       return container;
+    });
+  }
+
+  if (fullWidth) {
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final w = constraints.maxWidth;
+      final h = w * _kPageAspectRatio;
+      return SizedBox(
+        width:  w,
+        height: h,
+        child:  HtmlElementView(viewType: viewType),
+      );
     });
   }
 
@@ -127,10 +142,11 @@ void _loadSvgIntoContainer(
     container.children.clear();
 
     // Wrap SVG in a div that sizes itself to fill the container while
-    // maintaining aspect ratio (the SVG viewBox is 235x235 = square).
+    // The SizedBox in Flutter already sizes the HtmlElementView to the correct
+    // aspect ratio, so the wrapper always fills 100% of the available space.
     final svgWrapper = html.DivElement()
       ..style.width = '100%'
-      ..style.height = fullWidth ? 'auto' : '100%'
+      ..style.height = '100%'
       ..style.display = 'flex'
       ..style.alignItems = 'center'
       ..style.justifyContent = 'center';
@@ -187,21 +203,15 @@ void _loadSvgIntoContainer(
         ]),
     );
 
-    // The SVG element — make it fill parent while preserving aspect ratio
+    // The SVG element — always use max-width/max-height to scale to fit its container
     final svg = svgWrapper.querySelector('svg');
     if (svg != null) {
-      if (fullWidth) {
-        svg.style
-          ..width = '100%'
-          ..height = 'auto';
-      } else {
-        svg.style
-          ..maxWidth = '100%'
-          ..maxHeight = '100%'
-          ..width = 'auto'
-          ..height = 'auto';
-      }
-      svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+      svg.style
+        ..maxWidth = '100%'
+        ..maxHeight = '100%'
+        ..width = 'auto'
+        ..height = 'auto';
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     }
 
     final style = html.StyleElement()

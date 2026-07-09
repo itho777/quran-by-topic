@@ -55,7 +55,7 @@ Widget buildQuranPageImage(
   // ignored on web — SVG naturally fills width via CSS
   bool fullWidth = false,
 }) {
-  final viewType = 'quran-svg-page-$pageNum';
+  final viewType = 'quran-svg-page-$pageNum-$fullWidth';
 
   // Always refresh callbacks and IDs
   final state = _pageStates.putIfAbsent(pageNum, () => _SvgPageState());
@@ -89,14 +89,14 @@ Widget buildQuranPageImage(
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.display = 'flex'
-        ..style.alignItems = 'flex-start'
+        ..style.alignItems = fullWidth ? 'flex-start' : 'center'
         ..style.justifyContent = 'center'
-        ..style.overflowY = 'auto'
+        ..style.overflowY = fullWidth ? 'auto' : 'hidden'
         ..style.overflowX = 'hidden'
         ..style.cursor = 'pointer';
 
       state.container = container;
-      _loadSvgIntoContainer(container, pageNum, state);
+      _loadSvgIntoContainer(container, pageNum, state, fullWidth);
       return container;
     });
   }
@@ -108,6 +108,7 @@ void _loadSvgIntoContainer(
   html.DivElement container,
   int pageNum,
   _SvgPageState state,
+  bool fullWidth,
 ) {
   // Show loading indicator while fetching
   container.children.clear();
@@ -129,9 +130,9 @@ void _loadSvgIntoContainer(
     // maintaining aspect ratio (the SVG viewBox is 235x235 = square).
     final svgWrapper = html.DivElement()
       ..style.width = '100%'
-      ..style.height = 'auto'
+      ..style.height = fullWidth ? 'auto' : '100%'
       ..style.display = 'flex'
-      ..style.alignItems = 'flex-start'
+      ..style.alignItems = 'center'
       ..style.justifyContent = 'center';
 
     svgWrapper.setInnerHtml(
@@ -189,9 +190,17 @@ void _loadSvgIntoContainer(
     // The SVG element — make it fill parent while preserving aspect ratio
     final svg = svgWrapper.querySelector('svg');
     if (svg != null) {
-      svg.style
-        ..width = '100%'
-        ..height = 'auto';
+      if (fullWidth) {
+        svg.style
+          ..width = '100%'
+          ..height = 'auto';
+      } else {
+        svg.style
+          ..maxWidth = '100%'
+          ..maxHeight = '100%'
+          ..width = 'auto'
+          ..height = 'auto';
+      }
       svg.setAttribute('preserveAspectRatio', 'xMidYMin meet');
     }
 

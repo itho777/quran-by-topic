@@ -73,10 +73,13 @@ window.updateHighlight = function(sel, play) {
 // HTML builder — SVG always embedded inline (no iframe src, no fetch in JS)
 // ─────────────────────────────────────────────────────────────────────────────
 String _buildHtml(String svgText, bool fullWidth) {
-  const overflow  = 'auto';
+  final overflow  = fullWidth ? 'auto' : 'hidden';
   final wrapStyle = fullWidth
       ? 'width:100%;'
-      : 'width:100%;display:flex;align-items:flex-start;justify-content:center;';
+      : 'width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;';
+  final svgStyle = fullWidth
+      ? 'width:100%;height:auto;display:block;'
+      : 'max-width:100%;max-height:100%;width:auto;height:auto;display:block;';
 
   return '''
 <!DOCTYPE html>
@@ -87,7 +90,7 @@ String _buildHtml(String svgText, bool fullWidth) {
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:$overflow;background:transparent;touch-action:pan-y}
 #wrap{$wrapStyle}
-svg{width:100%;height:auto;display:block}
+svg{$svgStyle}
 </style>
 </head>
 <body>

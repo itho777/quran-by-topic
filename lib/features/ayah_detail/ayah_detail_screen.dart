@@ -1404,8 +1404,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 ),
               ],
               const SizedBox(width: 8),
-              // Scrollable source chips
-              Flexible(
+              // Scrollable source chips (Expanded to fill available space up to action buttons)
+              Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -1435,7 +1435,6 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                   ),
                 ),
               ),
-              const Spacer(), // Pushes action buttons to the right side
               // Swap source button
               if (onSwitchSource != null) ...[
                 const SizedBox(width: 4),

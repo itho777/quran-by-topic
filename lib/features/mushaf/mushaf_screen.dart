@@ -57,6 +57,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   List<Map<String, dynamic>> _pageVerses = [];
 
+  List<Map<String, dynamic>>? _prefetchedPageVerses;
+  int? _prefetchedPageNum;
+
   Map<int, String> _translations = {};
 
   Map<int, Map<String, String>> _surahNames = {};
@@ -452,7 +455,36 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     _addDebugLog('loadPageData: page=$pageNum, playAfter=$_playAfterPageLoad');
 
-    if (mounted) setState(() => _loading = true);
+    // Try synchronous cache load to preserve browser autoplay gesture context
+    final bool hasCache = (_prefetchedPageNum == pageNum && _prefetchedPageVerses != null && _prefetchedPageVerses!.isNotEmpty);
+    if (hasCache) {
+      final cachedVerses = List<Map<String, dynamic>>.from(_prefetchedPageVerses!);
+      _prefetchedPageVerses = null;
+      _prefetchedPageNum = null;
+      _addDebugLog('loadPageData: using prefetched verses for page=$pageNum');
+
+      if (mounted) {
+        setState(() {
+          _pageVerses = cachedVerses;
+        });
+      }
+
+      if (_selectedVerseId == null || !cachedVerses.any((v) => v['id'] == _selectedVerseId)) {
+        await _selectVerse(cachedVerses.first, fetchDetails: !_playAfterPageLoad);
+      } else {
+        final current = cachedVerses.firstWhere((v) => v['id'] == _selectedVerseId, orElse: () => cachedVerses.first);
+        await _selectVerse(current, fetchDetails: !_playAfterPageLoad);
+      }
+
+      if (_playAfterPageLoad) {
+        _playAfterPageLoad = false;
+        final firstVerse = cachedVerses.first;
+        _addDebugLog('loadPageData done (cached): auto-play first verse ID=${firstVerse['id']}');
+        _playAudioForVerse(firstVerse); // Trigger synchronously without await
+      }
+    }
+
+    if (mounted && !hasCache) setState(() => _loading = true);
 
     try {
 
@@ -540,6 +572,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         }
 
+        // Trigger background prefetch for next page
+        if (pageNum < 604) {
+          _prefetchNextPage(pageNum + 1);
+        }
+
       } else {
 
         if (mounted) {
@@ -568,6 +605,30 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     }
 
+  }
+
+  Future<void> _prefetchNextPage(int nextPageNum) async {
+    try {
+      final versesRes = await Supabase.instance.client
+          .from('verses')
+          .select('id, ayah_number, verse_key, text_ar, sura_id, page_number, juz_number')
+          .eq('page_number', nextPageNum);
+
+      final versesList = List<Map<String, dynamic>>.from(versesRes);
+      versesList.sort((a, b) {
+        int suraComp = (a['sura_id'] as int).compareTo(b['sura_id'] as int);
+        if (suraComp != 0) return suraComp;
+        return (a['ayah_number'] as int).compareTo(b['ayah_number'] as int);
+      });
+
+      if (mounted) {
+        _prefetchedPageVerses = versesList;
+        _prefetchedPageNum = nextPageNum;
+        _addDebugLog('prefetch: loaded page $nextPageNum (${versesList.length} verses)');
+      }
+    } catch (e) {
+      debugPrint('Error prefetching page $nextPageNum: $e');
+    }
   }
 
   Future<void> _loadFromVerseKey(String key) async {
@@ -855,7 +916,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final vId = verse['id'] as int;
 
-    _addDebugLog('playAudioForVerse: $surahId:$ayahNum ID=$vId (fallback=$isFallback)');
+    final url = _getAudioUrl(surahId, ayahNum, useMirror: !isFallback);
+
+    _addDebugLog('playAudioForVerse: $surahId:$ayahNum ID=$vId url=$url (fallback=$isFallback)');
 
     if (mounted) {
 
@@ -892,8 +955,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     );
 
     try {
-
-      final url = _getAudioUrl(surahId, ayahNum, useMirror: !isFallback);
 
       await _audioPlayer.play(UrlSource(url));
 

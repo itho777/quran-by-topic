@@ -55,8 +55,8 @@ Widget buildQuranPageImage(
   void Function(int surah, int ayah)? onVerseTapped,
   int? selectedVerseId,
   int? playingVerseId,
-  // ignored on web — SVG naturally fills width via CSS
   bool fullWidth = false,
+  double? viewportWidth,
 }) {
   final viewType = 'quran-svg-page-$pageNum-$fullWidth';
 
@@ -105,15 +105,13 @@ Widget buildQuranPageImage(
   }
 
   if (fullWidth) {
-    return LayoutBuilder(builder: (ctx, constraints) {
-      final w = constraints.maxWidth;
-      final h = w * _kPageAspectRatio;
-      return SizedBox(
-        width:  w,
-        height: h,
-        child:  HtmlElementView(viewType: viewType),
-      );
-    });
+    final w = viewportWidth ?? MediaQuery.of(context).size.width;
+    final h = w * _kPageAspectRatio;
+    return SizedBox(
+      width:  w,
+      height: h,
+      child:  HtmlElementView(viewType: viewType),
+    );
   }
 
   return HtmlElementView(viewType: viewType);

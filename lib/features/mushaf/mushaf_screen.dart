@@ -2091,32 +2091,27 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                           ),
 
-                          child: InteractiveViewer(
-
-                            maxScale: 3.0,
-
-                            boundaryMargin: const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0),
-
-                            child: buildQuranPageImage(
-
-                              context,
-
-                              pageNum,
-
-                              onTap: _onUserInteraction,
-
-                              onTapWithPosition: _onImageTapped,
-
-                              onVerseTapped: _onVerseSelectedBySurahAyah,
-
-                              selectedVerseId: _selectedVerseId,
-
-                              playingVerseId: _playingVerseId,
-
-                              fullWidth: ref.watch(settingsProvider).mushafFullWidth,
-
-                            ),
-
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final width = constraints.maxWidth;
+                              final fullWidth = ref.watch(settingsProvider).mushafFullWidth;
+                              return InteractiveViewer(
+                                maxScale: 3.0,
+                                boundaryMargin: const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0),
+                                constrained: !fullWidth,
+                                child: buildQuranPageImage(
+                                  context,
+                                  pageNum,
+                                  onTap: _onUserInteraction,
+                                  onTapWithPosition: _onImageTapped,
+                                  onVerseTapped: _onVerseSelectedBySurahAyah,
+                                  selectedVerseId: _selectedVerseId,
+                                  playingVerseId: _playingVerseId,
+                                  fullWidth: fullWidth,
+                                  viewportWidth: width,
+                                ),
+                              );
+                            },
                           ),
 
                         ),

@@ -183,28 +183,27 @@ Widget buildQuranPageImage(
   int? selectedVerseId,
   int? playingVerseId,
   bool fullWidth = false,
+  double? viewportWidth,
 }) {
   // In fullWidth mode we size the widget to the SVG's true aspect ratio so that
   // Flutter's InteractiveViewer can pan the entire page natively — no gesture
   // conflict and no clipping.  In fit-to-page mode the widget fills the parent
   // and the SVG scales down to fit the viewport.
   if (fullWidth) {
-    return LayoutBuilder(builder: (ctx, constraints) {
-      final w = constraints.maxWidth;
-      final h = w * _kPageAspectRatio;
-      return SizedBox(
-        width:  w,
-        height: h,
-        child:  _QuranPageWebView(
-          pageNum:         pageNum,
-          onTap:           onTap,
-          onVerseTapped:   onVerseTapped,
-          selectedVerseId: selectedVerseId,
-          playingVerseId:  playingVerseId,
-          fullWidth:       fullWidth,
-        ),
-      );
-    });
+    final w = viewportWidth ?? MediaQuery.of(context).size.width;
+    final h = w * _kPageAspectRatio;
+    return SizedBox(
+      width:  w,
+      height: h,
+      child:  _QuranPageWebView(
+        pageNum:         pageNum,
+        onTap:           onTap,
+        onVerseTapped:   onVerseTapped,
+        selectedVerseId: selectedVerseId,
+        playingVerseId:  playingVerseId,
+        fullWidth:       fullWidth,
+      ),
+    );
   }
   return _QuranPageWebView(
     pageNum:         pageNum,

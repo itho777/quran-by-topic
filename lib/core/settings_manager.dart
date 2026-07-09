@@ -18,7 +18,7 @@ class SettingsState {
     required this.defaultTranslationSource,
     required this.appLanguage,
     required this.selectedReciter,
-    this.mushafFullWidth = false,
+    this.mushafFullWidth = true,
   });
 
   SettingsState copyWith({
@@ -51,7 +51,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           defaultTranslationSource: 'id.kemenag',
           appLanguage: 'id', // Default to Indonesian
           selectedReciter: 'Alafasy_128kbps',
-          mushafFullWidth: false,
+          mushafFullWidth: true,
         )) {
     _loadSettings();
   }
@@ -65,7 +65,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final defaultSource = prefs.getString('default_translation_source') ?? 'id.kemenag';
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
-      final fullWidth = prefs.getBool('mushaf_full_width') ?? false;
+      final fullWidth = prefs.getBool('mushaf_full_width') ?? true;
 
       state = SettingsState(
         arabicFontSize: arabicSize,
@@ -136,7 +136,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       defaultTranslationSource: 'id.kemenag',
       appLanguage: 'id',
       selectedReciter: 'Alafasy_128kbps',
-      mushafFullWidth: false,
+      mushafFullWidth: true,
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

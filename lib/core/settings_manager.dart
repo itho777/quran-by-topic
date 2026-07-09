@@ -65,7 +65,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final defaultSource = prefs.getString('default_translation_source') ?? 'id.kemenag';
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
-      final fullWidth = prefs.getBool('mushaf_full_width') ?? true;
+      final fullWidth = prefs.getBool('mushaf_full_width_v2') ?? true;
 
       state = SettingsState(
         arabicFontSize: arabicSize,
@@ -124,7 +124,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setMushafFullWidth(bool val) async {
     state = state.copyWith(mushafFullWidth: val);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('mushaf_full_width', val);
+    await prefs.setBool('mushaf_full_width_v2', val);
   }
 
   /// Reset ALL settings to factory defaults and clear persisted preferences.
@@ -198,7 +198,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       await prefs.setString('default_translation_source', newState.defaultTranslationSource);
       await prefs.setString('app_language', newState.appLanguage);
       await prefs.setString('selected_reciter', newState.selectedReciter);
-      await prefs.setBool('mushaf_full_width', newState.mushafFullWidth);
+      await prefs.setBool('mushaf_full_width_v2', newState.mushafFullWidth);
     } catch (_) {}
   }
 }

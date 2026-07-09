@@ -396,14 +396,14 @@ class MoreScreen extends ConsumerWidget {
             icon: Icons.info_outline,
             iconColor: AppTheme.outline,
             title: 'App Version',
-            subtitle: 'Tafseer ID v1.0.0',
-            trailing: Text('1.0.0',
+            subtitle: 'Tafseer ID v3.0 beta 2',
+            trailing: Text('3.0 beta 2',
                 style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 32),
           Center(
             child: Opacity(
-              opacity: 0.8,
+              opacity: 0.85,
               child: Image.asset(
                 AppTheme.isDark
                     ? 'assets/images/logo_dark.png'
@@ -413,10 +413,21 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Center(
             child: Text(
-              'Read, Study, and Reflect',
+              settings.appLanguage == 'en' ? 'Qur\u02bcan by Topic' : 'Al-Qur\u02bcan by Topik',
+              style: TextStyle(
+                color: AppTheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 3),
+          Center(
+            child: Text(
+              settings.appLanguage == 'en' ? 'Read, Study and Reflect' : 'Baca, Pelajari dan Amalkan',
               style: TextStyle(
                 color: AppTheme.outline,
                 fontSize: 11,

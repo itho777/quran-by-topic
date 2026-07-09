@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -70,8 +71,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     setState(() { _loading = true; _error = null; });
     try {
       final svc = ref.read(authServiceProvider);
+      final redirectUrl = kIsWeb
+          ? '${Uri.base.scheme}://${Uri.base.host}:${Uri.base.port}/'
+          : 'io.supabase.tafseerid://login-callback';
       await svc.signInWithGoogle(
-        redirectTo: '${Uri.base.scheme}://${Uri.base.host}:${Uri.base.port}/',
+        redirectTo: redirectUrl,
       );
       // OAuth redirect will reload the page — no further action needed here
     } catch (e) {

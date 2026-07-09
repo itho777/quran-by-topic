@@ -117,7 +117,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   final ScrollController _studyPanelScrollController = ScrollController();
 
-  // Pre-indexed: page → list of (globalAyahId, x, y) tuples, built once from the static coords.
+  // Pre-indexed: page â†’ list of (globalAyahId, x, y) tuples, built once from the static coords.
 
   // Each entry: [globalAyahId, x, y]
 
@@ -185,7 +185,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     WakelockPlus.enable().ignore();
 
-    // Build a fast page→coords index from the static quranCoordsData list.
+    // Build a fast pageâ†’coords index from the static quranCoordsData list.
 
     final Map<int, List<List<double>>> byPage = {};
 
@@ -1130,7 +1130,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (match.isNotEmpty) {
 
-        // Study panel is only manually toggled — do NOT open on verse tap
+        // Study panel is only manually toggled â€” do NOT open on verse tap
         setState(() {
           _menusVisible = true;
         });
@@ -1157,7 +1157,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     if (match.isNotEmpty) {
 
-      // Study panel is only manually toggled — do NOT open on verse select
+      // Study panel is only manually toggled â€” do NOT open on verse select
       setState(() {
         _menusVisible = true;
       });
@@ -1340,7 +1340,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Searchable surah picker bottom sheet — same UX as Home & Surah pages
+  // Searchable surah picker bottom sheet â€” same UX as Home & Surah pages
 
   void _showJumpSurahPicker() {
 
@@ -1452,7 +1452,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                   decoration: InputDecoration(
 
-                    hintText: isEn ? 'Search by name or number…' : 'Cari surah…',
+                    hintText: isEn ? 'Search by name or numberâ€¦' : 'Cari surahâ€¦',
 
                     hintStyle: TextStyle(color: AppTheme.outline),
 
@@ -1580,7 +1580,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Jump to Ayah — bottom sheet with same UX as Home & Surah screens
+  // Jump to Ayah â€” bottom sheet with same UX as Home & Surah screens
 
   void _showJumpDialog() {
 
@@ -1995,7 +1995,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final mediaQuery = MediaQuery.of(context);
     final isMobileLandscape = mediaQuery.orientation == Orientation.landscape && mediaQuery.size.shortestSide < 600;
-    // Study panel is independent of top menus — it only follows _studyPanelOpen
+    // Study panel is independent of top menus â€” it only follows _studyPanelOpen
     final showStudyPanel = _studyPanelOpen && !isMobileLandscape;
 
 
@@ -2019,7 +2019,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         children: [
 
-          // ── Background / Swipe View ─────────────────────────────────────────
+          // â”€â”€ Background / Swipe View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
           GestureDetector(
 
@@ -2062,7 +2062,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                           padding: EdgeInsets.only(
                             top: _menusVisible ? 90.0 : 0.0,
-                            // Fixed padding when study panel is open — avoids blank space on menu-bar auto-hide
+                            // Fixed padding when study panel is open â€” avoids blank space on menu-bar auto-hide
                             bottom: showStudyPanel
                                 ? (_studyMenuBarVisible ? 280.0 : 230.0)
                                 : 20.0,
@@ -2165,7 +2165,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // ── Slide-Down Top Menu ──────────────────────────────────────────────
+          // â”€â”€ Slide-Down Top Menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
           AnimatedPositioned(
 
@@ -2239,7 +2239,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                             Text(
 
-                              '${_getSurahName()} • ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
+                              '${_getSurahName()} â€¢ ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
 
                               style: TextStyle(
 
@@ -2265,7 +2265,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // ── Language Toggle Pill ──────────────────────────────
+                              // â”€â”€ Language Toggle Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                               Container(
                                 margin: const EdgeInsets.only(right: 4),
                                 padding: const EdgeInsets.all(2),
@@ -2341,6 +2341,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                     final sId = current['sura_id'];
                                     final aNum = current['ayah_number'];
                                     if (sId == null || aNum == null) return;
+                                    // Cancel timers so they don't re-hide nav bar
+                                    _menuCollapseTimer?.cancel();
+                                    _studyMenuCollapseTimer?.cancel();
                                     ref.read(hideNavBarProvider.notifier).state = false;
                                     await context.push('/surahs/$sId/ayahs/$aNum');
                                     if (mounted) {
@@ -2371,7 +2374,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 onPressed: _copyActiveAyah,
                               ),
 
-                              // Panel toggle icon — small, compact
+                              // Panel toggle icon â€” small, compact
                               IconButton(
                                 icon: Icon(
                                   _studyPanelOpen ? Icons.expand_more : Icons.chrome_reader_mode_outlined,
@@ -2403,7 +2406,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // ── Slide-Up Study Panel (Bottom) ───────────────────────────────────
+          // â”€â”€ Slide-Up Study Panel (Bottom) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
           AnimatedPositioned(
@@ -2462,95 +2465,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       children: [
 
-                        // Tabs selector
-
-                        Expanded(
-
-                          child: SingleChildScrollView(
-
-                            scrollDirection: Axis.horizontal,
-
-                            child: Row(
-
-                              children: [
-
-                                'transliteration',
-
-                                'translation',
-
-                                'tafsir',
-
-                                'nuzul'
-
-                              ].map((tab) {
-
-                                final active = _studyContentTab == tab;
-
-                                return Padding(
-
-                                  padding: const EdgeInsets.only(right: 8),
-
-                                  child: ChoiceChip(
-
-                                    label: Text(
-
-                                      {
-
-                                        'translation': _currentLang == 'en' ? 'Translation' : 'Terjemahan',
-
-                                        'transliteration': _currentLang == 'en' ? 'Transliteration' : 'Transliterasi',
-
-                                        'tafsir': 'Tafsir',
-
-                                        'nuzul': 'Asbabun Nuzul',
-
-                                      }[tab]!,
-
-                                      style: TextStyle(
-
-                                        color: active ? AppTheme.primary : AppTheme.outline,
-
-                                        fontSize: 12,
-
-                                        fontWeight: active ? FontWeight.bold : FontWeight.normal,
-
-                                      ),
-
-                                    ),
-
-                                    selected: active,
-
-
-                                    onSelected: (sel) async {
-                                      if (sel) {
-                                        _onStudyPanelInteraction();
-                                        setState(() => _studyContentTab = tab);
-                                        await _loadPageTexts();
-                                      }
-                                    },
-
-
-                                    selectedColor: AppTheme.primary.withValues(alpha: 0.15),
-
-                                    backgroundColor: Colors.transparent,
-
-                                    side: BorderSide(
-
-                                      color: active ? AppTheme.primary : AppTheme.outlineVariant.withValues(alpha: 0.5),
-
-                                    ),
-
-                                  ),
-
-                                );
-
-                              }).toList(),
-
-                            ),
-
-                          ),
-
-                        ),
+                        // Tab selector â€” compact dropdown
+                        _buildStudyTabDropdown(),
 
                         // Source selector button for active tab
 
@@ -2791,7 +2707,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                                                 const SizedBox(width: 8),
 
-                                                // ── Detail page link ────────────────────────
+                                                // â”€â”€ Detail page link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
                                                 InkWell(
 
@@ -2801,6 +2717,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                                                     final aNum = v['ayah_number'] as int;
 
+                                                    // Cancel timers so they can't re-hide nav bar
+                                                    _menuCollapseTimer?.cancel();
+                                                    _studyMenuCollapseTimer?.cancel();
                                                     ref.read(hideNavBarProvider.notifier).state = false;
 
                                                     await context.push('/surahs/$sId/ayahs/$aNum');
@@ -2989,7 +2908,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // (Panel toggle now lives in the top bar — no big FAB needed)
+          // (Panel toggle now lives in the top bar â€” no big FAB needed)
 
         ],
 
@@ -2997,6 +2916,75 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     );
 
+  }
+
+  // â”€â”€ Study-panel tab: compact pop-up menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  Widget _buildStudyTabDropdown() {
+    final tabLabels = {
+      'transliteration': _currentLang == 'en' ? 'Transliteration' : 'Transliterasi',
+      'translation'    : _currentLang == 'en' ? 'Translation'     : 'Terjemahan',
+      'tafsir'         : 'Tafsir',
+      'nuzul'          : 'Asbabun Nuzul',
+    };
+    final activeLabel = tabLabels[_studyContentTab] ?? _studyContentTab;
+
+    return PopupMenuButton<String>(
+      tooltip: _currentLang == 'en' ? 'Study mode' : 'Mode kajian',
+      color: AppTheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (tab) async {
+        _onStudyPanelInteraction();
+        setState(() => _studyContentTab = tab);
+        await _loadPageTexts();
+      },
+      itemBuilder: (_) => tabLabels.entries.map((e) {
+        final isActive = e.key == _studyContentTab;
+        return PopupMenuItem<String>(
+          value: e.key,
+          child: Row(
+            children: [
+              Icon(
+                isActive ? Icons.radio_button_checked : Icons.radio_button_off,
+                size: 16,
+                color: isActive ? AppTheme.primary : AppTheme.outline,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                e.value,
+                style: TextStyle(
+                  color: isActive ? AppTheme.primary : AppTheme.onSurface,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              activeLabel,
+              style: TextStyle(
+                color: AppTheme.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, size: 18, color: AppTheme.primary),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSourcePicker() {
@@ -3258,4 +3246,5 @@ class MouseDragScrollBehavior extends MaterialScrollBehavior {
       };
 
 }
+
 

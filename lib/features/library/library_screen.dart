@@ -338,23 +338,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       body: NestedScrollView(
         headerSliverBuilder: (ctx, inner) => [
           SliverAppBar(
-            expandedHeight: 160,
+            expandedHeight: 140,
             pinned: true,
             backgroundColor: AppTheme.background,
+            automaticallyImplyLeading: false,
             flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.pin,
               background: _buildHeader(),
             ),
-            bottom: TabBar(
-              controller: _tabController,
-              labelColor: AppTheme.primary,
-              unselectedLabelColor: AppTheme.onSurfaceVariant,
-              indicatorColor: AppTheme.primary,
-              tabs: const [
-                Tab(icon: Icon(Icons.translate_rounded), text: 'Translations'),
-                Tab(icon: Icon(Icons.menu_book_rounded), text: 'Tafsirs'),
-                Tab(icon: Icon(Icons.auto_stories_rounded), text: 'Mushaf'),
-                Tab(icon: Icon(Icons.headphones_rounded), text: 'Audio'),
-              ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: Container(
+                color: AppTheme.surfaceContainer,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppTheme.primary,
+                  unselectedLabelColor: AppTheme.onSurfaceVariant,
+                  indicatorColor: AppTheme.primary,
+                  labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: const TextStyle(fontSize: 11),
+                  tabs: const [
+                    Tab(icon: Icon(Icons.translate_rounded, size: 18), text: 'Trans.'),
+                    Tab(icon: Icon(Icons.menu_book_rounded, size: 18), text: 'Tafsir'),
+                    Tab(icon: Icon(Icons.auto_stories_rounded, size: 18), text: 'Mushaf'),
+                    Tab(icon: Icon(Icons.headphones_rounded, size: 18), text: 'Audio'),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -374,7 +384,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   }
 
   Widget _buildHeader() {
-    String _fmtBytes(int bytes) {
+    String fmtBytes(int bytes) {
       if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
@@ -390,27 +400,27 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           ],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
+      padding: const EdgeInsets.fromLTRB(20, 48, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Text('Offline Library',
               style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onPrimary)),
-          const SizedBox(height: 4),
-          Row(
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               _StoragePill(icon: Icons.auto_stories_rounded,
-                  label: 'Mushaf ${_fmtBytes(_mushafBytes)}'),
-              const SizedBox(width: 8),
+                  label: 'Mushaf ${fmtBytes(_mushafBytes)}'),
               _StoragePill(icon: Icons.headphones_rounded,
-                  label: 'Audio ${_fmtBytes(_audioBytes)}'),
-              const SizedBox(width: 8),
+                  label: 'Audio ${fmtBytes(_audioBytes)}'),
               _StoragePill(icon: Icons.text_snippet_rounded,
-                  label: 'Text ${_fmtBytes(_textBytes)}'),
+                  label: 'Text ${fmtBytes(_textBytes)}'),
             ],
           ),
         ],

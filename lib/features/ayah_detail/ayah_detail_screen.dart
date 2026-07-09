@@ -1120,9 +1120,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         unselectedLabelColor: AppTheme.outline,
         labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
         tabs: [
-          Tab(text: isEn ? 'Translation' : 'Terjemahan'),
+          Tab(text: isEn ? 'Transl.' : 'Terjemahan'),
           Tab(text: 'Tafsir'),
-          Tab(text: isEn ? 'Context' : 'Asbabun Nuzul'),
+          Tab(text: isEn ? 'Context' : 'Nuzul'),
           Tab(text: isEn ? 'Topics' : 'Topik'),
           Tab(text: isEn ? 'Related' : 'Terkait'),
         ],
@@ -1385,11 +1385,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
           child: Row(
             children: [
-              // Section icon + title
+              // Section icon only (title removed to save space)
               Icon(icon, size: 15, color: AppTheme.primary),
-              const SizedBox(width: 5),
-              Text(title,
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 12)),
               // Admin edit button
               if (ref.watch(isAdminProvider) && onEdit != null) ...[
                 const SizedBox(width: 6),

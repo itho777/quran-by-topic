@@ -437,24 +437,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      // tafseer.id brand logo image
-                      Image.asset(
-                        AppTheme.isDark
-                            ? 'assets/images/logo_dark.png'
-                            : 'assets/images/logo_light.png',
-                        height: 42,
-                        fit: BoxFit.contain,
-                      ),
-                      if (_homeTagline.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          _homeTagline,
-                          style: TextStyle(
-                            color: AppTheme.outline,
-                            fontSize: 10,
+                      // tafseer.id brand logo + 2-line tagline
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            AppTheme.isDark
+                                ? 'assets/images/logo_dark.png'
+                                : 'assets/images/logo_light.png',
+                            height: 38,
+                            fit: BoxFit.contain,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 3),
+                          Text(
+                            isEn ? 'Qurʾan by Topic' : 'Al-Qurʾan by Topik',
+                            style: TextStyle(
+                              color: AppTheme.onSurface,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                          Text(
+                            isEn ? 'Read, Study and Reflect' : 'Baca, Pelajari dan Amalkan',
+                            style: TextStyle(
+                              color: AppTheme.outline,
+                              fontSize: 9.5,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
                       const Spacer(),
                       // Language Selector Toggle
                       Container(

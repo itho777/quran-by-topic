@@ -2394,12 +2394,22 @@ let currentAudio = null;
 let currentPlayingKey = null; // "sura:ayah"
 let isAudioPlaying = false;
 
+// Reciters served as whole-surah MP3s from mp3quran.net (not per-ayah from everyayah)
+const SURAH_LEVEL_RECITERS = {
+  'wdee3': 'https://server6.mp3quran.net/wdee3/'
+};
+
 function getAudioUrl(verseKey, reciterId, useMirror = true) {
   const [sura, ayah] = verseKey.split(':');
   const suraPad = sura.padStart(3, '0');
+  // Surah-level reciter: one MP3 per surah, ignore ayah
+  if (SURAH_LEVEL_RECITERS[reciterId]) {
+    return `${SURAH_LEVEL_RECITERS[reciterId]}${suraPad}.mp3`;
+  }
+  // Per-ayah everyayah reciter
   const ayahPad = ayah.padStart(3, '0');
   const host = useMirror 
-    ? 'https://mirrors.quranicaudio.com/everyayah/data' 
+    ? 'https://mirrors.quranicaudio.com/everyayah' 
     : 'https://everyayah.com/data';
   return `${host}/${reciterId}/${suraPad}${ayahPad}.mp3`;
 }

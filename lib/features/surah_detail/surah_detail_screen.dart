@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:audioplayers/audioplayers.dart';
+import '../../core/web_audio_player.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
@@ -38,7 +38,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   int? _firstPageNumber; 
 
   // Audio Playback
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final WebAudioPlayer _audioPlayer = WebAudioPlayer();
   bool _isPlaying = false;
   int? _playingAyahNum;
   late StreamSubscription _playerStateSubscription;
@@ -68,15 +68,15 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     _loadSurahsList();
 
     // Bind audio listeners
-    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+    _playerStateSubscription = _audioPlayer.onStateChange.listen((playing) {
       if (mounted) {
         setState(() {
-          _isPlaying = state == PlayerState.playing;
+          _isPlaying = playing;
         });
       }
     });
 
-    _playerCompleteSubscription = _audioPlayer.onPlayerComplete.listen((event) async {
+    _playerCompleteSubscription = _audioPlayer.onComplete.listen((_) async {
       if (_playingAyahNum != null && _verses.isNotEmpty) {
         final currentIndex = _verses.indexWhere((v) => v['ayah_number'] == _playingAyahNum);
         if (currentIndex != -1 && currentIndex + 1 < _verses.length) {
@@ -322,12 +322,13 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       final localPath = await LocalDatabase.instance.getAudioFile(reciter, widget.surahId);
 
       if (localPath != null) {
-        // Play from local file if it exists on disk
-        await _audioPlayer.play(DeviceFileSource(localPath));
+        // On web, local files aren't accessible; stream from network instead
+        final url = _getAudioUrl(ayahNum, useMirror: !isFallback);
+        _audioPlayer.play(url);
       } else {
         // Stream from network
         final url = _getAudioUrl(ayahNum, useMirror: !isFallback);
-        await _audioPlayer.play(UrlSource(url));
+        _audioPlayer.play(url);
       }
       if (mounted) setState(() => _isPlaying = true);
     } catch (e) {
@@ -339,7 +340,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
 
   Future<void> _toggleAudio() async {
     if (_isPlaying) {
-      await _audioPlayer.pause();
+      _audioPlayer.pause();
       if (mounted) setState(() => _isPlaying = false);
     } else {
       final targetAyah = _playingAyahNum ?? 1;
@@ -362,7 +363,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
           currentLang: settings.appLanguage,
           onSelected: (newReciter) async {
             final wasPlaying = _isPlaying;
-            if (wasPlaying) await _audioPlayer.stop();
+            if (wasPlaying) _audioPlayer.stop();
             await ref.read(settingsProvider.notifier).setSelectedReciter(newReciter);
             if (mounted) {
               setState(() {

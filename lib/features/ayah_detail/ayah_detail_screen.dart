@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:audioplayers/audioplayers.dart';
+import '../../core/web_audio_player.dart';
 import '../../core/theme.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../core/settings_manager.dart';
@@ -82,7 +82,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   int? _verseId;
 
   // Audio Playback
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final WebAudioPlayer _audioPlayer = WebAudioPlayer();
   bool _isPlaying = false;
   bool _playAfterPageLoad = false;
   late StreamSubscription _playerStateSubscription;
@@ -124,15 +124,15 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     // Tab jump is scheduled in _loadAllData once data is ready
 
     // Bind audio listeners
-    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+    _playerStateSubscription = _audioPlayer.onStateChange.listen((playing) {
       if (mounted) {
         setState(() {
-          _isPlaying = state == PlayerState.playing;
+          _isPlaying = playing;
         });
       }
     });
 
-    _playerCompleteSubscription = _audioPlayer.onPlayerComplete.listen((event) async {
+    _playerCompleteSubscription = _audioPlayer.onComplete.listen((_) async {
       // Auto-advance to the next ayah in the surah
       if (_surah != null) {
         final totalAyahs = (_surah!['ayas'] as int?) ?? 0;
@@ -427,7 +427,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   Future<void> _playAudio({bool isFallback = false}) async {
     try {
       final url = _getAudioUrl(useMirror: !isFallback);
-      await _audioPlayer.play(UrlSource(url));
+      _audioPlayer.play(url);
       if (mounted) setState(() => _isPlaying = true);
     } catch (e) {
       if (!isFallback) {
@@ -438,7 +438,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
 
   Future<void> _toggleAudio() async {
     if (_isPlaying) {
-      await _audioPlayer.pause();
+      _audioPlayer.pause();
       if (mounted) setState(() => _isPlaying = false);
     } else {
       await _playAudio();
@@ -460,7 +460,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           currentLang: settings.appLanguage,
           onSelected: (newReciter) async {
             final wasPlaying = _isPlaying;
-            if (wasPlaying) await _audioPlayer.stop();
+             if (wasPlaying) _audioPlayer.stop();
             await ref.read(settingsProvider.notifier).setSelectedReciter(newReciter);
             if (mounted) {
               setState(() {

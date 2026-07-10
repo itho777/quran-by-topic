@@ -12,8 +12,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+
+import '../../core/web_audio_player.dart';
 
 import '../../core/theme.dart';
 
@@ -104,7 +105,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   // Audio Playback State
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final WebAudioPlayer _audioPlayer = WebAudioPlayer();
 
   bool _isPlaying = false;
 
@@ -284,13 +285,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     // Bind AudioPlayer Listeners
 
-    _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
+    _playerStateSubscription = _audioPlayer.onStateChange.listen((playing) {
 
       if (mounted) {
 
         setState(() {
 
-          _isPlaying = state == PlayerState.playing;
+          _isPlaying = playing;
 
         });
 
@@ -298,7 +299,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     });
 
-    _playerCompleteSubscription = _audioPlayer.onPlayerComplete.listen((event) async {
+    _playerCompleteSubscription = _audioPlayer.onComplete.listen((_) async {
 
       _addDebugLog('onPlayerComplete: fired! playing=$_playingVerseId, verses=${_pageVerses.length}');
 
@@ -803,7 +804,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (!_isPlaying) {
 
-        _audioPlayer.stop().ignore();
+        _audioPlayer.stop();
 
       }
 
@@ -946,7 +947,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     try {
 
-      await _audioPlayer.play(UrlSource(url));
+      _audioPlayer.play(url);
 
       if (mounted) {
 
@@ -978,7 +979,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     if (_isPlaying) {
 
-      await _audioPlayer.pause();
+      _audioPlayer.pause();
 
       if (mounted) {
 
@@ -992,9 +993,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     } else {
 
-      if (_playingVerseId != null && _playingVerseId == _selectedVerseId && _audioPlayer.state == PlayerState.paused) {
+      if (_playingVerseId != null && _playingVerseId == _selectedVerseId && !_audioPlayer.isPlaying) {
 
-        await _audioPlayer.resume();
+        _audioPlayer.resume();
 
         if (mounted) {
 
@@ -3243,7 +3244,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
             final wasPlaying = _isPlaying;
 
-            if (wasPlaying) await _audioPlayer.stop();
+            if (wasPlaying) _audioPlayer.stop();
 
             await ref.read(settingsProvider.notifier).setSelectedReciter(newReciter);
 

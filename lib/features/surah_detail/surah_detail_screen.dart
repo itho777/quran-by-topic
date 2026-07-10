@@ -83,11 +83,17 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
           final nextVerse = _verses[currentIndex + 1];
           await _playAudioForVerse(nextVerse['ayah_number']);
         } else {
-          if (mounted) {
-            setState(() {
-              _isPlaying = false;
-              _playingAyahNum = null;
-            });
+          if (widget.surahId < 114) {
+            if (mounted) {
+              context.go('/surahs/${widget.surahId + 1}?autoplay=1');
+            }
+          } else {
+            if (mounted) {
+              setState(() {
+                _isPlaying = false;
+                _playingAyahNum = null;
+              });
+            }
           }
         }
       }

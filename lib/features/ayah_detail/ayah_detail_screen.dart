@@ -84,6 +84,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   // Audio Playback
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
+  bool _playAfterPageLoad = false;
   late StreamSubscription _playerStateSubscription;
   late StreamSubscription _playerCompleteSubscription;
 
@@ -136,9 +137,15 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       if (_surah != null) {
         final totalAyahs = (_surah!['ayas'] as int?) ?? 0;
         if (widget.ayahNumber < totalAyahs) {
+          _playAfterPageLoad = true;
           if (mounted) context.go('/surahs/${widget.surahId}/ayahs/${widget.ayahNumber + 1}');
         } else {
-          if (mounted) setState(() => _isPlaying = false);
+          if (widget.surahId < 114) {
+            _playAfterPageLoad = true;
+            if (mounted) context.go('/surahs/${widget.surahId + 1}/ayahs/1');
+          } else {
+            if (mounted) setState(() => _isPlaying = false);
+          }
         }
       }
     });
@@ -399,6 +406,11 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         setState(() {
           _loading = false;
         });
+      }
+    } finally {
+      if (_playAfterPageLoad) {
+        _playAfterPageLoad = false;
+        _playAudio();
       }
     }
   }

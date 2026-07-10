@@ -216,9 +216,9 @@ class DownloadService {
   // 2. Mushaf SVG pages (1–604)
   // =========================================================================
 
-  /// Downloads all 604 Mushaf SVG pages and saves them to:
+  /// Downloads all 604 Mushaf SVG pages, skipping any already present (resume).
   ///   `{appDocDir}/mushaf/page_{pageNum:03d}.svg`
-  Stream<DownloadProgress> downloadMushafPages() async* {
+  Stream<DownloadProgress> downloadMushafPages({bool resume = false}) async* {
     const sourceType = 'mushaf';
     const sourceId = 'hafs_kfqc';
 
@@ -233,40 +233,51 @@ class DownloadService {
 
     try {
       final Directory appDocDir = await getApplicationDocumentsDirectory();
-      final Directory mushafDir =
-          Directory('${appDocDir.path}/mushaf');
+      final Directory mushafDir = Directory('${appDocDir.path}/mushaf');
       if (!mushafDir.existsSync()) {
         await mushafDir.create(recursive: true);
       }
 
+      int downloaded = 0;
       for (int page = 1; page <= _mushafTotalPages; page++) {
-        final String fileName =
-            'page_${page.toString().padLeft(3, '0')}.svg';
+        final String fileName = 'page_${page.toString().padLeft(3, '0')}.svg';
         final String filePath = '${mushafDir.path}/$fileName';
-        final String url = '$_mushafBaseUrl/${page.toString().padLeft(3, '0')}.svg';
+        final String url =
+            '$_mushafBaseUrl/${page.toString().padLeft(3, '0')}.svg';
+
+        // Skip pages already on disk when resuming
+        final alreadyExists = File(filePath).existsSync();
+        if (alreadyExists) {
+          downloaded++;
+          progress = progress.copyWith(
+            downloaded: downloaded,
+            status: downloaded == _mushafTotalPages ? 'completed' : 'downloading',
+          );
+          yield progress;
+          continue;
+        }
 
         try {
           await _dio.download(url, filePath);
           await _db.saveMushafPage(page, filePath);
         } catch (e) {
-          // Non-fatal per page — log and continue; caller will see
-          // the final completed/error state.
           // ignore: avoid_print
           print('[DownloadService] Mushaf page $page failed: $e');
         }
 
+        downloaded++;
         await _db.upsertManifest(
           sourceType: sourceType,
           sourceId: sourceId,
           label: 'Hafs Smart v2',
-          status: page == _mushafTotalPages ? 'completed' : 'downloading',
+          status: downloaded >= _mushafTotalPages ? 'completed' : 'downloading',
           totalItems: _mushafTotalPages,
-          downloadedItems: page,
+          downloadedItems: downloaded,
         );
 
         progress = progress.copyWith(
-          downloaded: page,
-          status: page == _mushafTotalPages ? 'completed' : 'downloading',
+          downloaded: downloaded,
+          status: downloaded >= _mushafTotalPages ? 'completed' : 'downloading',
         );
         yield progress;
       }
@@ -335,10 +346,11 @@ class DownloadService {
   // 4. All 114 audio surahs for a reciter
   // =========================================================================
 
-  /// Downloads all 114 surahs for [reciterId], yielding per-surah progress.
+  /// Downloads all 114 surahs for [reciterId], skipping any already on disk (resume).
   Stream<DownloadProgress> downloadAllAudioSurahs({
     required String reciterId,
     required String reciterName,
+    bool resume = false,
   }) async* {
     const sourceType = 'audio';
 
@@ -352,38 +364,45 @@ class DownloadService {
     yield progress;
 
     try {
+      int downloaded = 0;
       for (int surahNum = 1; surahNum <= _totalSurahs; surahNum++) {
         final String filePath =
             await _audioFilePath(reciterId: reciterId, surahNum: surahNum);
-        final String url =
-            _audioUrl(reciterId: reciterId, surahNum: surahNum);
+        final String url = _audioUrl(reciterId: reciterId, surahNum: surahNum);
+
+        // Skip files already present when resuming
+        if (File(filePath).existsSync()) {
+          downloaded++;
+          progress = progress.copyWith(
+            downloaded: downloaded,
+            status: downloaded == _totalSurahs ? 'completed' : 'downloading',
+          );
+          yield progress;
+          continue;
+        }
 
         try {
           await _dio.download(url, filePath);
-          await _db.saveAudioFile(
-            reciterId,
-            surahNum,
-            filePath,
-          );
+          await _db.saveAudioFile(reciterId, surahNum, filePath);
         } catch (e) {
           // Non-fatal per surah — log and continue.
           // ignore: avoid_print
           print('[DownloadService] Audio $reciterId/$surahNum failed: $e');
         }
 
+        downloaded++;
         await _db.upsertManifest(
           sourceType: sourceType,
           sourceId: reciterId,
           label: reciterName,
-          status:
-              surahNum == _totalSurahs ? 'completed' : 'downloading',
+          status: downloaded >= _totalSurahs ? 'completed' : 'downloading',
           totalItems: _totalSurahs,
-          downloadedItems: surahNum,
+          downloadedItems: downloaded,
         );
 
         progress = progress.copyWith(
-          downloaded: surahNum,
-          status: surahNum == _totalSurahs ? 'completed' : 'downloading',
+          downloaded: downloaded,
+          status: downloaded >= _totalSurahs ? 'completed' : 'downloading',
         );
         yield progress;
       }

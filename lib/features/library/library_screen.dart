@@ -37,6 +37,7 @@ class _DownloadItem {
   double get progress => total > 0 ? downloaded / total : 0;
   bool get isDownloaded => status == 'completed';
   bool get isDownloading => status == 'downloading';
+  bool get isPartial => !isDownloaded && !isDownloading && downloaded > 0 && total > 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,7 +213,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   // ── Download logic ────────────────────────────────────────────────────────
 
-  void _startDownload(_DownloadItem item) {
+  void _startDownload(_DownloadItem item, {bool resume = false}) {
     final svc = ref.read(downloadServiceProvider);
     final key = '${item.sourceType}::${item.sourceId}';
 
@@ -243,11 +244,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           label: item.label,
         );
       case 'mushaf':
-        stream = svc.downloadMushafPages();
+        stream = svc.downloadMushafPages(resume: resume);
       case 'audio':
         stream = svc.downloadAllAudioSurahs(
           reciterId: item.sourceId,
           reciterName: item.label,
+          resume: resume,
         );
       default:
         return;
@@ -414,6 +416,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       itemBuilder: (ctx, i) => _DownloadCard(
         item: items[i],
         onDownload: () => _startDownload(items[i]),
+        onResume: () => _startDownload(items[i], resume: true),
         onDelete: () => _deleteItem(items[i]),
       ),
     );
@@ -427,11 +430,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 class _DownloadCard extends StatelessWidget {
   final _DownloadItem item;
   final VoidCallback onDownload;
+  final VoidCallback onResume;
   final VoidCallback onDelete;
 
   const _DownloadCard({
     required this.item,
     required this.onDownload,
+    required this.onResume,
     required this.onDelete,
   });
 
@@ -440,6 +445,7 @@ class _DownloadCard extends StatelessWidget {
     final bool isDone = item.isDownloaded;
     final bool isActive = item.isDownloading;
     final bool hasError = item.status == 'error';
+    final bool isPartial = item.isPartial;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -451,7 +457,9 @@ class _DownloadCard extends StatelessWidget {
               ? AppTheme.primary.withOpacity(0.5)
               : hasError
                   ? AppTheme.error.withOpacity(0.4)
-                  : AppTheme.outline.withOpacity(0.15),
+                  : isPartial
+                      ? AppTheme.secondary.withOpacity(0.45)
+                      : AppTheme.outline.withOpacity(0.15),
           width: 1.2,
         ),
         boxShadow: [
@@ -472,15 +480,17 @@ class _DownloadCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: isDone
                       ? [AppTheme.primary, AppTheme.secondary]
-                      : [
-                          AppTheme.surfaceContainerHigh,
-                          AppTheme.surfaceContainerHigh
-                        ],
+                      : isPartial
+                          ? [AppTheme.secondary.withOpacity(0.7), AppTheme.secondary]
+                          : [
+                              AppTheme.surfaceContainerHigh,
+                              AppTheme.surfaceContainerHigh
+                            ],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(item.icon,
-                  color: isDone ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
+                  color: isDone || isPartial ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
                   size: 24),
             ),
             title: Text(item.label,
@@ -501,9 +511,10 @@ class _DownloadCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis),
               ],
             ),
-            trailing: _buildTrailing(isDone, isActive, hasError),
+            trailing: _buildTrailing(isDone, isActive, hasError, isPartial),
           ),
           if (isActive) _buildProgressBar(),
+          if (isPartial) _buildResumeBar(),
           if (isDone)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -537,7 +548,7 @@ class _DownloadCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTrailing(bool isDone, bool isActive, bool hasError) {
+  Widget _buildTrailing(bool isDone, bool isActive, bool hasError, bool isPartial) {
     if (isActive) {
       return SizedBox(
         width: 36,
@@ -551,6 +562,9 @@ class _DownloadCard extends StatelessWidget {
     }
     if (isDone) {
       return Icon(Icons.cloud_done_rounded, color: AppTheme.primary, size: 28);
+    }
+    if (isPartial) {
+      return Icon(Icons.cloud_sync_rounded, color: AppTheme.secondary, size: 28);
     }
     if (hasError) {
       return IconButton(
@@ -592,6 +606,65 @@ class _DownloadCard extends StatelessWidget {
           Text(pct,
               style: TextStyle(
                   color: AppTheme.onSurfaceVariant, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResumeBar() {
+    final pct = '${item.downloaded} / ${item.total} downloaded';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: item.progress,
+              color: AppTheme.secondary,
+              backgroundColor: AppTheme.outline.withOpacity(0.15),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(pct,
+                  style: TextStyle(
+                      color: AppTheme.onSurfaceVariant, fontSize: 11)),
+              const Spacer(),
+              FilledButton.tonal(
+                onPressed: onResume,
+                style: FilledButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  backgroundColor: AppTheme.secondary.withOpacity(0.18),
+                  foregroundColor: AppTheme.secondary,
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.play_circle_outline_rounded, size: 14),
+                    SizedBox(width: 4),
+                    Text('Resume'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              TextButton(
+                onPressed: onDelete,
+                style: TextButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  foregroundColor: AppTheme.error,
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
         ],
       ),
     );

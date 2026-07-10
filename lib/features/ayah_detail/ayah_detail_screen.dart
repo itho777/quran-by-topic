@@ -901,7 +901,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 ],
               ),
               Text(
-                '${isEn ? 'Ayah' : 'Ayat'} ${widget.ayahNumber} Â· ${isEn ? 'Tap to go to Surah' : 'Ke Halaman Surah'}',
+                '${isEn ? 'Ayah' : 'Ayat'} ${widget.ayahNumber} · ${isEn ? 'Tap to go to Surah' : 'Ke Halaman Surah'}',
                 style: TextStyle(color: AppTheme.primary, fontSize: 10),
               ),
             ],
@@ -1284,8 +1284,13 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   Widget _buildTopicsTab(bool isEn) {
     final currentLangKey = _tagsSlots[_tagsLangIdx].sourceId;
     final filteredTopics = _topics.where((t) {
+      // verse_tags.lang is the authoritative lang for this tag-verse link.
+      // Fall back to tags.lang if verse_tags.lang is absent.
+      final rowLang = t['lang'] as String?;
       final tag = t['tags'] as Map<String, dynamic>?;
-      return tag != null && tag['lang'] == currentLangKey;
+      final tagLang = tag?['lang'] as String?;
+      final effectiveLang = (rowLang != null && rowLang.isNotEmpty) ? rowLang : tagLang;
+      return effectiveLang == currentLangKey;
     }).toList();
 
     return ListView(

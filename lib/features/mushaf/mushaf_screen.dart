@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'dart:ui';
 
@@ -111,17 +111,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   bool _playAfterPageLoad = false;
 
-  final List<String> _debugLogs = [];
 
-  void _addDebugLog(String msg) {
-    debugPrint(msg);
-    if (mounted) {
-      setState(() {
-        _debugLogs.insert(0, msg);
-        if (_debugLogs.length > 20) _debugLogs.removeLast();
-      });
-    }
-  }
 
   late StreamSubscription _playerStateSubscription;
 
@@ -133,7 +123,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   final ScrollController _studyPanelScrollController = ScrollController();
 
-  // Pre-indexed: page â†’ list of (globalAyahId, x, y) tuples, built once from the static coords.
+  // Pre-indexed: page Ã¢â€ â€™ list of (globalAyahId, x, y) tuples, built once from the static coords.
 
   // Each entry: [globalAyahId, x, y]
 
@@ -201,7 +191,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     WakelockPlus.enable().ignore();
 
-    // Build a fast pageâ†’coords index from the static quranCoordsData list.
+    // Build a fast pageÃ¢â€ â€™coords index from the static quranCoordsData list.
 
     final Map<int, List<List<double>>> byPage = {};
 
@@ -301,7 +291,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     _playerCompleteSubscription = _audioPlayer.onComplete.listen((_) async {
 
-      _addDebugLog('onPlayerComplete: fired! playing=$_playingVerseId, verses=${_pageVerses.length}');
+      debugPrint('onPlayerComplete: fired! playing=$_playingVerseId, verses=${_pageVerses.length}');
 
       if (_playingVerseId != null && _pageVerses.isNotEmpty) {
 
@@ -321,7 +311,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           if (_currentPage < 604) {
 
-            _addDebugLog('onPlayerComplete: last verse, set playAfterPageLoad=true, next page');
+            debugPrint('onPlayerComplete: last verse, set playAfterPageLoad=true, next page');
 
             _playAfterPageLoad = true;
 
@@ -454,7 +444,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   Future<void> _loadPageData(int pageNum) async {
 
-    _addDebugLog('loadPageData: page=$pageNum, playAfter=$_playAfterPageLoad');
+    debugPrint('loadPageData: page=$pageNum, playAfter=$_playAfterPageLoad');
 
     // Try synchronous cache load to preserve browser autoplay gesture context
     final bool hasCache = (_prefetchedPageNum == pageNum && _prefetchedPageVerses != null && _prefetchedPageVerses!.isNotEmpty);
@@ -462,7 +452,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       final cachedVerses = List<Map<String, dynamic>>.from(_prefetchedPageVerses!);
       _prefetchedPageVerses = null;
       _prefetchedPageNum = null;
-      _addDebugLog('loadPageData: using prefetched verses for page=$pageNum');
+      debugPrint('loadPageData: using prefetched verses for page=$pageNum');
 
       if (mounted) {
         setState(() {
@@ -480,7 +470,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       if (_playAfterPageLoad) {
         _playAfterPageLoad = false;
         final firstVerse = cachedVerses.first;
-        _addDebugLog('loadPageData done (cached): auto-play first verse ID=${firstVerse['id']}');
+        debugPrint('loadPageData done (cached): auto-play first verse ID=${firstVerse['id']}');
         _playAudioForVerse(firstVerse); // Trigger synchronously without await
       }
     }
@@ -559,7 +549,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         }
 
-        _addDebugLog('loadPageData done: check playAfter=$_playAfterPageLoad');
+        debugPrint('loadPageData done: check playAfter=$_playAfterPageLoad');
 
         if (_playAfterPageLoad) {
 
@@ -567,7 +557,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           final firstVerse = versesList.first;
 
-          _addDebugLog('loadPageData done: auto-play first verse ID=${firstVerse['id']}');
+          debugPrint('loadPageData done: auto-play first verse ID=${firstVerse['id']}');
 
           await _playAudioForVerse(firstVerse);
 
@@ -625,7 +615,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       if (mounted) {
         _prefetchedPageVerses = versesList;
         _prefetchedPageNum = nextPageNum;
-        _addDebugLog('prefetch: loaded page $nextPageNum (${versesList.length} verses)');
+        debugPrint('prefetch: loaded page $nextPageNum (${versesList.length} verses)');
       }
     } catch (e) {
       debugPrint('Error prefetching page $nextPageNum: $e');
@@ -909,7 +899,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final url = _getAudioUrl(surahId, ayahNum, useMirror: !isFallback);
 
-    _addDebugLog('playAudioForVerse: $surahId:$ayahNum ID=$vId url=$url (fallback=$isFallback)');
+    debugPrint('playAudioForVerse: $surahId:$ayahNum ID=$vId url=$url (fallback=$isFallback)');
 
     if (mounted) {
 
@@ -993,7 +983,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     } else {
 
-      if (_playingVerseId != null && _playingVerseId == _selectedVerseId && !_audioPlayer.isPlaying) {
+      if (_playingVerseId != null && _playingVerseId == _selectedVerseId && !_audioPlayer.isPlaying && _audioPlayer.hasSource) {
 
         _audioPlayer.resume();
 
@@ -1035,7 +1025,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   void _onPageChanged(int index) {
     int pageNum = index + 1;
-    _addDebugLog('onPageChanged: index=$index, pageNum=$pageNum, playAfter=$_playAfterPageLoad');
+    debugPrint('onPageChanged: index=$index, pageNum=$pageNum, playAfter=$_playAfterPageLoad');
 
     setState(() {
       _currentPage = pageNum;
@@ -1207,7 +1197,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (match.isNotEmpty) {
 
-        // Study panel is only manually toggled â€” do NOT open on verse tap
+        // Study panel is only manually toggled Ã¢â‚¬â€ do NOT open on verse tap
         setState(() {
           _menusVisible = true;
         });
@@ -1234,7 +1224,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     if (match.isNotEmpty) {
 
-      // Study panel is only manually toggled â€” do NOT open on verse select
+      // Study panel is only manually toggled Ã¢â‚¬â€ do NOT open on verse select
       setState(() {
         _menusVisible = true;
       });
@@ -1417,7 +1407,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Searchable surah picker bottom sheet â€” same UX as Home & Surah pages
+  // Searchable surah picker bottom sheet Ã¢â‚¬â€ same UX as Home & Surah pages
 
   void _showJumpSurahPicker() {
 
@@ -1529,7 +1519,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                   decoration: InputDecoration(
 
-                    hintText: isEn ? 'Search by name or numberâ€¦' : 'Cari surahâ€¦',
+                    hintText: isEn ? 'Search by name or numberÃ¢â‚¬Â¦' : 'Cari surahÃ¢â‚¬Â¦',
 
                     hintStyle: TextStyle(color: AppTheme.outline),
 
@@ -1657,7 +1647,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Jump to Ayah â€” bottom sheet with same UX as Home & Surah screens
+  // Jump to Ayah Ã¢â‚¬â€ bottom sheet with same UX as Home & Surah screens
 
   void _showJumpDialog() {
 
@@ -2072,7 +2062,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final mediaQuery = MediaQuery.of(context);
     final isMobileLandscape = mediaQuery.orientation == Orientation.landscape && mediaQuery.size.shortestSide < 600;
-    // Study panel is independent of top menus â€” it only follows _studyPanelOpen
+    // Study panel is independent of top menus Ã¢â‚¬â€ it only follows _studyPanelOpen
     final showStudyPanel = _studyPanelOpen && !isMobileLandscape;
 
 
@@ -2096,7 +2086,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         children: [
 
-          // â”€â”€ Background / Swipe View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // Ã¢â€â‚¬Ã¢â€â‚¬ Background / Swipe View Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
           GestureDetector(
 
@@ -2139,59 +2129,70 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                           padding: EdgeInsets.only(
                             top: _menusVisible ? 90.0 : 0.0,
-                            // Fixed padding when study panel is open â€” avoids blank space on menu-bar auto-hide
+                            // Fixed padding when study panel is open Ã¢â‚¬â€ avoids blank space on menu-bar auto-hide
                             bottom: showStudyPanel
                                 ? (_studyMenuBarVisible ? 280.0 : 230.0)
                                 : 20.0,
                           ),
 
 
-                        child: Container(
-
-                          decoration: BoxDecoration(
-
-                            color: const Color(0xFFFBF9F1), // Cream background for premium paper look
-
-                            boxShadow: [
-
-                              BoxShadow(
-
-                                color: Colors.black.withValues(alpha: 0.08),
-
-                                blurRadius: 16,
-
-                                offset: const Offset(0, 4),
-
-                              )
-
-                            ],
-
-                          ),
-
-                          child: LayoutBuilder(
+                        child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final width = constraints.maxWidth;
                               final fullWidth = ref.watch(settingsProvider).mushafFullWidth;
-                              return InteractiveViewer(
-                                maxScale: 3.0,
-                                boundaryMargin: const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0),
-                                constrained: !fullWidth,
-                                child: buildQuranPageImage(
-                                  context,
-                                  pageNum,
-                                  onTap: _onUserInteraction,
-                                  onTapWithPosition: _onImageTapped,
-                                  onVerseTapped: _onVerseSelectedBySurahAyah,
-                                  selectedVerseId: _selectedVerseId,
-                                  playingVerseId: _playingVerseId,
-                                  fullWidth: fullWidth,
-                                  viewportWidth: width,
+                              // Calculate constrained size respecting the mushaf aspect ratio
+                              // so the HtmlElementView always gets a concrete size.
+                              final availH = constraints.maxHeight;
+                              final availW = constraints.maxWidth;
+                              const aspectRatio = 345.0 / 550.0;
+                              double pageW, pageH;
+                              if (fullWidth) {
+                                pageW = availW;
+                                pageH = availW / aspectRatio;
+                              } else {
+                                // Fit within available space, maintaining aspect ratio
+                                if (availH.isFinite && availH * aspectRatio <= availW) {
+                                  pageH = availH;
+                                  pageW = availH * aspectRatio;
+                                } else {
+                                  pageW = availW.isFinite ? availW : 400;
+                                  pageH = pageW / aspectRatio;
+                                }
+                              }
+
+                              return SizedBox(
+                                width: pageW,
+                                height: pageH,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFBF9F1),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.08),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      )
+                                    ],
+                                  ),
+                                  child: InteractiveViewer(
+                                    maxScale: 3.0,
+                                    boundaryMargin: const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0),
+                                    constrained: !fullWidth,
+                                    child: buildQuranPageImage(
+                                      context,
+                                      pageNum,
+                                      onTap: _onUserInteraction,
+                                      onTapWithPosition: _onImageTapped,
+                                      onVerseTapped: _onVerseSelectedBySurahAyah,
+                                      selectedVerseId: _selectedVerseId,
+                                      playingVerseId: _playingVerseId,
+                                      fullWidth: fullWidth,
+                                      viewportWidth: pageW,
+                                    ),
+                                  ),
                                 ),
                               );
                             },
                           ),
-
-                        ),
 
                       ),
 
@@ -2237,7 +2238,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // â”€â”€ Slide-Down Top Menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // Ã¢â€â‚¬Ã¢â€â‚¬ Slide-Down Top Menu Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
           AnimatedPositioned(
 
@@ -2311,7 +2312,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                             Text(
 
-                              '${_getSurahName()} â€¢ ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
+                              '${_getSurahName()} Ã¢â‚¬Â¢ ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
 
                               style: TextStyle(
 
@@ -2337,7 +2338,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // â”€â”€ Language Toggle Pill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                              // Ã¢â€â‚¬Ã¢â€â‚¬ Language Toggle Pill Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                               Container(
                                 margin: const EdgeInsets.only(right: 4),
                                 padding: const EdgeInsets.all(2),
@@ -2446,7 +2447,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 onPressed: _copyActiveAyah,
                               ),
 
-                              // Panel toggle icon â€” small, compact
+                              // Panel toggle icon Ã¢â‚¬â€ small, compact
                               IconButton(
                                 icon: Icon(
                                   _studyPanelOpen ? Icons.expand_more : Icons.chrome_reader_mode_outlined,
@@ -2478,7 +2479,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // â”€â”€ Slide-Up Study Panel (Bottom) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // Ã¢â€â‚¬Ã¢â€â‚¬ Slide-Up Study Panel (Bottom) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 
           AnimatedPositioned(
@@ -2537,7 +2538,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       children: [
 
-                        // Tab selector â€” compact dropdown
+                        // Tab selector Ã¢â‚¬â€ compact dropdown
                         _buildStudyTabDropdown(),
 
                         const Spacer(),
@@ -2781,7 +2782,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                                                 const SizedBox(width: 8),
 
-                                                // â”€â”€ Detail page link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                                                // Ã¢â€â‚¬Ã¢â€â‚¬ Detail page link Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
                                                 InkWell(
 
@@ -2982,52 +2983,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // (Panel toggle now lives in the top bar â€” no big FAB needed)
-
-          Positioned(
-            left: 10,
-            top: 100,
-            child: IgnorePointer(
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.85),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
-                ),
-                constraints: const BoxConstraints(maxWidth: 300, maxHeight: 250),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'DEBUG LOGS',
-                        style: TextStyle(
-                          color: Colors.greenAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                        ),
-                      ),
-                      const Divider(color: Colors.greenAccent, height: 8),
-                      ..._debugLogs.map((log) => Padding(
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: Text(
-                              log,
-                              style: const TextStyle(
-                                color: Colors.greenAccent,
-                                fontSize: 9,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
+
 
       ),
 
@@ -3035,7 +2992,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // â”€â”€ Study-panel tab: compact pop-up menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Study-panel tab: compact pop-up menu Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   Widget _buildStudyTabDropdown() {
     final tabLabels = {
       'transliteration': _currentLang == 'en' ? 'Transliteration' : 'Transliterasi',
@@ -3363,5 +3320,6 @@ class MouseDragScrollBehavior extends MaterialScrollBehavior {
       };
 
 }
+
 
 

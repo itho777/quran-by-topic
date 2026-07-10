@@ -87,22 +87,27 @@ Widget buildQuranPageImage(
   }
 
   if (!_pageStates.containsKey(pageNum) || state.container == null) {
-    ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
-      final container = html.DivElement()
-        ..style.width = '100%'
-        ..style.height = '100%'
-        ..style.display = 'flex'
-        ..style.alignItems = 'center'
-        ..style.justifyContent = 'center'
-        ..style.overflowY = 'hidden'
-        ..style.overflowX = 'hidden'
-        ..style.backgroundColor = 'transparent'
-        ..style.cursor = 'pointer';
+    try {
+      ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+        final container = html.DivElement()
+          ..style.width = '100%'
+          ..style.height = '100%'
+          ..style.display = 'flex'
+          ..style.alignItems = 'center'
+          ..style.justifyContent = 'center'
+          ..style.overflowY = 'hidden'
+          ..style.overflowX = 'hidden'
+          ..style.backgroundColor = 'transparent'
+          ..style.cursor = 'pointer';
 
-      state.container = container;
-      _loadSvgIntoContainer(container, pageNum, state, fullWidth);
-      return container;
-    });
+        state.container = container;
+        _loadSvgIntoContainer(container, pageNum, state, fullWidth);
+        return container;
+      });
+    } catch (e) {
+      // Ignore if already registered
+      print('View factory $viewType already registered or failed: $e');
+    }
   }
 
   if (fullWidth) {
@@ -115,7 +120,13 @@ Widget buildQuranPageImage(
     );
   }
 
-  return HtmlElementView(viewType: viewType);
+  // Without explicit constraints, HtmlElementView collapses to 0x0 in Flutter Web
+  // because it has no intrinsic size. Wrapping it in AspectRatio ensures it fills
+  // the available space while maintaining the correct shape.
+  return AspectRatio(
+    aspectRatio: 345.0 / 550.0,
+    child: HtmlElementView(viewType: viewType),
+  );
 }
 
 void _loadSvgIntoContainer(
@@ -209,8 +220,8 @@ void _loadSvgIntoContainer(
       svg.style
         ..maxWidth = '100%'
         ..maxHeight = '100%'
-        ..width = 'auto'
-        ..height = 'auto';
+        ..width = '100%'
+        ..height = '100%';
       svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     }
 

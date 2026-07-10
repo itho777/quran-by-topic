@@ -116,7 +116,11 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       _isPlaying = false;
       _audioPlayer.stop();
       _playingAyahNum = null;
-      _load();
+      _load().then((_) {
+        if (widget.autoplay && mounted) {
+          _playAudioForVerse(1);
+        }
+      });
     }
   }
 

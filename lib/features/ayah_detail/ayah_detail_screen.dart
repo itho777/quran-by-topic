@@ -408,13 +408,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   }
 
   String _getAudioUrl({bool useMirror = true}) {
-    final sStr = widget.surahId.toString().padLeft(3, '0');
-    final aStr = widget.ayahNumber.toString().padLeft(3, '0');
     final reciter = ref.read(settingsProvider).selectedReciter;
-    final host = useMirror
-        ? 'https://mirrors.quranicaudio.com/everyayah'
-        : 'https://everyayah.com/data';
-    return '$host/$reciter/$sStr$aStr.mp3';
+    return QuranSources.buildAudioUrl(reciter, widget.surahId, widget.ayahNumber, useMirror: useMirror);
   }
 
   Future<void> _playAudio({bool isFallback = false}) async {

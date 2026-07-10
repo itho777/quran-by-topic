@@ -218,5 +218,33 @@ class QuranSources {
     'aziz_alili_128kbps': 'Aziz Alili (128kbps)',
     'khalefa_al_tunaiji_64kbps': 'Khalifa Al-Tunaiji (64kbps)',
     'mahmoud_ali_al_banna_32kbps': 'Mahmoud Ali Al-Banna (32kbps)',
+    // Sourced from mp3quran.net (surah-level audio, plays full surah per ayah entry)
+    'wdee3': 'Wadeea Al-Yamani ★',
   };
+
+  /// Reciters served as whole-surah MP3s (not per-ayah from everyayah).
+  /// Key = reciterId, Value = base URL with trailing slash.
+  static const Map<String, String> surahLevelReciters = {
+    'wdee3': 'https://server6.mp3quran.net/wdee3/',
+  };
+
+  /// Returns true if this reciter is served as surah-level MP3s.
+  static bool isSurahLevel(String reciterId) =>
+      surahLevelReciters.containsKey(reciterId);
+
+  /// Builds the correct audio URL for a verse.
+  ///  - everyayah per-ayah:  mirrors.quranicaudio.com/everyayah/FOLDER/SSSNNN.mp3
+  ///  - mp3quran surah-level: server6.mp3quran.net/wdee3/SSS.mp3
+  static String buildAudioUrl(String reciterId, int surahId, int ayahNum,
+      {bool useMirror = true}) {
+    final sStr = surahId.toString().padLeft(3, '0');
+    if (surahLevelReciters.containsKey(reciterId)) {
+      return '${surahLevelReciters[reciterId]}$sStr.mp3';
+    }
+    final aStr = ayahNum.toString().padLeft(3, '0');
+    final host = useMirror
+        ? 'https://mirrors.quranicaudio.com/everyayah'
+        : 'https://everyayah.com/data';
+    return '$host/$reciterId/$sStr$aStr.mp3';
+  }
 }

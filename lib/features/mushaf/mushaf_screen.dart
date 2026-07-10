@@ -892,19 +892,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   String _getAudioUrl(int surahId, int ayahNum, {bool useMirror = true}) {
 
-    final sStr = surahId.toString().padLeft(3, '0');
-
-    final aStr = ayahNum.toString().padLeft(3, '0');
-
     final reciter = ref.read(settingsProvider).selectedReciter;
 
-    final host = useMirror
-
-        ? 'https://mirrors.quranicaudio.com/everyayah'
-
-        : 'https://everyayah.com/data';
-
-    return '$host/$reciter/$sStr$aStr.mp3';
+    return QuranSources.buildAudioUrl(reciter, surahId, ayahNum, useMirror: useMirror);
 
   }
 

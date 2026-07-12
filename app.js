@@ -1,7 +1,22 @@
 /* ================================================
-   TAFSIR APP - app.js
-   Pure ES6 Module Logic for Tafsir PWA
+   TAFSEER.ID – Full Web App
+   Supabase-Powered SPA — Read, Comprehend, Apply
    ================================================ */
+
+// --- 0. Supabase Client ---
+const SUPABASE_URL = 'https://zgeygoclduqotqveperx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik';
+let supabaseClient = null;
+let currentUser = null;
+let currentUserProfile = null;
+
+function initSupabase() {
+  if (typeof supabase !== 'undefined') {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    console.warn('[Supabase] CDN not loaded — will use local data files.');
+  }
+}
 
 // --- 1. Global State & Constants ---
 const defaultState = {
@@ -231,22 +246,23 @@ const i18n = {
   }
 };
 
-// --- 2. Database Manager ---
+// --- 2. Database Manager (Supabase-Powered) ---
 class Database {
   constructor() {
     this.cache = new Map();
-    this.chunkManifests = new Map(); // file -> {chunks:[...]} for chunked sources
-    this.loadedChunks = new Set();   // tracks which chunk files have been fetched
+    // chunkedSuraLoaded tracks which sura IDs are loaded for each chunked source
+    this.chunkedSuraLoaded = new Map(); // cacheKey -> Set<suraNum>
     this.registry = null;
     this.suraList = null;
     this.quranArabic = null;
     this.tags = null;
     this.verseTags = null;
-    this.searchIndex = null; // Loaded once on first search
+    this.searchIndex = null;
   }
 
   async init(onProgress) {
     onProgress(10, state.uiLang === 'id' ? i18n.id.loadingDb : i18n.en.loadingDb);
+    // Registry, sura list, and Arabic text are static — always load locally
     const regRes = await fetch('data/registry.json');
     this.registry = await regRes.json();
 
@@ -259,65 +275,131 @@ class Database {
     this.quranArabic = await arRes.json();
 
     onProgress(85, state.uiLang === 'id' ? i18n.id.loadingTags : i18n.en.loadingTags);
-    if (this.registry.tags && this.registry.tags.length > 0) {
-      let tagInfo = this.registry.tags.find(t => t.id === state.activeTags);
+    // Load tags from Supabase if available, else fall back to local files
+    await this._loadTagsFromSupabase(state.activeTags);
+
+    onProgress(100, state.uiLang === 'id' ? i18n.id.ready : i18n.en.ready);
+  }
+
+  // Load tags dataset from Supabase (with local fallback)
+  async _loadTagsFromSupabase(lang) {
+    if (supabaseClient) {
+      try {
+        const [{ data: tagsData }, { data: mapData }] = await Promise.all([
+          supabaseClient.from('tags').select('id, name').eq('lang', lang || 'en'),
+          supabaseClient.from('verse_tags').select('verse_key, tag_id').eq('lang', lang || 'en')
+        ]);
+        this.tags = tagsData || [];
+        this.verseTags = {};
+        if (mapData) {
+          mapData.forEach(item => {
+            if (!this.verseTags[item.verse_key]) this.verseTags[item.verse_key] = [];
+            this.verseTags[item.verse_key].push(item.tag_id);
+          });
+        }
+        return;
+      } catch (e) {
+        console.warn('[DB] Tags Supabase load failed, trying local files:', e);
+      }
+    }
+    // Local fallback
+    if (this.registry && this.registry.tags && this.registry.tags.length > 0) {
+      let tagInfo = this.registry.tags.find(t => t.id === (lang || state.activeTags));
       if (!tagInfo) tagInfo = this.registry.tags[0];
       const tagsRes = await fetch(tagInfo.file);
       this.tags = await tagsRes.json();
-      
       const mapRes = await fetch(tagInfo.verse_map);
       this.verseTags = await mapRes.json();
     } else {
       this.tags = [];
       this.verseTags = {};
     }
-
-    onProgress(100, state.uiLang === 'id' ? i18n.id.ready : i18n.en.ready);
   }
 
-  async getResource(file) {
-    if (this.cache.has(file)) {
-      return this.cache.get(file);
+  // Derive table name and source_id from a registry file path
+  _parseFilePath(file) {
+    if (file.startsWith('data/translations/') || file.startsWith('data/transliteration/')) {
+      const sourceId = file.replace(/^data\/(translations|transliteration)\//, '').replace(/\.json$/, '');
+      return { table: 'translations', sourceId };
     }
+    if (file.startsWith('data/tafsirs/')) {
+      const sourceId = file.replace(/^data\/tafsirs\//, '').replace(/(\.chunks)?\.json$/, '');
+      return { table: 'tafsirs', sourceId };
+    }
+    if (file.startsWith('data/asbabun_nuzul/')) {
+      const sourceId = file.replace(/^data\/asbabun_nuzul\//, '').replace(/\.json$/, '');
+      return { table: 'asbabun_nuzul', sourceId };
+    }
+    return null;
+  }
+
+  // Fetch a full source dataset from Supabase and cache as { verseKey: text }
+  async getResource(file) {
+    const cacheKey = file.replace('.chunks.json', '.json');
+    if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+
+    const parsed = this._parseFilePath(file);
+    if (supabaseClient && parsed) {
+      try {
+        const result = {};
+        let from = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data, error } = await supabaseClient
+            .from(parsed.table)
+            .select('verse_key, text')
+            .eq('source_id', parsed.sourceId)
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          data.forEach(row => { result[row.verse_key] = row.text; });
+          if (data.length < pageSize) break;
+          from += pageSize;
+        }
+        this.cache.set(cacheKey, result);
+        return result;
+      } catch (e) {
+        console.warn(`[DB] Supabase getResource failed for ${file}, falling back:`, e);
+      }
+    }
+    // Local file fallback
     const res = await fetch(file);
     const data = await res.json();
-    this.cache.set(file, data);
+    this.cache.set(cacheKey, data);
     return data;
   }
 
-  // Load a single surah chunk for a chunked tafsir source.
-  // Returns the unified merged data object (keyed by verseKey) for that source.
+  // Load surah-level data for a chunked source (tafsir) via Supabase
   async getChunkedResource(src, suraNum) {
-    const manifestFile = src.file; // e.g. data/tafsirs/en.katsir_pdf.chunks.json
-    const cacheKey = manifestFile.replace('.chunks.json', '.json'); // virtual unified key
+    const cacheKey = src.file.replace('.chunks.json', '.json');
+    if (!this.cache.has(cacheKey)) this.cache.set(cacheKey, {});
+    if (!this.chunkedSuraLoaded.has(cacheKey)) this.chunkedSuraLoaded.set(cacheKey, new Set());
 
-    // Fetch manifest once
-    if (!this.chunkManifests.has(manifestFile)) {
-      const res = await fetch(manifestFile);
-      const manifest = await res.json();
-      this.chunkManifests.set(manifestFile, manifest);
-      this.cache.set(cacheKey, {}); // initialise empty unified cache
+    const loaded = this.chunkedSuraLoaded.get(cacheKey);
+    if (loaded.has(suraNum)) return this.cache.get(cacheKey);
+
+    const parsed = this._parseFilePath(src.file);
+    if (supabaseClient && parsed) {
+      try {
+        const { data, error } = await supabaseClient
+          .from(parsed.table)
+          .select('verse_key, text, verses!inner(sura_id)')
+          .eq('source_id', parsed.sourceId)
+          .eq('verses.sura_id', suraNum);
+        if (error) throw error;
+        const unified = this.cache.get(cacheKey);
+        if (data) data.forEach(row => { unified[row.verse_key] = row.text; });
+        loaded.add(suraNum);
+        return unified;
+      } catch (e) {
+        console.warn(`[DB] Supabase chunked load failed for sura ${suraNum}:`, e);
+      }
     }
-
-    const manifest = this.chunkManifests.get(manifestFile);
-    const unified  = this.cache.get(cacheKey);
-
-    // Derive chunk file path for the requested surah
-    const padded    = String(suraNum).padStart(3, '0');
-    const chunkFile = manifest.chunks.find(c => c.endsWith(`/${padded}.json`));
-    if (!chunkFile || this.loadedChunks.has(chunkFile)) {
-      return unified; // already loaded or surah not present
-    }
-
-    // Fetch and merge the chunk
-    const res       = await fetch(chunkFile);
-    const chunkData = await res.json();
-    Object.assign(unified, chunkData);
-    this.loadedChunks.add(chunkFile);
-    return unified;
+    // Fallback: fetch all (non-chunked path)
+    return this.getResource(src.file);
   }
 
-  // Convenience: return the already-merged data for a chunked source (no fetch).
+  // Return already-merged data for a chunked source
   getCachedChunked(src) {
     const cacheKey = src.file.replace('.chunks.json', '.json');
     return this.cache.get(cacheKey) || null;
@@ -449,28 +531,15 @@ function getTafsirData(item) {
 
 // Dynamically reloads the tags dataset when lang or active tags dataset changes
 async function reloadTagsDataset() {
-  if (db.registry.tags && db.registry.tags.length > 0) {
-    let tagInfo = db.registry.tags.find(t => t.id === state.activeTags);
-    if (!tagInfo) tagInfo = db.registry.tags[0];
-    
-    const tagsRes = await fetch(tagInfo.file);
-    db.tags = await tagsRes.json();
-    
-    const mapRes = await fetch(tagInfo.verse_map);
-    db.verseTags = await mapRes.json();
-    
-    tagLookup = new Map(db.tags.map(t => [t.id, t.name]));
-    
-    tagCounts = {};
-    for (const verseKey in db.verseTags) {
-      const tags = db.verseTags[verseKey];
-      tags.forEach(id => {
-        tagCounts[id] = (tagCounts[id] || 0) + 1;
-      });
-    }
-    
-    renderSidebarTopicList();
+  await db._loadTagsFromSupabase(state.activeTags);
+  tagLookup = new Map(db.tags.map(t => [t.id, t.name]));
+  tagCounts = {};
+  for (const verseKey in db.verseTags) {
+    db.verseTags[verseKey].forEach(id => {
+      tagCounts[id] = (tagCounts[id] || 0) + 1;
+    });
   }
+  renderSidebarTopicList();
 }
 
 // --- 5. Navigation & Routing ---
@@ -2296,6 +2365,16 @@ async function triggerRouting() {
     }
 
     renderSearchPage(mergedResults, query);
+  } else if (hash === '#mushaf') {
+    switchView('mushaf');
+    updateBreadcrumbs('home');
+    highlightActiveSuraInSidebar(null);
+    // Mushaf view loads SVG via its own controller
+  } else {
+    // Fallback: unknown hash — show home
+    switchView('home');
+    updateBreadcrumbs('home');
+    renderHomeGrid();
   }
   updateAudioUI();
 }
@@ -2725,7 +2804,228 @@ function updateAudioUI() {
   }
 }
 
+// =====================================================================
+// --- MUSHAF CONTROLLER ---
+// =====================================================================
+let mushafCurrentPage = 1;
+
+async function initMushafView() {
+  const slider = document.getElementById('mushaf-page-slider');
+  const prevBtn = document.getElementById('mushaf-prev-btn');
+  const nextBtn = document.getElementById('mushaf-next-btn');
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    mushafCurrentPage = parseInt(slider.value);
+    updateMushafPageLabel();
+    loadMushafPage(mushafCurrentPage);
+  });
+  prevBtn && prevBtn.addEventListener('click', () => {
+    if (mushafCurrentPage > 1) { mushafCurrentPage--; slider.value = mushafCurrentPage; updateMushafPageLabel(); loadMushafPage(mushafCurrentPage); }
+  });
+  nextBtn && nextBtn.addEventListener('click', () => {
+    if (mushafCurrentPage < 604) { mushafCurrentPage++; slider.value = mushafCurrentPage; updateMushafPageLabel(); loadMushafPage(mushafCurrentPage); }
+  });
+  loadMushafPage(mushafCurrentPage);
+}
+
+function updateMushafPageLabel() {
+  const el = document.getElementById('mushaf-page-label');
+  if (el) el.textContent = `Page ${mushafCurrentPage} / 604`;
+}
+
+async function loadMushafPage(pageNum) {
+  const container = document.getElementById('mushaf-page-container');
+  if (!container) return;
+  container.innerHTML = `<div class="mushaf-loading">Loading page ${pageNum}…</div>`;
+  const padded = String(pageNum).padStart(3, '0');
+  const svgUrl = `https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg/${padded}.svg`;
+  try {
+    const res = await fetch(svgUrl);
+    if (!res.ok) throw new Error('SVG fetch failed');
+    const svgText = await res.text();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mushaf-svg-wrapper';
+    wrapper.innerHTML = svgText;
+    const svg = wrapper.querySelector('svg');
+    if (svg) {
+      svg.style.cssText = 'width:100%;height:auto;max-height:calc(100vh - 160px);display:block;';
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      const style = document.createElement('style');
+      style.textContent = `
+        .ayahPolygon { fill: transparent; cursor: pointer; pointer-events: auto !important; transition: fill 0.15s; }
+        .ayahPolygon:hover { fill: rgba(201,151,58,0.18) !important; }
+        svg *:not(.ayahPolygon) { pointer-events: none !important; }
+      `;
+      svg.prepend(style);
+    }
+    container.innerHTML = '';
+    container.appendChild(wrapper);
+    wrapper.addEventListener('click', (e) => {
+      let t = e.target;
+      while (t && t !== wrapper) {
+        const sura = t.getAttribute('surah');
+        const ayah = t.getAttribute('ayah');
+        if (sura && ayah) {
+          wrapper.querySelectorAll('[surah]').forEach(el => el.style.fill = '');
+          wrapper.querySelectorAll(`[surah="${sura}"][ayah="${ayah}"]`).forEach(el => { el.style.fill = 'rgba(201,151,58,0.3)'; });
+          showMushafVerseDetail(parseInt(sura), parseInt(ayah));
+          return;
+        }
+        t = t.parentElement;
+      }
+    });
+  } catch (err) {
+    container.innerHTML = `<img src="https://quran.ksu.edu.sa/png_big/${pageNum}.png" style="max-width:100%;max-height:calc(100vh - 160px);display:block;margin:auto;" alt="Quran Page ${pageNum}" />`;
+  }
+}
+
+async function showMushafVerseDetail(surahNum, ayahNum) {
+  const emptyEl = document.getElementById('mushaf-detail-empty');
+  const contentEl = document.getElementById('mushaf-detail-content');
+  if (!contentEl) return;
+  if (emptyEl) emptyEl.style.display = 'none';
+  contentEl.style.display = 'block';
+  contentEl.innerHTML = '<div class="mushaf-detail-loading">Loading…</div>';
+  const verseKey = `${surahNum}:${ayahNum}`;
+  const arabicText = db.quranArabic ? (db.quranArabic[verseKey] || '') : '';
+  let transText = '', tafsirText = '';
+  if (supabaseClient) {
+    try {
+      const transSource = state.activeTranslation1 || 'en.shakir';
+      const tafsirSource = state.activeTafsir1 || 'id.jalalayn';
+      const [{ data: transData }, { data: tafsirData }] = await Promise.all([
+        supabaseClient.from('translations').select('text').eq('verse_key', verseKey).eq('source_id', transSource).maybeSingle(),
+        supabaseClient.from('tafsirs').select('text').eq('verse_key', verseKey).eq('source_id', tafsirSource).maybeSingle()
+      ]);
+      if (transData) transText = transData.text;
+      if (tafsirData) tafsirText = tafsirData.text;
+    } catch (e) { console.warn('[Mushaf] verse detail fetch failed:', e); }
+  }
+  const suraMeta = db.suraList ? db.suraList.find(s => s.id === surahNum) : null;
+  const suraName = suraMeta ? (state.uiLang === 'id' ? suraMeta.name_id : suraMeta.name_en) : `Surah ${surahNum}`;
+  contentEl.innerHTML = `
+    <div class="mushaf-verse-key">${suraName} ${verseKey}</div>
+    ${arabicText ? `<div class="mushaf-verse-arabic" lang="ar">${arabicText}</div>` : ''}
+    ${transText ? `<div class="mushaf-verse-trans">${transText}</div>` : ''}
+    ${tafsirText ? `<details class="mushaf-verse-tafsir-wrap"><summary>Tafsir</summary><div class="mushaf-verse-tafsir">${tafsirText}</div></details>` : ''}
+    <a class="btn btn-outline" style="display:block;margin-top:1rem;text-align:center;" href="#sura/${surahNum}/verse/${ayahNum}">Open Full Detail →</a>
+  `;
+}
+
+// =====================================================================
+// --- AUTH CONTROLLER ---
+// =====================================================================
+async function initAuth() {
+  if (!supabaseClient) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) await handleAuthSession(session);
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) await handleAuthSession(session);
+    else if (event === 'SIGNED_OUT') handleAuthSignOut();
+  });
+  document.getElementById('auth-login-btn')?.addEventListener('click', async () => {
+    const email = document.getElementById('auth-email')?.value.trim();
+    const password = document.getElementById('auth-password')?.value;
+    const errEl = document.getElementById('auth-error');
+    if (!email || !password) { if (errEl) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; } return; }
+    if (errEl) errEl.style.display = 'none';
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error && errEl) { errEl.textContent = error.message; errEl.style.display = 'block'; }
+  });
+  document.getElementById('auth-logout-btn')?.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
+  });
+}
+
+async function handleAuthSession(session) {
+  currentUser = session.user;
+  const { data: profile } = await supabaseClient.from('profiles').select('display_name, role, avatar_url').eq('id', currentUser.id).maybeSingle();
+  currentUserProfile = profile;
+  const name = profile?.display_name || currentUser.email.split('@')[0];
+  const elOut = document.getElementById('auth-logged-out');
+  const elIn = document.getElementById('auth-logged-in');
+  if (elOut) elOut.style.display = 'none';
+  if (elIn) elIn.style.display = 'block';
+  const nameEl = document.getElementById('auth-user-name');
+  const emailEl = document.getElementById('auth-user-email');
+  const avatarEl = document.getElementById('auth-avatar-initial');
+  if (nameEl) nameEl.textContent = name;
+  if (emailEl) emailEl.textContent = currentUser.email;
+  if (avatarEl) avatarEl.textContent = name[0].toUpperCase();
+  if (profile?.role === 'admin') {
+    const adminTab = document.getElementById('tab-admin');
+    if (adminTab) adminTab.style.display = '';
+    loadAdminStats();
+    loadAdminConfig();
+  }
+}
+
+function handleAuthSignOut() {
+  currentUser = null; currentUserProfile = null;
+  const elOut = document.getElementById('auth-logged-out');
+  const elIn = document.getElementById('auth-logged-in');
+  if (elOut) elOut.style.display = 'block';
+  if (elIn) elIn.style.display = 'none';
+  const adminTab = document.getElementById('tab-admin');
+  if (adminTab) adminTab.style.display = 'none';
+}
+
+// =====================================================================
+// --- ADMIN CONTROLLER ---
+// =====================================================================
+async function loadAdminStats() {
+  const statsEl = document.getElementById('admin-stats');
+  if (!statsEl || !supabaseClient) return;
+  const tables = [{ id: 'verses', label: 'Verses' }, { id: 'translations', label: 'Translations' }, { id: 'tafsirs', label: 'Tafsirs' }, { id: 'tags', label: 'Tags' }];
+  statsEl.innerHTML = tables.map(t => `<div class="admin-stat-card"><div class="admin-stat-num" id="stat-${t.id}">—</div><div class="admin-stat-label">${t.label}</div></div>`).join('');
+  for (const t of tables) {
+    const { count } = await supabaseClient.from(t.id).select('*', { count: 'exact', head: true });
+    const el = document.getElementById(`stat-${t.id}`);
+    if (el && count !== null) el.textContent = count >= 1000 ? (count / 1000).toFixed(1) + 'K' : count;
+  }
+}
+
+async function loadAdminConfig() {
+  if (!supabaseClient) return;
+  const { data } = await supabaseClient.from('site_config').select('key, value').in('key', ['home_hero_title', 'home_hero_subtitle', 'announcement_text']);
+  if (!data) return;
+  const map = { home_hero_title: 'cfg-hero-title', home_hero_subtitle: 'cfg-hero-subtitle', announcement_text: 'cfg-announcement' };
+  data.forEach(cfg => { const el = document.getElementById(map[cfg.key]); if (el) el.value = cfg.value; });
+}
+
+function initAdminPanel() {
+  document.getElementById('admin-config-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!supabaseClient) return;
+    const configs = [
+      { key: 'home_hero_title', value: document.getElementById('cfg-hero-title')?.value.trim() || '' },
+      { key: 'home_hero_subtitle', value: document.getElementById('cfg-hero-subtitle')?.value.trim() || '' },
+      { key: 'announcement_text', value: document.getElementById('cfg-announcement')?.value.trim() || '' },
+    ];
+    const { error } = await supabaseClient.from('site_config').upsert(configs, { onConflict: 'key' });
+    const statusEl = document.getElementById('admin-save-status');
+    if (!error && statusEl) { statusEl.style.display = 'inline'; setTimeout(() => statusEl.style.display = 'none', 3000); }
+  });
+}
+
+// =====================================================================
+// --- ADVANCED SEARCH (Supabase-powered) ---
+// =====================================================================
+function initAdvancedSearch() {
+  const btn = document.getElementById('adv-search-btn');
+  const input = document.getElementById('adv-search-input');
+  if (!btn || !input) return;
+  const doSearch = () => {
+    const q = input.value.trim();
+    if (q.length >= 2) window.location.hash = `#search/${encodeURIComponent(q)}`;
+  };
+  btn.addEventListener('click', doSearch);
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') doSearch(); });
+}
+
+// =====================================================================
 // --- 10. Initialization Flow ---
+// =====================================================================
 async function initApp() {
   const progressFill = document.getElementById('splash-progress');
   const progressText = document.getElementById('splash-text');
@@ -2736,35 +3036,39 @@ async function initApp() {
   }
 
   try {
-    // 1. Initialize databases
+    // 0. Init Supabase client
+    initSupabase();
+
+    // 1. Initialize database (loads static files + Supabase tags)
     await db.init(updateProgress);
 
     // 2. Build lookups
     tagLookup = new Map(db.tags.map(t => [t.id, t.name]));
-    
-    // 3. Count verses per tag
     tagCounts = {};
     for (const verseKey in db.verseTags) {
-      const tags = db.verseTags[verseKey];
-      tags.forEach(id => {
-        tagCounts[id] = (tagCounts[id] || 0) + 1;
-      });
+      db.verseTags[verseKey].forEach(id => { tagCounts[id] = (tagCounts[id] || 0) + 1; });
     }
 
-    // 4. Set styles and theme
+    // 3. Set styles and theme
     applyStyles();
     updateThemeButtons();
     applyLocalization();
 
-    // 5. Populate sidebar content
+    // 4. Populate sidebar content
     renderSidebarSuraList();
     renderSidebarTopicList();
 
-    // 6. Populate Comparison Settings Panel selectors
+    // 5. Populate Comparison Settings Panel selectors
     populateSelects();
 
-    // 7. Event bindings
+    // 6. Event bindings
     setupEventBindings();
+
+    // 7. Initialize new controllers
+    initAdvancedSearch();
+    initAdminPanel();
+    initMushafView();
+    initAuth(); // async — runs in background, does not block startup
 
     // 8. Launch App Shell
     setTimeout(() => {
@@ -2772,8 +3076,6 @@ async function initApp() {
       const appDiv = document.getElementById('app');
       if (splash) splash.classList.add('hidden');
       if (appDiv) appDiv.style.display = 'flex';
-      
-      // Trigger initial routing
       triggerRouting();
     }, 500);
 
@@ -2783,7 +3085,7 @@ async function initApp() {
   } catch (err) {
     console.error('Initialisation failed:', err);
     if (progressText) {
-      progressText.textContent = 'Error loading database. Please refresh.';
+      progressText.textContent = 'Error loading. Please refresh.';
       progressText.style.color = '#ef4444';
     }
   }
@@ -2920,6 +3222,24 @@ function setupEventBindings() {
       tab.classList.add('active');
 
       const viewName = tab.dataset.view;
+
+      // Mushaf and Admin tabs switch the main view area instead of the sidebar panel
+      if (viewName === 'mushaf') {
+        window.location.hash = '#mushaf';
+        return;
+      }
+      if (viewName === 'admin') {
+        // Switch to admin panel in sidebar
+        document.querySelectorAll('.sidebar-content .panel').forEach(p => p.classList.remove('active'));
+        const adminPanel = document.getElementById('panel-admin');
+        if (adminPanel) adminPanel.classList.add('active');
+        if (supabaseClient && currentUserProfile?.role === 'admin') {
+          loadAdminStats();
+          loadAdminConfig();
+        }
+        return;
+      }
+
       document.querySelectorAll('.sidebar-content .panel').forEach(p => {
         p.classList.remove('active');
       });

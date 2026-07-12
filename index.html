@@ -12,8 +12,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="app.css" />
   <link rel="manifest" href="manifest.json" />
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -66,9 +69,17 @@
         <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
         Topics
       </button>
+      <button class="nav-tab" data-view="mushaf" id="tab-mushaf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="2" width="18" height="20" rx="2"/><path d="M7 6h10M7 10h10M7 14h6"/></svg>
+        Mushaf
+      </button>
       <button class="nav-tab" data-view="settings" id="tab-settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
+      </button>
+      <button class="nav-tab" data-view="admin" id="tab-admin" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        Admin
       </button>
     </nav>
 
@@ -137,8 +148,80 @@
             </select>
           </div>
 
+          <!-- ACCOUNT SECTION -->
+          <div class="settings-section" id="auth-section">
+            <h3 class="settings-section-title">Account</h3>
+            <div id="auth-logged-out">
+              <div class="form-group">
+                <input type="email" id="auth-email" class="input-text" placeholder="Email" autocomplete="email" />
+              </div>
+              <div class="form-group">
+                <input type="password" id="auth-password" class="input-text" placeholder="Password" autocomplete="current-password" />
+              </div>
+              <button class="btn btn-primary" id="auth-login-btn" style="width:100%">Sign In</button>
+              <div class="auth-error" id="auth-error" style="display:none"></div>
+            </div>
+            <div id="auth-logged-in" style="display:none">
+              <div class="auth-user-info">
+                <div class="auth-avatar" id="auth-avatar-initial">A</div>
+                <div>
+                  <div class="auth-user-name" id="auth-user-name">User</div>
+                  <div class="auth-user-email" id="auth-user-email"></div>
+                </div>
+              </div>
+              <button class="btn btn-outline" id="auth-logout-btn" style="width:100%;margin-top:0.5rem">Sign Out</button>
+            </div>
+          </div>
+
+        </div><!-- /.settings-container -->
+      </div><!-- /#panel-settings -->
+
+      <!-- MUSHAF SIDEBAR PANEL (placeholder, Mushaf is in main view-area) -->
+      <div class="panel" id="panel-mushaf">
+        <div class="settings-container">
+          <div class="settings-section">
+            <h3 class="settings-section-title">Mushaf Navigation</h3>
+            <p style="font-size:0.85rem;color:var(--text-muted);line-height:1.6">
+              The Mushaf (Hafs/KFQC) is displayed in the main reading area. Tap any verse on the page to see its translation and tafsir in the detail panel.
+            </p>
+            <div class="font-size-row" style="margin-top:1rem">
+              <label style="font-size:0.85rem">Go to page:</label>
+              <input type="number" id="mushaf-goto-input" class="input-text" min="1" max="604" placeholder="1–604" style="width:80px;text-align:center" />
+              <button class="btn btn-primary" id="mushaf-goto-btn" onclick="(() => { const v=parseInt(document.getElementById('mushaf-goto-input').value); if(v>=1&&v<=604){mushafCurrentPage=v;document.getElementById('mushaf-page-slider').value=v;updateMushafPageLabel();loadMushafPage(v);} })()" style="padding:0.4rem 0.75rem">Go</button>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- ADMIN SIDEBAR PANEL -->
+      <div class="panel" id="panel-admin">
+        <div class="settings-container">
+          <div class="settings-section">
+            <h3 class="settings-section-title">Admin Panel</h3>
+            <div class="admin-stats" id="admin-stats"><!-- populated by JS --></div>
+            <details style="margin-top:1rem" open>
+              <summary style="cursor:pointer;font-weight:600;font-size:0.9rem;color:var(--accent);padding:0.5rem 0">Site Configuration</summary>
+              <form id="admin-config-form" style="margin-top:0.75rem">
+                <div class="form-group">
+                  <label style="font-size:0.82rem;color:var(--text-muted)">Hero Title (EN)</label>
+                  <input type="text" id="cfg-hero-title" class="input-text" />
+                </div>
+                <div class="form-group">
+                  <label style="font-size:0.82rem;color:var(--text-muted)">Hero Subtitle (EN)</label>
+                  <input type="text" id="cfg-hero-subtitle" class="input-text" />
+                </div>
+                <div class="form-group">
+                  <label style="font-size:0.82rem;color:var(--text-muted)">Announcement Banner</label>
+                  <input type="text" id="cfg-announcement" class="input-text" placeholder="Leave empty to hide" />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%">Save Configuration</button>
+                <span class="admin-save-status" id="admin-save-status" style="display:none">✓ Saved</span>
+              </form>
+            </details>
+          </div>
+        </div>
+      </div>
+
     </div>
   </aside>
 
@@ -180,8 +263,24 @@
       <div class="view active" id="view-home">
         <div class="home-hero">
           <p class="home-hero-arabic" lang="ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
-          <h2 class="home-hero-title">Qur'an Reader & Study Tool</h2>
-          <p class="home-hero-subtitle">Compare translations, read tafsir commentary, and explore by topic</p>
+          <h2 class="home-hero-title">Tafseer.id</h2>
+          <p class="home-hero-subtitle">Read, Comprehend, Apply</p>
+          <div class="home-advanced-search">
+            <div class="adv-search-row">
+              <input type="text" id="adv-search-input" class="input-text" placeholder="Search in the Qur'an…" autocomplete="off" />
+              <button class="btn btn-primary" id="adv-search-btn">Search</button>
+            </div>
+            <div class="adv-search-options">
+              <label><input type="checkbox" id="adv-search-trans" checked> Translations</label>
+              <label><input type="checkbox" id="adv-search-tafsir"> Tafsirs</label>
+              <label><input type="checkbox" id="adv-search-nuzul"> Asbabun Nuzul</label>
+              <select id="adv-search-lang" class="select-input" style="font-size:0.83rem;padding:0.3rem 0.5rem">
+                <option value="all">All Languages</option>
+                <option value="en">English</option>
+                <option value="id">Indonesian</option>
+              </select>
+            </div>
+          </div>
         </div>
         <div class="sura-grid" id="sura-grid">
           <!-- Populated by JS -->
@@ -229,6 +328,29 @@
         <div class="search-results-header" id="topic-results-header"></div>
         <div class="verse-list" id="topic-results-list"></div>
         <div id="topic-paginator-placeholder"></div>
+      </div>
+
+      <!-- MUSHAF VIEW -->
+      <div class="view" id="view-mushaf">
+        <div class="mushaf-toolbar">
+          <button class="btn-icon" id="mushaf-prev-btn" title="Previous page" aria-label="Previous mushaf page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg></button>
+          <div class="mushaf-page-select">
+            <span class="mushaf-page-label" id="mushaf-page-label">Page 1 / 604</span>
+            <input type="range" id="mushaf-page-slider" min="1" max="604" value="1" />
+          </div>
+          <button class="btn-icon" id="mushaf-next-btn" title="Next page" aria-label="Next mushaf page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg></button>
+        </div>
+        <div class="mushaf-layout">
+          <div class="mushaf-page-container" id="mushaf-page-container">
+            <div class="mushaf-loading">Loading Mushaf…</div>
+          </div>
+          <div class="mushaf-detail-pane" id="mushaf-detail-pane">
+            <div class="mushaf-detail-empty" id="mushaf-detail-empty">
+              <p>👆 Tap a verse on the Mushaf to see its details here</p>
+            </div>
+            <div class="mushaf-detail-content" id="mushaf-detail-content" style="display:none"></div>
+          </div>
+        </div>
       </div>
 
     </div>

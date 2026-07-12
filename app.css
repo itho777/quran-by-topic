@@ -1804,3 +1804,266 @@ body.has-player {
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* =====================================================
+   MUSHAF VIEW
+   ===================================================== */
+#view-mushaf {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.mushaf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+.mushaf-page-select {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.mushaf-page-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+#mushaf-page-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.mushaf-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.mushaf-page-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem;
+  background: var(--bg-primary);
+}
+.mushaf-svg-wrapper {
+  width: 100%;
+  max-width: 520px;
+}
+.mushaf-loading {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 2rem;
+  text-align: center;
+}
+.mushaf-detail-pane {
+  width: 320px;
+  min-width: 240px;
+  border-left: 1px solid var(--border-color);
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+}
+.mushaf-detail-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.mushaf-detail-content {
+  padding: 1rem;
+}
+.mushaf-detail-loading {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+.mushaf-verse-key {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+.mushaf-verse-arabic {
+  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  font-size: 1.4rem;
+  direction: rtl;
+  text-align: right;
+  line-height: 2;
+  color: var(--text-arabic);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+.mushaf-verse-trans {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+.mushaf-verse-tafsir-wrap {
+  margin-top: 0.5rem;
+}
+.mushaf-verse-tafsir-wrap summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.4rem 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.mushaf-verse-tafsir-wrap summary::before {
+  content: '▶';
+  font-size: 0.6rem;
+  transition: transform 0.15s;
+}
+.mushaf-verse-tafsir-wrap[open] summary::before { transform: rotate(90deg); }
+.mushaf-verse-tafsir {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-card);
+  border-radius: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 700px) {
+  .mushaf-layout { flex-direction: column; }
+  .mushaf-detail-pane { width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--border-color); max-height: 40vh; }
+}
+
+/* =====================================================
+   HOME HERO — ADVANCED SEARCH
+   ===================================================== */
+.home-advanced-search {
+  max-width: 580px;
+  margin: 1.25rem auto 0;
+  padding: 0 1rem;
+}
+.adv-search-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.adv-search-row .input-text {
+  flex: 1;
+  font-size: 1rem;
+  padding: 0.7rem 1rem;
+  border-radius: 0.6rem;
+}
+.adv-search-options {
+  display: flex;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.adv-search-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+.adv-search-options input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+/* =====================================================
+   AUTH / ACCOUNT SECTION
+   ===================================================== */
+.form-group {
+  margin-bottom: 0.6rem;
+}
+.auth-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0 0.75rem;
+}
+.auth-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.auth-user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+.auth-user-email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.1rem;
+  word-break: break-all;
+}
+.auth-error {
+  color: #e55;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(229, 85, 85, 0.1);
+  border-radius: 0.3rem;
+  border: 1px solid rgba(229, 85, 85, 0.3);
+}
+
+/* =====================================================
+   ADMIN PANEL (in sidebar)
+   ===================================================== */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.admin-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+.admin-stat-num {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.admin-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+.admin-save-status {
+  color: var(--green);
+  font-size: 0.82rem;
+  display: inline-block;
+  margin-top: 0.5rem;
+}

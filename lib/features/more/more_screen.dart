@@ -1,8 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
+
+void _showCreditsPopup(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      final titleColor = AppTheme.primary;
+      final textColor = AppTheme.onSurface;
+      final linkColor = AppTheme.secondary;
+
+      Future<void> launchUrlString(String urlString) async {
+        final uri = Uri.tryParse(urlString);
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+
+      Widget buildCreditItem(String text, {String? url}) {
+        if (url != null) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: InkWell(
+              onTap: () => launchUrlString(url),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: linkColor,
+                  fontSize: 13,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Text(
+            text,
+            style: TextStyle(color: textColor, fontSize: 13),
+          ),
+        );
+      }
+
+      return AlertDialog(
+        backgroundColor: AppTheme.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.favorite_rounded, color: AppTheme.primary, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Credits & Attributions',
+              style: TextStyle(color: AppTheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Scrollbar(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                Text(
+                  'Gratitude & Acknowledgement',
+                  style: TextStyle(color: titleColor, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                buildCreditItem('• Allah Azza wa Jalla'),
+                buildCreditItem('• Prophet Muhammad PBUH'),
+                buildCreditItem('• Family and Friends'),
+                const SizedBox(height: 16),
+                Text(
+                  'Data & Content Sources',
+                  style: TextStyle(color: titleColor, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                buildCreditItem('• Tanzil.net (Quran text, translations, transliterations)', url: 'https://tanzil.net'),
+                buildCreditItem('• everyayah.com (Audio stream)', url: 'https://everyayah.com'),
+                buildCreditItem('• mp3quran.net (Alternative surah-level audio)', url: 'https://mp3quran.net'),
+                buildCreditItem(
+                  '• AL SADIQIN Press & Ben Abrahamson (Tafsir Tabari, Baghawi, Qurtubi, Baidawi, Ibn Kathir, Jalalayn, Suyuti & Fath al-Qadir)',
+                  url: 'https://alsadiqin.org/tafsir/',
+                ),
+                buildCreditItem('• Royal Aal al-Bayt Institute (Asbab al-Nuzul by Al-Wahidi)'),
+                buildCreditItem('• Kemenag RI (Asbabun-Nuzul & Translation ID)'),
+                buildCreditItem('• H. Suhardi (Indeks Al-Qur’an)'),
+                buildCreditItem('• Abu Farhah (Indeks Quran)'),
+                buildCreditItem('• Kongsi Ebooks', url: 'https://kongsiebooks.blogspot.com/2010/04/islam-indeks-al-quran.html'),
+                buildCreditItem('• Quranku Quranmu', url: 'http://qurankuquranmu.blogspot.com/2012/12/indeks-al-quran-berdasarkan-klasifikasi.html'),
+                buildCreditItem('• Saadus Wordpres Indeks', url: 'https://saadus.wordpress.com/2011/02/05/indeks-al-quran-ms-excel-dan-ms-access/'),
+                const SizedBox(height: 16),
+                Text(
+                  'Assets & Technology',
+                  style: TextStyle(color: titleColor, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                buildCreditItem('• Quranpedia Hafs KFQC SVG (Mushaf SVG images)', url: 'https://github.com/quranpedia/quran-svg'),
+                buildCreditItem('• Google (Alphabet Inc.)', url: 'https://google.com'),
+                buildCreditItem('• GitHub', url: 'https://github.com'),
+                buildCreditItem('• Cloudflare', url: 'https://cloudflare.com'),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Close', style: TextStyle(color: AppTheme.primary)),
+          ),
+        ],
+      );
+    },
+  );
+}
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -392,13 +507,30 @@ class MoreScreen extends ConsumerWidget {
           // ── About ─────────────────────────────────────────────────────────
           _SectionLabel('About'),
           const SizedBox(height: 8),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              final version = snapshot.hasData
+                  ? '${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})'
+                  : 'Loading...';
+              final verOnly = snapshot.hasData ? snapshot.data!.version : '...';
+              return _SettingsTile(
+                icon: Icons.info_outline,
+                iconColor: AppTheme.outline,
+                title: 'App Version',
+                subtitle: 'Tafseer.id v$version',
+                trailing: Text(verOnly,
+                    style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold)),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
           _SettingsTile(
-            icon: Icons.info_outline,
-            iconColor: AppTheme.outline,
-            title: 'App Version',
-            subtitle: 'Tafseer ID v3.0 beta 2',
-            trailing: Text('3.0 beta 2',
-                style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold)),
+            icon: Icons.favorite_border_rounded,
+            iconColor: AppTheme.primary,
+            title: 'Credits & Attributions',
+            subtitle: 'Sources, assets, and acknowledgements',
+            onTap: () => _showCreditsPopup(context),
           ),
           const SizedBox(height: 32),
           Center(
@@ -427,7 +559,7 @@ class MoreScreen extends ConsumerWidget {
           const SizedBox(height: 3),
           Center(
             child: Text(
-              settings.appLanguage == 'en' ? 'Read, Study and Reflect' : 'Baca, Pelajari dan Amalkan',
+              settings.appLanguage == 'en' ? 'Read, Comprehend, Apply' : 'Baca, Pahami, Amalkan',
               style: TextStyle(
                 color: AppTheme.outline,
                 fontSize: 11,
@@ -469,7 +601,8 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.trailing,
-  }) : onTap = null;
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +642,7 @@ class _SettingsTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
           ),

@@ -1311,11 +1311,21 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                   padding: const EdgeInsets.only(left: 6),
                   child: ChoiceChip(
                     showCheckmark: false,
-                    label: Text(_tagsSlots[idx].label, style: TextStyle(fontSize: 10)),
+                    label: Text(_tagsSlots[idx].label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: active ? AppTheme.primary : AppTheme.outline,
+                        fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                      )),
                     selected: active,
                     onSelected: (sel) { if (sel) setState(() => _tagsLangIdx = idx); },
                     selectedColor: AppTheme.primary.withValues(alpha: 0.15),
                     backgroundColor: Colors.transparent,
+                    side: BorderSide(
+                      color: active ? AppTheme.primary : AppTheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 );
               }),

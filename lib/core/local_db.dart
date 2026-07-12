@@ -37,6 +37,12 @@ class LocalDatabase {
       dbPath,
       version: _dbVersion,
       onCreate: _onCreate,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await _onCreate(db, newVersion);
+      },
+      onOpen: (db) async {
+        await _onCreate(db, _dbVersion);
+      },
     );
     return _db!;
   }

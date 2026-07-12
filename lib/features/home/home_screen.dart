@@ -44,7 +44,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Site Config CMS Branding
   String _homeHeroTitle = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
   String _homeHeroSubtitle = 'In the name of Allah, the Most Gracious, the Most Merciful';
-  String _homeTagline = 'Quran by Topic — Read, Study, and Reflect';
 
   // Initial fallback list of surahs for the dropdown
   List<Map<String, dynamic>> _dropdownSurahs = [
@@ -84,14 +83,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             'featured_ayah_note',
             'home_hero_title',
             'home_hero_subtitle',
-            'home_tagline',
             'featured_rotation_mode'
           ]);
       String verseKey = '2:255';
       String note = '';
       String heroTitle = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
       String heroSubtitle = 'In the name of Allah, the Most Gracious, the Most Merciful';
-      String tagline = 'Quran by Topic — Read, Study, and Reflect';
       String rotationMode = 'manual';
 
       for (final row in List<Map<String, dynamic>>.from(cfgRes)) {
@@ -102,7 +99,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (k == 'featured_ayah_note') note = v;
         if (k == 'home_hero_title') heroTitle = v;
         if (k == 'home_hero_subtitle') heroSubtitle = v;
-        if (k == 'home_tagline') tagline = v;
         if (k == 'featured_rotation_mode') rotationMode = v;
       }
 
@@ -194,7 +190,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _featuredTranslationId = translationId;
           _homeHeroTitle = heroTitle;
           _homeHeroSubtitle = heroSubtitle;
-          _homeTagline = tagline;
           _loadingFeatured = false;
         });
       }
@@ -460,7 +455,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                           ),
                           Text(
-                            isEn ? 'Read, Study and Reflect' : 'Baca, Pelajari dan Amalkan',
+                            isEn ? 'Read, Comprehend, Apply' : 'Baca, Pahami, Amalkan',
                             style: TextStyle(
                               color: AppTheme.outline,
                               fontSize: 9.5,

@@ -17,6 +17,7 @@
   --text-secondary:#a0a0b8;
   --text-muted:    #60607a;
   --text-arabic:   #f5f0e8;
+  --mushaf-text-color: #f3ebd9;
 
   --accent:        #c9973a;
   --accent-light:  #e8b96a;
@@ -61,6 +62,7 @@
   --text-secondary:#4a4a6a;
   --text-muted:    #8080a0;
   --text-arabic:   #18140a;
+  --mushaf-text-color: #18140a;
   --accent:        #9a6e1a;
   --accent-light:  #b8842a;
   --accent-glow:   rgba(154, 110, 26, 0.1);
@@ -80,6 +82,7 @@
   --text-secondary:#c8b894;
   --text-muted:    #887a60;
   --text-arabic:   #f5ead0;
+  --mushaf-text-color: #3b2d18;
   --accent:        #d4aa4a;
   --accent-light:  #e8c870;
 }
@@ -962,19 +965,28 @@ body {
 }
 .search-results-count { font-size: 0.8rem; color: var(--text-muted); }
 
-/* ---------- 10. Comparison Panel ---------- */
+/* ---------- 10. Comparison Panel (floating overlay) ---------- */
 .comparison-panel {
+  position: fixed;
+  top: 0; right: 0;
   width: var(--comparison-width);
-  min-width: var(--comparison-width);
+  height: 100vh;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
-  height: 100vh;
   overflow-y: auto;
-  transform: translateX(var(--comparison-width));
+  transform: translateX(100%);
   transition: transform var(--trans-slow);
-  flex-shrink: 0;
+  z-index: 500;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.35);
 }
 .comparison-panel.open { transform: translateX(0); }
+.comparison-panel-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 499;
+}
+.comparison-panel-backdrop.active { display: block; }
 .comparison-panel-header {
   display: flex;
   align-items: center;
@@ -1232,14 +1244,7 @@ body {
   }
   .sidebar.open { transform: translateX(0); }
   .sidebar-close { display: flex; }
-  .comparison-panel {
-    position: fixed;
-    top: 0; right: 0;
-    height: 100vh;
-    box-shadow: var(--shadow-lg);
-    transform: translateX(100%);
-  }
-  .comparison-panel.open { transform: translateX(0); }
+  /* comparison-panel is already fixed, no changes needed for mobile */
   .sura-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
 
@@ -1856,7 +1861,7 @@ body.has-player {
 }
 .mushaf-svg-wrapper {
   width: 100%;
-  max-width: 520px;
+  max-width: 680px;
 }
 .mushaf-loading {
   color: var(--text-muted);
@@ -1865,14 +1870,44 @@ body.has-player {
   text-align: center;
 }
 .mushaf-detail-pane {
-  width: 320px;
-  min-width: 240px;
+  width: 340px;
+  min-width: 260px;
   border-left: 1px solid var(--border-color);
   overflow-y: auto;
   background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
+.mushaf-detail-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  position: sticky; top: 0; z-index: 2;
+  flex-shrink: 0;
+}
+.mushaf-detail-pane-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.mushaf-detail-close-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--trans);
+}
+.mushaf-detail-close-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--accent); }
+.mushaf-detail-close-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
 .mushaf-detail-empty {
   flex: 1;
   display: flex;
@@ -2067,3 +2102,145 @@ body.has-player {
   display: inline-block;
   margin-top: 0.5rem;
 }
+
+/* =====================================================
+   SPLIT MUSHAF & AYAH DETAIL MODE
+   ===================================================== */
+.split-mushaf-mode #view-area {
+  display: flex !important;
+  flex-direction: row;
+  height: 100%;
+}
+.split-mushaf-mode #view-mushaf {
+  display: flex !important;
+  flex: 1;
+  width: 50%;
+  height: 100%;
+  border-right: 1px solid var(--border-color);
+}
+.split-mushaf-mode #view-ayah {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1;
+  width: 50%;
+  height: 100%;
+  background: var(--bg-primary);
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+.split-mushaf-mode #mushaf-detail-pane {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  .split-mushaf-mode #view-area {
+    flex-direction: column;
+  }
+  .split-mushaf-mode #view-mushaf,
+  .split-mushaf-mode #view-ayah {
+    width: 100%;
+    height: 50%;
+  }
+}
+
+/* =====================================================
+   CREDITS & ACKNOWLEDGEMENTS
+   ===================================================== */
+.credits-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+.credits-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+.credits-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+}
+.credits-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.credits-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: transform var(--trans), border-color var(--trans);
+}
+.credits-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.credits-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+.credits-card p {
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  line-height: 1.7;
+}
+.credits-list {
+  list-style: none;
+  padding: 0;
+}
+.credits-list li {
+  color: var(--text-secondary);
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+.credits-list li::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+/* ---------- Theme-responsive Logos & Controls ---------- */
+.logo-img-dark,
+.logo-img-light {
+  display: none !important;
+}
+
+[data-theme="dark"] .logo-img-dark,
+[data-theme="sepia"] .logo-img-dark {
+  display: block !important;
+}
+
+[data-theme="light"] .logo-img-light {
+  display: block !important;
+}
+
+#ayah-detail-close-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--trans);
+  flex-shrink: 0;
+}
+#ayah-detail-close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+

@@ -122,6 +122,10 @@ if (!sessionStorage.getItem('tafsir_session_active')) {
   sessionStorage.setItem('tafsir_session_active', '1');
 }
 
+// Runtime-only (not persisted): tracks split-mushaf mode and active verse
+state.mushafSplitMode = false;
+state.currentSuraId = null;
+state.currentAyahNum = null;
 
 function applyLanguageDefaultTranslations(isInit = false) {
   if (isInit) {
@@ -1919,6 +1923,9 @@ async function triggerRouting() {
   closeSidebarMobile();
   
   if (hash === '#home' || hash === '' || hash === '#') {
+    // Exit split mode if active
+    state.mushafSplitMode = false;
+    document.body.classList.remove('split-mushaf-mode');
     switchView('home');
     updateBreadcrumbs('home');
     highlightActiveSuraInSidebar(null);
@@ -1932,9 +1939,15 @@ async function triggerRouting() {
       const sura = db.suraList.find(s => s.id === suraId);
       highlightActiveSuraInSidebar(suraId);
       
-      // Highlight corresponding tab
-      const tabSura = document.getElementById('tab-sura-list');
-      if (tabSura) tabSura.click();
+      // Track current sura/ayah for mushaf sync
+      state.currentSuraId = suraId;
+      state.currentAyahNum = targetVerse || null;
+
+      // Highlight corresponding tab (only if not in split mode, to avoid collapsing mushaf)
+      if (!state.mushafSplitMode) {
+        const tabSura = document.getElementById('tab-sura-list');
+        if (tabSura) tabSura.click();
+      }
 
       // First display of surah page and ayah page logic:
       // Open the display settings sidebar and set all options activated (if not done yet in this session)
@@ -1965,7 +1978,52 @@ async function triggerRouting() {
 
       if (targetVerse) {
         // --- Single Ayah View Mode ---
-        switchView('ayah');
+        if (state.mushafSplitMode) {
+          // SPLIT MODE: show Mushaf + Ayah side-by-side
+          document.body.classList.add('split-mushaf-mode');
+          const sidebarEl = document.getElementById('sidebar');
+          if (sidebarEl) sidebarEl.classList.add('collapsed');
+
+          // Fetch the mushaf page number for this verse and sync
+          let targetPage = null;
+          if (supabaseClient) {
+            try {
+              const { data: pageData } = await supabaseClient
+                .from('verses')
+                .select('page_number')
+                .eq('verse_key', `${suraId}:${targetVerse}`)
+                .maybeSingle();
+              if (pageData && pageData.page_number) targetPage = pageData.page_number;
+            } catch (e) { console.warn('[Routing] page_number fetch failed:', e); }
+          }
+
+          if (targetPage && targetPage !== mushafCurrentPage) {
+            // Page turn — loadMushafPage will auto-highlight
+            mushafCurrentPage = targetPage;
+            const slider = document.getElementById('mushaf-page-slider');
+            if (slider) slider.value = targetPage;
+            updateMushafPageLabel();
+            await loadMushafPage(targetPage);
+          } else {
+            // Same page — just update highlight
+            syncMushafHighlight();
+          }
+
+          // Activate both views side-by-side
+          switchView('mushaf');
+          const viewAyahEl = document.getElementById('view-ayah');
+          if (viewAyahEl) viewAyahEl.classList.add('active');
+          // Show close button in split mode
+          const splitCloseBtn = document.getElementById('ayah-detail-close-btn');
+          if (splitCloseBtn) splitCloseBtn.style.display = 'flex';
+        } else {
+          // NORMAL MODE: full-screen ayah view
+          document.body.classList.remove('split-mushaf-mode');
+          switchView('ayah');
+          // Hide close button in normal ayah view
+          const splitCloseBtn = document.getElementById('ayah-detail-close-btn');
+          if (splitCloseBtn) splitCloseBtn.style.display = 'none';
+        }
         updateBreadcrumbs('ayah', { sura, verse: targetVerse });
 
         // Render Header
@@ -2039,7 +2097,12 @@ async function triggerRouting() {
           }
         }
       } else {
-        // --- Sura List Mode ---
+        // --- Sura List Mode --- exit split mode
+        state.mushafSplitMode = false;
+        state.currentAyahNum = null;
+        document.body.classList.remove('split-mushaf-mode');
+        const sidebarElRestore = document.getElementById('sidebar');
+        if (sidebarElRestore) sidebarElRestore.classList.remove('collapsed');
         switchView('sura');
         updateBreadcrumbs('sura', { sura });
 
@@ -2090,6 +2153,8 @@ async function triggerRouting() {
       }
     }
   } else if (hash.startsWith('#topic/')) {
+    state.mushafSplitMode = false;
+    document.body.classList.remove('split-mushaf-mode');
     const tagId = decodeURIComponent(hash.substring(7));
     switchView('topic');
     highlightActiveSuraInSidebar(null);
@@ -2133,6 +2198,8 @@ async function triggerRouting() {
     await ensureActiveDatasets();
     renderTopicPage(verses, tagId, tag);
   } else if (hash.startsWith('#search/')) {
+    state.mushafSplitMode = false;
+    document.body.classList.remove('split-mushaf-mode');
     const query = decodeURIComponent(hash.substring(8));
     switchView('search');
     highlightActiveSuraInSidebar(null);
@@ -2366,12 +2433,27 @@ async function triggerRouting() {
 
     renderSearchPage(mergedResults, query);
   } else if (hash === '#mushaf') {
+    // Full-screen mushaf mode — exit split if active
+    state.mushafSplitMode = false;
+    document.body.classList.remove('split-mushaf-mode');
+    const viewAyahOnMushaf = document.getElementById('view-ayah');
+    if (viewAyahOnMushaf) viewAyahOnMushaf.classList.remove('active');
+    const mushafCloseBtn = document.getElementById('ayah-detail-close-btn');
+    if (mushafCloseBtn) mushafCloseBtn.style.display = 'none';
     switchView('mushaf');
     updateBreadcrumbs('home');
     highlightActiveSuraInSidebar(null);
     // Mushaf view loads SVG via its own controller
+  } else if (hash === '#credits') {
+    state.mushafSplitMode = false;
+    document.body.classList.remove('split-mushaf-mode');
+    switchView('credits');
+    updateBreadcrumbs('home');
+    highlightActiveSuraInSidebar(null);
   } else {
     // Fallback: unknown hash — show home
+    state.mushafSplitMode = false;
+    document.body.classList.remove('split-mushaf-mode');
     switchView('home');
     updateBreadcrumbs('home');
     renderHomeGrid();
@@ -2638,6 +2720,18 @@ function playNextAyah() {
       }
     } else if (isViewingDetail) {
       window.location.hash = `#sura/${sura}/verse/${ayah + 1}`;
+    } else if (hash === '#mushaf') {
+      (async () => {
+        const targetPage = await getVersePageNumber(sura, ayah + 1);
+        if (targetPage && targetPage !== mushafCurrentPage) {
+          mushafCurrentPage = targetPage;
+          const slider = document.getElementById('mushaf-page-slider');
+          if (slider) slider.value = targetPage;
+          updateMushafPageLabel();
+          await loadMushafPage(targetPage);
+        }
+        showMushafVerseDetail(sura, ayah + 1);
+      })();
     }
     
     setTimeout(() => {
@@ -2652,7 +2746,24 @@ function playNextAyah() {
     // End of sura, check for next sura
     if (sura < 114) {
       const nextSura = sura + 1;
-      window.location.hash = `#sura/${nextSura}`;
+      const hash = window.location.hash;
+      if (hash === '#mushaf') {
+        (async () => {
+          const targetPage = await getVersePageNumber(nextSura, 1);
+          if (targetPage && targetPage !== mushafCurrentPage) {
+            mushafCurrentPage = targetPage;
+            const slider = document.getElementById('mushaf-page-slider');
+            if (slider) slider.value = targetPage;
+            updateMushafPageLabel();
+            await loadMushafPage(targetPage);
+          }
+          showMushafVerseDetail(nextSura, 1);
+        })();
+      } else if (state.mushafSplitMode || isViewingDetail) {
+        window.location.hash = `#sura/${nextSura}/verse/1`;
+      } else {
+        window.location.hash = `#sura/${nextSura}`;
+      }
       setTimeout(() => {
         playAyah(`${nextSura}:1`);
       }, 1000);
@@ -2687,6 +2798,18 @@ function playPrevAyah() {
       }
     } else if (isViewingDetail) {
       window.location.hash = `#sura/${sura}/verse/${ayah - 1}`;
+    } else if (hash === '#mushaf') {
+      (async () => {
+        const targetPage = await getVersePageNumber(sura, ayah - 1);
+        if (targetPage && targetPage !== mushafCurrentPage) {
+          mushafCurrentPage = targetPage;
+          const slider = document.getElementById('mushaf-page-slider');
+          if (slider) slider.value = targetPage;
+          updateMushafPageLabel();
+          await loadMushafPage(targetPage);
+        }
+        showMushafVerseDetail(sura, ayah - 1);
+      })();
     }
     
     setTimeout(() => {
@@ -2702,7 +2825,24 @@ function playPrevAyah() {
       const prevSura = sura - 1;
       const prevSuraMeta = db.suraList.find(s => s.id === prevSura);
       if (prevSuraMeta) {
-        window.location.hash = `#sura/${prevSura}`;
+        const hash = window.location.hash;
+        if (hash === '#mushaf') {
+          (async () => {
+            const targetPage = await getVersePageNumber(prevSura, prevSuraMeta.ayas);
+            if (targetPage && targetPage !== mushafCurrentPage) {
+              mushafCurrentPage = targetPage;
+              const slider = document.getElementById('mushaf-page-slider');
+              if (slider) slider.value = targetPage;
+              updateMushafPageLabel();
+              await loadMushafPage(targetPage);
+            }
+            showMushafVerseDetail(prevSura, prevSuraMeta.ayas);
+          })();
+        } else if (state.mushafSplitMode || isViewingDetail) {
+          window.location.hash = `#sura/${prevSura}/verse/${prevSuraMeta.ayas}`;
+        } else {
+          window.location.hash = `#sura/${prevSura}`;
+        }
         setTimeout(() => {
           playAyah(`${prevSura}:${prevSuraMeta.ayas}`);
         }, 1000);
@@ -2802,6 +2942,18 @@ function updateAudioUI() {
   } else {
     player.classList.remove('visible');
   }
+
+  // Update Mushaf detail play/pause button if it exists
+  const mushafPlayBtn = document.getElementById('btn-play-mushaf-ayah');
+  if (mushafPlayBtn) {
+    const isPlaying = (currentPlayingKey === `${state.currentSuraId}:${state.currentAyahNum}` && isAudioPlaying);
+    mushafPlayBtn.textContent = isPlaying ? 'Pause Audio ⏸' : 'Play Audio ▶';
+  }
+
+  // Sync Mushaf SVG highlight
+  if (typeof syncMushafHighlight === 'function') {
+    syncMushafHighlight();
+  }
 }
 
 // =====================================================================
@@ -2833,6 +2985,54 @@ function updateMushafPageLabel() {
   if (el) el.textContent = `Page ${mushafCurrentPage} / 604`;
 }
 
+async function getVersePageNumber(suraId, ayahNum) {
+  if (supabaseClient) {
+    try {
+      const { data } = await supabaseClient
+        .from('verses')
+        .select('page_number')
+        .eq('verse_key', `${suraId}:${ayahNum}`)
+        .maybeSingle();
+      if (data && data.page_number) return data.page_number;
+    } catch (e) {
+      console.warn('[Page lookup] failed:', e);
+    }
+  }
+  return null;
+}
+window.getVersePageNumber = getVersePageNumber;
+
+function syncMushafHighlight() {
+  const wrapper = document.querySelector('.mushaf-svg-wrapper');
+  if (!wrapper) return;
+
+  // Clear previous fills
+  wrapper.querySelectorAll('.ayahPolygon').forEach(el => {
+    el.style.fill = '';
+    el.style.fillOpacity = '';
+  });
+
+  // 1. Highlight manual selection (or current verse)
+  const selSura = state.currentSuraId;
+  const selAyah = state.currentAyahNum;
+  if (selSura && selAyah) {
+    wrapper.querySelectorAll(`[surah="${selSura}"][ayah="${selAyah}"]`).forEach(el => {
+      el.style.fill = 'rgba(201,151,58,0.22)';
+      el.style.fillOpacity = '1';
+    });
+  }
+
+  // 2. Highlight currently playing verse (audio playing)
+  if (currentPlayingKey && isAudioPlaying) {
+    const [playSura, playAyah] = currentPlayingKey.split(':');
+    wrapper.querySelectorAll(`[surah="${playSura}"][ayah="${playAyah}"]`).forEach(el => {
+      el.style.fill = 'rgba(201,151,58,0.45)';
+      el.style.fillOpacity = '1';
+    });
+  }
+}
+window.syncMushafHighlight = syncMushafHighlight;
+
 async function loadMushafPage(pageNum) {
   const container = document.getElementById('mushaf-page-container');
   if (!container) return;
@@ -2852,23 +3052,48 @@ async function loadMushafPage(pageNum) {
       svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
       const style = document.createElement('style');
       style.textContent = `
-        .ayahPolygon { fill: transparent; cursor: pointer; pointer-events: auto !important; transition: fill 0.15s; }
-        .ayahPolygon:hover { fill: rgba(201,151,58,0.18) !important; }
+        .ayahPolygon { fill: transparent; fill-opacity: 0; cursor: pointer; pointer-events: auto !important; transition: fill 0.15s, fill-opacity 0.15s; }
+        .ayahPolygon:hover { fill: rgba(201,151,58,0.18) !important; fill-opacity: 1 !important; }
         svg *:not(.ayahPolygon) { pointer-events: none !important; }
+        /* Custom overrides to prevent dark text on dark background in Mushaf SVGs */
+        svg path[fill="#231f20"],
+        svg path[fill="#000000"],
+        svg path[fill="#000"],
+        svg path[fill="black"],
+        svg [fill="#231f20"],
+        svg [fill="#000000"] {
+          fill: var(--mushaf-text-color) !important;
+        }
+        svg rect[fill="#ffffff"],
+        svg rect[fill="#fff"],
+        svg rect[fill="white"] {
+          fill: transparent !important;
+        }
       `;
       svg.prepend(style);
     }
     container.innerHTML = '';
     container.appendChild(wrapper);
+    
+    // Automatically apply highlights
+    syncMushafHighlight();
+
     wrapper.addEventListener('click', (e) => {
       let t = e.target;
       while (t && t !== wrapper) {
         const sura = t.getAttribute('surah');
         const ayah = t.getAttribute('ayah');
         if (sura && ayah) {
-          wrapper.querySelectorAll('[surah]').forEach(el => el.style.fill = '');
-          wrapper.querySelectorAll(`[surah="${sura}"][ayah="${ayah}"]`).forEach(el => { el.style.fill = 'rgba(201,151,58,0.3)'; });
-          showMushafVerseDetail(parseInt(sura), parseInt(ayah));
+          const suraNum = parseInt(sura, 10);
+          const ayahNum = parseInt(ayah, 10);
+          state.currentSuraId = suraNum;
+          state.currentAyahNum = ayahNum;
+          
+          if (state.mushafSplitMode) {
+            window.location.hash = `#sura/${suraNum}/verse/${ayahNum}`;
+          } else {
+            showMushafVerseDetail(suraNum, ayahNum);
+          }
           return;
         }
         t = t.parentElement;
@@ -2880,11 +3105,16 @@ async function loadMushafPage(pageNum) {
 }
 
 async function showMushafVerseDetail(surahNum, ayahNum) {
+  state.currentSuraId = surahNum;
+  state.currentAyahNum = ayahNum;
+  
   const emptyEl = document.getElementById('mushaf-detail-empty');
   const contentEl = document.getElementById('mushaf-detail-content');
+  const detailPane = document.getElementById('mushaf-detail-pane');
   if (!contentEl) return;
   if (emptyEl) emptyEl.style.display = 'none';
   contentEl.style.display = 'block';
+  if (detailPane) detailPane.style.display = 'flex';
   contentEl.innerHTML = '<div class="mushaf-detail-loading">Loading…</div>';
   const verseKey = `${surahNum}:${ayahNum}`;
   const arabicText = db.quranArabic ? (db.quranArabic[verseKey] || '') : '';
@@ -2901,16 +3131,39 @@ async function showMushafVerseDetail(surahNum, ayahNum) {
       if (tafsirData) tafsirText = tafsirData.text;
     } catch (e) { console.warn('[Mushaf] verse detail fetch failed:', e); }
   }
+  
+  // Apply visual highlight immediately on selection
+  syncMushafHighlight();
+  
   const suraMeta = db.suraList ? db.suraList.find(s => s.id === surahNum) : null;
   const suraName = suraMeta ? (state.uiLang === 'id' ? suraMeta.name_id : suraMeta.name_en) : `Surah ${surahNum}`;
+  
+  const isPlaying = (currentPlayingKey === verseKey && isAudioPlaying);
+  const playLabel = isPlaying ? 'Pause Audio ⏸' : 'Play Audio ▶';
+  
   contentEl.innerHTML = `
     <div class="mushaf-verse-key">${suraName} ${verseKey}</div>
     ${arabicText ? `<div class="mushaf-verse-arabic" lang="ar">${arabicText}</div>` : ''}
     ${transText ? `<div class="mushaf-verse-trans">${transText}</div>` : ''}
     ${tafsirText ? `<details class="mushaf-verse-tafsir-wrap"><summary>Tafsir</summary><div class="mushaf-verse-tafsir">${tafsirText}</div></details>` : ''}
-    <a class="btn btn-outline" style="display:block;margin-top:1rem;text-align:center;" href="#sura/${surahNum}/verse/${ayahNum}">Open Full Detail →</a>
+    <div class="mushaf-detail-actions" style="display:flex;gap:0.5rem;margin-top:1rem;">
+      <button class="btn btn-primary" id="btn-play-mushaf-ayah" style="flex:1;text-align:center;" onclick="togglePlayAyah('${verseKey}')">
+        ${playLabel}
+      </button>
+      <button class="btn btn-outline" style="flex:1;text-align:center;" onclick="openMushafSplitDetail(${surahNum}, ${ayahNum})">Open Detail →</button>
+    </div>
   `;
 }
+
+function openMushafSplitDetail(suraId, ayahId) {
+  state.mushafSplitMode = true;
+  document.body.classList.add('split-mushaf-mode');
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.add('collapsed');
+  window.location.hash = `#sura/${suraId}/verse/${ayahId}`;
+}
+window.openMushafSplitDetail = openMushafSplitDetail;
+window.togglePlayAyah = togglePlayAyah;
 
 // =====================================================================
 // --- AUTH CONTROLLER ---
@@ -3223,9 +3476,19 @@ function setupEventBindings() {
 
       const viewName = tab.dataset.view;
 
-      // Mushaf and Admin tabs switch the main view area instead of the sidebar panel
+      if (viewName === 'sura-list' || viewName === 'topic-index') {
+        if (window.location.hash === '#mushaf' || window.location.hash === '#credits' || state.mushafSplitMode) {
+          window.location.hash = '#home';
+        }
+      }
+
+      // Mushaf, Credits, and Admin tabs switch the main view area instead of the sidebar panel
       if (viewName === 'mushaf') {
         window.location.hash = '#mushaf';
+        return;
+      }
+      if (viewName === 'credits') {
+        window.location.hash = '#credits';
         return;
       }
       if (viewName === 'admin') {
@@ -3273,16 +3536,75 @@ function setupEventBindings() {
   }
   if (overlay) overlay.onclick = closeSidebarMobile;
 
-  // Comparison Panel Toggle Drawer
+  // Comparison Panel Toggle Drawer (Floating Overlay with backdrop)
   const compToggle = document.getElementById('comparison-toggle-btn');
   const compClose = document.getElementById('comparison-panel-close');
   const compPanel = document.getElementById('comparison-panel');
+  const compBackdrop = document.getElementById('comparison-panel-backdrop');
 
-  if (compToggle && compPanel) {
-    compToggle.onclick = () => compPanel.classList.toggle('open');
+  const openCompPanel = () => {
+    if (compPanel) compPanel.classList.add('open');
+    if (compBackdrop) compBackdrop.classList.add('active');
+  };
+
+  const closeCompPanel = () => {
+    if (compPanel) compPanel.classList.remove('open');
+    if (compBackdrop) compBackdrop.classList.remove('active');
+  };
+
+  if (compToggle) {
+    compToggle.onclick = () => {
+      if (compPanel && compPanel.classList.contains('open')) {
+        closeCompPanel();
+      } else {
+        openCompPanel();
+      }
+    };
   }
-  if (compClose && compPanel) {
-    compClose.onclick = () => compPanel.classList.remove('open');
+  if (compClose) {
+    compClose.onclick = closeCompPanel;
+  }
+  if (compBackdrop) {
+    compBackdrop.onclick = closeCompPanel;
+  }
+
+  // Mushaf Detail close button trigger
+  const mushafDetailClose = document.getElementById('mushaf-detail-close-btn');
+  if (mushafDetailClose) {
+    mushafDetailClose.onclick = () => {
+      const detailPane = document.getElementById('mushaf-detail-pane');
+      if (detailPane) detailPane.style.display = 'none';
+      state.currentSuraId = null;
+      state.currentAyahNum = null;
+      syncMushafHighlight();
+    };
+  }
+
+  // Ayah Detail close button trigger (exit split-screen mode, return to full Mushaf)
+  const ayahDetailClose = document.getElementById('ayah-detail-close-btn');
+  if (ayahDetailClose) {
+    ayahDetailClose.onclick = () => {
+      state.mushafSplitMode = false;
+      document.body.classList.remove('split-mushaf-mode');
+      const viewAyah = document.getElementById('view-ayah');
+      if (viewAyah) viewAyah.classList.remove('active');
+      ayahDetailClose.style.display = 'none';
+      window.location.hash = '#mushaf';
+    };
+  }
+
+  // Mushaf toolbar Exit button trigger (exit Mushaf entirely, return to Home)
+  const mushafExitBtn = document.getElementById('mushaf-exit-btn');
+  if (mushafExitBtn) {
+    mushafExitBtn.onclick = () => {
+      state.mushafSplitMode = false;
+      document.body.classList.remove('split-mushaf-mode');
+      const viewAyah = document.getElementById('view-ayah');
+      if (viewAyah) viewAyah.classList.remove('active');
+      const closeBtn2 = document.getElementById('ayah-detail-close-btn');
+      if (closeBtn2) closeBtn2.style.display = 'none';
+      window.location.hash = '#home';
+    };
   }
 
   // Topbar search button trigger (focuses search in sidebar)

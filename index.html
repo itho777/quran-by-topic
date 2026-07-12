@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
+  <script>
+    (function() {
+      try {
+        var settings = JSON.parse(localStorage.getItem('tafsir_settings'));
+        if (settings && settings.theme) {
+          document.documentElement.setAttribute('data-theme', settings.theme);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tafseer.id – Understand the Qur'an</title>
@@ -22,10 +32,11 @@
 
 <!-- ===================== SPLASH SCREEN ===================== -->
 <div id="splash" class="splash">
-  <div class="splash-logo">
-    <div class="splash-bismillah" lang="ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-    <h1 class="splash-title">Tafseer.id</h1>
-    <p class="splash-subtitle">Understand the Qur'an</p>
+  <div class="splash-logo" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <div class="splash-bismillah" lang="ar" style="margin-bottom:0.5rem;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+    <img src="logo-dark-trans.png" class="logo-img-splash logo-img-dark" alt="Tafseer.id Logo" style="height:160px;width:auto;display:block;max-width:90%;object-fit:contain;" />
+    <img src="logo-light-trans.png" class="logo-img-splash logo-img-light" alt="Tafseer.id Logo" style="height:160px;width:auto;display:block;max-width:90%;object-fit:contain;" />
+    <p class="splash-subtitle" style="font-size:1.1rem;letter-spacing:0.04em;font-style:italic;color:var(--text-muted);margin-top:4px;">Baca · Pahami · Amalkan</p>
   </div>
   <div class="splash-loader">
     <div class="splash-progress-bar"><div class="splash-progress-fill" id="splash-progress"></div></div>
@@ -39,9 +50,10 @@
   <!-- === SIDEBAR === -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">
-        <span class="sidebar-logo-ar" lang="ar">تفسير</span>
-        <span class="sidebar-logo-en">Tafseer.id</span>
+      <div class="sidebar-logo" style="cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:4px;" onclick="window.location.hash='#home'">
+        <img src="logo-dark-trans.png" class="logo-img logo-img-dark" alt="Tafseer.id Logo" style="height:32px;width:auto;display:block;" />
+        <img src="logo-light-trans.png" class="logo-img logo-img-light" alt="Tafseer.id Logo" style="height:32px;width:auto;display:block;" />
+        <span style="font-size:0.62rem;color:var(--text-muted);letter-spacing:0.04em;font-style:italic;margin-top:2px;">Baca · Pahami · Amalkan</span>
       </div>
       <button class="btn-icon sidebar-close" id="sidebar-close-btn" aria-label="Close sidebar">
         <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -76,6 +88,10 @@
       <button class="nav-tab" data-view="settings" id="tab-settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
+      </button>
+      <button class="nav-tab" data-view="credits" id="tab-credits">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        Credits
       </button>
       <button class="nav-tab" data-view="admin" id="tab-admin" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
@@ -263,8 +279,11 @@
       <div class="view active" id="view-home">
         <div class="home-hero">
           <p class="home-hero-arabic" lang="ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
-          <h2 class="home-hero-title">Tafseer.id</h2>
-          <p class="home-hero-subtitle">Read, Comprehend, Apply</p>
+          <div style="display:flex;justify-content:center;margin-bottom:1rem;">
+            <img src="logo-dark-trans.png" class="logo-img logo-img-dark" alt="Tafseer.id Logo" style="height:100px;width:auto;display:block;" />
+            <img src="logo-light-trans.png" class="logo-img logo-img-light" alt="Tafseer.id Logo" style="height:100px;width:auto;display:block;" />
+          </div>
+          <p class="home-hero-subtitle">Baca · Pahami · Amalkan</p>
           <div class="home-advanced-search">
             <div class="adv-search-row">
               <input type="text" id="adv-search-input" class="input-text" placeholder="Search in the Qur'an…" autocomplete="off" />
@@ -303,8 +322,13 @@
 
       <!-- AYAH DETAIL VIEW -->
       <div class="view" id="view-ayah">
-        <div class="ayah-detail-header" id="ayah-detail-header">
-          <!-- Populated by JS -->
+        <div class="ayah-detail-header-wrapper" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+          <div class="ayah-detail-header" id="ayah-detail-header" style="flex:1;">
+            <!-- Populated by JS -->
+          </div>
+          <button class="btn-icon" id="ayah-detail-close-btn" style="display:none;margin-top:4px;" title="Close details" aria-label="Close verse details">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
         <div class="verse-list" id="ayah-detail-content">
           <!-- Populated by JS -->
@@ -339,12 +363,19 @@
             <input type="range" id="mushaf-page-slider" min="1" max="604" value="1" />
           </div>
           <button class="btn-icon" id="mushaf-next-btn" title="Next page" aria-label="Next mushaf page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg></button>
+          <button class="btn-icon" id="mushaf-exit-btn" title="Exit Mushaf" aria-label="Exit Mushaf" style="margin-left: 0.5rem; color: var(--text-muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
         <div class="mushaf-layout">
           <div class="mushaf-page-container" id="mushaf-page-container">
             <div class="mushaf-loading">Loading Mushaf…</div>
           </div>
-          <div class="mushaf-detail-pane" id="mushaf-detail-pane">
+          <div class="mushaf-detail-pane" id="mushaf-detail-pane" style="display:none">
+            <div class="mushaf-detail-pane-header">
+              <span class="mushaf-detail-pane-title">Verse Details</span>
+              <button class="mushaf-detail-close-btn" id="mushaf-detail-close-btn" title="Close details" aria-label="Close verse details">
+                <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
             <div class="mushaf-detail-empty" id="mushaf-detail-empty">
               <p>👆 Tap a verse on the Mushaf to see its details here</p>
             </div>
@@ -353,10 +384,50 @@
         </div>
       </div>
 
+      <!-- CREDITS VIEW -->
+      <div class="view" id="view-credits">
+        <div class="credits-container">
+          <div class="credits-header">
+            <svg class="credits-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+            <h2 class="credits-title">Credits</h2>
+          </div>
+          
+          <div class="credits-card">
+            <ul class="credits-list">
+              <li>Allah Azza wa Jalla</li>
+              <li>Prophet Muhammad PBUH</li>
+              <li>Family and Friends</li>
+              <li>Tanzil.net - qur'an text, translations, transliterations</li>
+              <li>everyayah.com - audio stream</li>
+              <li>Quranpedia (Hafs KFQC SVG) <a href="https://github.com/quranpedia/quran-svg" target="_blank" rel="noopener">https://github.com/quranpedia/quran-svg</a></li>
+              <li>mp3quran.net</li>
+              <li>AL SADIQIN Press, Al Sadiqin Institute and Ben Abrahamson (<a href="mailto:abrahamson@alsadiqin.org">abrahamson@alsadiqin.org</a>) - Tafsir Tabari, Baghawi, Qurtubi, Baidawi, Ibn Kathir, Jalalayn, Suyuti & Fath al-Qadir - <a href="https://alsadiqin.org/tafsir/" target="_blank" rel="noopener">https://alsadiqin.org/tafsir/</a></li>
+              <li>Royal Aal al-Bayt Institute for Islamic Thought, Amman, Jordan - Asbāb al-Nuzūl by Alī ibn Ahmad al-Wāhidī</li>
+              <li>Lajnah Pentashihan Mushaf Al-Qur’an, Badan Litbang dan Diklat Kementerian Agama RI - ASBÀBUN-NUZÙL: Kronologi dan Sebab Turun Wahyu Al-Qur’an, Muchlis M. Hanafi (ed.)</li>
+              <li>H. Suhardi - INDEKS AL-QUR’AN Cara Mudah Mencari Rujukan Ayat-Ayat al-Qur’an</li>
+              <li>Abu Farhah - Indeks Quran.xls</li>
+              <li><a href="https://kongsiebooks.blogspot.com/2010/04/islam-indeks-al-quran.html" target="_blank" rel="noopener">https://kongsiebooks.blogspot.com/2010/04/islam-indeks-al-quran.html</a></li>
+              <li><a href="http://qurankuquranmu.blogspot.com/2012/12/indeks-al-quran-berdasarkan-klasifikasi.html" target="_blank" rel="noopener">http://qurankuquranmu.blogspot.com/2012/12/indeks-al-quran-berdasarkan-klasifikasi.html</a></li>
+              <li><a href="https://saadus.wordpress.com/2011/02/05/indeks-al-quran-ms-excel-dan-ms-access/" target="_blank" rel="noopener">https://saadus.wordpress.com/2011/02/05/indeks-al-quran-ms-excel-dan-ms-access/</a></li>
+              <li>Google - Aplphabet Inc.</li>
+              <li>GitHub</li>
+              <li>Cloudflare</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
-  <!-- === COMPARISON PANEL (slide-in from right) === -->
+  <!-- Backdrop for comparison panel -->
+  <div class="comparison-panel-backdrop" id="comparison-panel-backdrop"></div>
+
+  <!-- === COMPARISON PANEL (floating overlay from right) === -->
   <aside class="comparison-panel" id="comparison-panel">
     <div class="comparison-panel-header">
       <h3>Display Settings</h3>

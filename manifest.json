@@ -1,6 +1,6 @@
 {
-  "name": "Tafsir – Understand the Qur'an",
-  "short_name": "Tafsir",
+  "name": "Tafseer.id – Understand the Qur'an",
+  "short_name": "Tafseer.id",
   "description": "A beautiful, modern, offline-first Qur'an translation and Tafsir comparison tool.",
   "start_url": "./index.html",
   "display": "standalone",

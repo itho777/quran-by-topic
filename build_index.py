@@ -50,13 +50,14 @@ print("Reading registry.json...")
 with open('data/registry.json', encoding='utf-8-sig') as f:
     registry = json.load(f)
 
-sources = (
+all_sources = (
     registry.get('translations', []) +
     registry.get('tafsirs', []) +
     registry.get('asbabun_nuzul', [])
 )
+sources = [s for s in all_sources if s.get('lang') in ('en', 'id', 'ar')]
 total = len(sources)
-print(f"Total sources to index: {total}\n")
+print(f"Total sources to index (EN/ID/AR): {total}\n")
 
 temp_index = {}
 t0 = time.time()

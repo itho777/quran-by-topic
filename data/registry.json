@@ -792,7 +792,8 @@
     {
       "id": "en.tabari",
       "name": "Tafsir al-Tabari (EN)",
-      "file": "data/tafsirs/en.tabari.json",
+      "file": "data/tafsirs/en.tabari.chunks.json",
+      "chunked": true,
       "lang": "en"
     },
     {
@@ -816,7 +817,8 @@
     {
       "id": "en.katsir_pdf",
       "name": "Tafsir Ibn Kathir (EN)",
-      "file": "data/tafsirs/en.katsir_pdf.json",
+      "file": "data/tafsirs/en.katsir_pdf.chunks.json",
+      "chunked": true,
       "lang": "en"
     },
     {

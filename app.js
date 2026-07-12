@@ -235,6 +235,8 @@ const i18n = {
 class Database {
   constructor() {
     this.cache = new Map();
+    this.chunkManifests = new Map(); // file -> {chunks:[...]} for chunked sources
+    this.loadedChunks = new Set();   // tracks which chunk files have been fetched
     this.registry = null;
     this.suraList = null;
     this.quranArabic = null;
@@ -282,7 +284,46 @@ class Database {
     this.cache.set(file, data);
     return data;
   }
+
+  // Load a single surah chunk for a chunked tafsir source.
+  // Returns the unified merged data object (keyed by verseKey) for that source.
+  async getChunkedResource(src, suraNum) {
+    const manifestFile = src.file; // e.g. data/tafsirs/en.katsir_pdf.chunks.json
+    const cacheKey = manifestFile.replace('.chunks.json', '.json'); // virtual unified key
+
+    // Fetch manifest once
+    if (!this.chunkManifests.has(manifestFile)) {
+      const res = await fetch(manifestFile);
+      const manifest = await res.json();
+      this.chunkManifests.set(manifestFile, manifest);
+      this.cache.set(cacheKey, {}); // initialise empty unified cache
+    }
+
+    const manifest = this.chunkManifests.get(manifestFile);
+    const unified  = this.cache.get(cacheKey);
+
+    // Derive chunk file path for the requested surah
+    const padded    = String(suraNum).padStart(3, '0');
+    const chunkFile = manifest.chunks.find(c => c.endsWith(`/${padded}.json`));
+    if (!chunkFile || this.loadedChunks.has(chunkFile)) {
+      return unified; // already loaded or surah not present
+    }
+
+    // Fetch and merge the chunk
+    const res       = await fetch(chunkFile);
+    const chunkData = await res.json();
+    Object.assign(unified, chunkData);
+    this.loadedChunks.add(chunkFile);
+    return unified;
+  }
+
+  // Convenience: return the already-merged data for a chunked source (no fetch).
+  getCachedChunked(src) {
+    const cacheKey = src.file.replace('.chunks.json', '.json');
+    return this.cache.get(cacheKey) || null;
+  }
 }
+
 
 const db = new Database();
 let tagLookup = new Map();
@@ -359,8 +400,9 @@ function applyLocalization() {
 }
 
 // --- 4. Lazy-loading Required Datasets ---
-async function ensureActiveDatasets() {
+async function ensureActiveDatasets(suraNum) {
   const promises = [];
+  const sura = suraNum || getActiveSuraId();
   
   if (state.layers.trans1 && state.activeTranslation1) {
     const item = db.registry.translations.find(t => t.id === state.activeTranslation1);
@@ -372,11 +414,15 @@ async function ensureActiveDatasets() {
   }
   if (state.layers.tafsir1 && state.activeTafsir1) {
     const item = db.registry.tafsirs.find(t => t.id === state.activeTafsir1);
-    if (item) promises.push(db.getResource(item.file));
+    if (item) {
+      promises.push(item.chunked ? db.getChunkedResource(item, sura) : db.getResource(item.file));
+    }
   }
   if (state.layers.tafsir2 && state.activeTafsir2) {
     const item = db.registry.tafsirs.find(t => t.id === state.activeTafsir2);
-    if (item) promises.push(db.getResource(item.file));
+    if (item) {
+      promises.push(item.chunked ? db.getChunkedResource(item, sura) : db.getResource(item.file));
+    }
   }
   if (state.layers.nuzul1 && state.activeNuzul1) {
     const item = db.registry.asbabun_nuzul.find(n => n.id === state.activeNuzul1);
@@ -392,6 +438,13 @@ async function ensureActiveDatasets() {
   }
   
   await Promise.all(promises);
+}
+
+// Return cached tafsir data regardless of whether the source is chunked or not.
+function getTafsirData(item) {
+  if (!item) return null;
+  if (item.chunked) return db.getCachedChunked(item);
+  return db.cache.get(item.file) || null;
 }
 
 // Dynamically reloads the tags dataset when lang or active tags dataset changes
@@ -1151,7 +1204,7 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all tafsirs
   db.registry.tafsirs.forEach(t => {
-    const data = db.cache.get(t.file);
+    const data = getTafsirData(t);
     if (data) {
       const text = resolveTafsirText(data, verseKey);
       if (textMatchesQuery(text, query)) {
@@ -1306,10 +1359,12 @@ async function findMatchingSource(verseKey, query, btn) {
     ...db.registry.asbabun_nuzul.map(s => ({ src: s, type: 'asbabun_nuzul' }))
   ];
 
-  await Promise.all(allSources.map(({ src }) => db.getResource(src.file).catch(() => null)));
+  await Promise.all(allSources.map(({ src }) =>
+    src.chunked ? Promise.resolve(null) : db.getResource(src.file).catch(() => null)
+  ));
 
   for (const { src, type } of allSources) {
-    const data = db.cache.get(src.file);
+    const data = type === 'tafsirs' ? getTafsirData(src) : db.cache.get(src.file);
     if (!data) continue;
     const text = type === 'tafsirs'
       ? resolveTafsirText(data, verseKey)
@@ -1554,7 +1609,7 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
     if (state.layers.tafsir1 && state.activeTafsir1) {
       const tInfo = db.registry.tafsirs.find(t => t.id === state.activeTafsir1);
       if (tInfo) {
-        const data = db.cache.get(tInfo.file);
+        const data = getTafsirData(tInfo);
         const text = resolveTafsirText(data, verseKey);
         if (text) {
           bodyHtml += `
@@ -1571,7 +1626,7 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
     if (state.layers.tafsir2 && state.activeTafsir2) {
       const tInfo = db.registry.tafsirs.find(t => t.id === state.activeTafsir2);
       if (tInfo) {
-        const data = db.cache.get(tInfo.file);
+        const data = getTafsirData(tInfo);
         const text = resolveTafsirText(data, verseKey);
         if (text) {
           bodyHtml += `
@@ -2139,11 +2194,13 @@ async function triggerRouting() {
       showProgress(isId ? 'Mencari di semua sumber...' : 'Scanning all sources...');
       await Promise.all([
         ...db.registry.translations.map(t => db.getResource(t.file).catch(() => null)),
-        ...db.registry.tafsirs.map(t => db.getResource(t.file).catch(() => null)),
+        // Only fetch non-chunked tafsirs; chunked ones are too large to bulk-fetch here
+        ...db.registry.tafsirs.filter(t => !t.chunked).map(t => db.getResource(t.file).catch(() => null)),
         ...db.registry.asbabun_nuzul.map(n => db.getResource(n.file).catch(() => null))
       ]);
       for (const src of [...db.registry.translations, ...db.registry.tafsirs, ...db.registry.asbabun_nuzul]) {
-        const data = db.cache.get(src.file);
+        // For chunked tafsirs use the virtual merged cache, for others use the direct cache
+        const data = src.chunked ? getTafsirData(src) : db.cache.get(src.file);
         if (!data) continue;
         for (const key in data) {
           if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {

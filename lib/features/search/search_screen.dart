@@ -25,6 +25,7 @@ class _SearchScreenState extends State<SearchScreen> {
   late final TextEditingController _controller;
   List<Map<String, dynamic>> _results = [];
   bool _loading = false;
+  String _loadingStatus = '';
   bool _loadingMore = false;
   bool _hasMore = true;
   String _error = '';
@@ -97,6 +98,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (query.trim().isEmpty) return;
     setState(() {
       _loading = true;
+      _loadingStatus = _langCode == 'id' ? 'Mencari...' : 'Searching...';
       _error = '';
       _results = [];
       _hasMore = true;
@@ -226,32 +228,62 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _performSemanticSearch(String query) async {
     try {
-      // 1. Get embedding from HuggingFace router (api-inference subdomain is blocked on some networks;
-      //    router.huggingface.co is the newer, reachable endpoint that supports BAAI/bge-small-en-v1.5).
       final hfToken = 'hf_' 'MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN';
       const hfUrl   = 'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5';
 
-      final response = await http.post(
-        Uri.parse(hfUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $hfToken',
-        },
-        body: json.encode({'inputs': [query.trim()]}),
-      ).timeout(const Duration(seconds: 20));
+      List<double>? queryEmbedding;
+      const int attempts = 3;
+      const int delaySeconds = 5;
 
-      if (response.statusCode != 200) {
-        throw Exception('HF router returned ${response.statusCode}: ${response.body}');
+      for (int i = 1; i <= attempts; i++) {
+        setState(() {
+          _loadingStatus = _langCode == 'id'
+              ? 'Menghubungkan ke AI...'
+              : 'Connecting to AI...';
+        });
+
+        final response = await http.post(
+          Uri.parse(hfUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $hfToken',
+          },
+          body: json.encode({'inputs': [query.trim()]}),
+        ).timeout(const Duration(seconds: 20));
+
+        if (response.statusCode == 200) {
+          final List<dynamic> resData = json.decode(response.body);
+          if (resData.isEmpty || resData[0] is! List) {
+            throw Exception('Unexpected embedding response format');
+          }
+          queryEmbedding = List<double>.from(
+            (resData[0] as List<dynamic>).map((e) => (e as num).toDouble())
+          );
+          break;
+        } else if (response.statusCode == 503) {
+          if (i == attempts) {
+            throw Exception('AI Model failed to load after $attempts attempts.');
+          }
+          setState(() {
+            _loadingStatus = _langCode == 'id'
+                ? 'AI Model sedang bersiap (warming up)... Percobaan $i/$attempts'
+                : 'AI Model is warming up... Attempt $i/$attempts';
+          });
+          await Future.delayed(const Duration(seconds: delaySeconds));
+        } else {
+          throw Exception('HF router returned ${response.statusCode}: ${response.body}');
+        }
       }
 
-      final List<dynamic> resData = json.decode(response.body);
-      if (resData.isEmpty || resData[0] is! List) {
-        throw Exception('Unexpected embedding response format: ${response.body.substring(0, 200)}');
+      if (queryEmbedding == null) {
+        throw Exception('Failed to generate query embedding.');
       }
 
-      final List<double> queryEmbedding = List<double>.from(
-        (resData[0] as List<dynamic>).map((e) => (e as num).toDouble())
-      );
+      setState(() {
+        _loadingStatus = _langCode == 'id'
+            ? 'Mencari di basis data...'
+            : 'Searching database...';
+      });
 
       // 2. Query pgvector via Supabase RPC
       final res = await Supabase.instance.client.rpc('semantic_search_verses', params: {
@@ -602,6 +634,24 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ],
           ),
+        ),
+      );
+    }
+
+    if (_loading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              _loadingStatus.isNotEmpty 
+                  ? _loadingStatus 
+                  : (_langCode == 'id' ? 'Mencari...' : 'Searching...'),
+              style: TextStyle(color: AppTheme.outline, fontSize: 13),
+            ),
+          ],
         ),
       );
     }

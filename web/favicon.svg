@@ -1,4 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="128" fill="#0d0d10"/>
-  <path fill="#c9973a" d="M256 90c-90 0-166 76-166 166s76 166 166 166 166-76 166-166S346 90 256 90zm0 40c70 0 126 56 126 126S326 382 256 382 130 326 130 256s56-126 126-126zm-40 60v132l100-66z"/>
+  <rect width="512" height="512" rx="112" fill="#0d0d10"/>
+  <!-- Islamic geometric mandala mark matching Tafseer.id logo -->
+  <!-- Outer 8-pointed star petals -->
+  <g transform="translate(256,256)" fill="none" stroke="#c9973a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Outer petal layer -->
+    <polygon points="0,-165 18,-110 0,-80 -18,-110" opacity="0.9"/>
+    <polygon points="117,-117 88,-72 60,-88 90,-126" opacity="0.9"/>
+    <polygon points="165,0 110,-18 80,0 110,18" opacity="0.9"/>
+    <polygon points="117,117 72,88 88,60 126,90" opacity="0.9"/>
+    <polygon points="0,165 18,110 0,80 -18,110" opacity="0.9"/>
+    <polygon points="-117,117 -88,72 -60,88 -90,126" opacity="0.9"/>
+    <polygon points="-165,0 -110,18 -80,0 -110,-18" opacity="0.9"/>
+    <polygon points="-117,-117 -72,-88 -88,-60 -126,-90" opacity="0.9"/>
+    <!-- Middle interlocking ring -->
+    <circle cx="0" cy="0" r="100" stroke-width="12" opacity="0.7"/>
+    <circle cx="0" cy="0" r="68" stroke-width="10" opacity="0.8"/>
+    <!-- Inner star -->
+    <polygon points="0,-60 17,-17 60,0 17,17 0,60 -17,17 -60,0 -17,-17" stroke-width="9" opacity="0.9"/>
+    <!-- Centre knot -->
+    <circle cx="0" cy="0" r="24" stroke-width="10" fill="#c9973a" opacity="0.5"/>
+    <circle cx="0" cy="0" r="12" fill="#c9973a" opacity="0.9"/>
+  </g>
 </svg>

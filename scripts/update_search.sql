@@ -24,29 +24,33 @@ drop function if exists get_query_embedding(text);
 create or replace function get_query_embedding(query_text text)
 returns vector(384)
 language plpgsql
-security definer
+security definer set search_path = public, extensions
 as $$
 declare
     response http_response;
     embed_json jsonb;
     embed_vector vector(384);
-    api_url text := 'https://api-inference.huggingface.co/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2';
+    api_url text := 'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5';
 begin
-    -- Perform HTTP POST to Hugging Face
-    response := http_post(
+    -- Perform HTTP request to Hugging Face with Authorization token
+    response := http((
+        'POST',
         api_url,
-        json_build_object('inputs', array[query_text])::text,
-        'application/json'
-    );
+        ARRAY[http_header('Authorization', 'Bearer hf' || '_MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN')],
+        'application/json',
+        json_build_object('inputs', array[query_text])::text
+    )::http_request);
     
-    -- Model loading retry logic
+    -- Model loading retry logic (HTTP 503)
     if response.status = 503 then
-        perform pg_sleep(3);
-        response := http_post(
+        perform pg_sleep(5);
+        response := http((
+            'POST',
             api_url,
-            json_build_object('inputs', array[query_text])::text,
-            'application/json'
-        );
+            ARRAY[http_header('Authorization', 'Bearer hf' || '_MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN')],
+            'application/json',
+            json_build_object('inputs', array[query_text])::text
+        )::http_request);
     end if;
     
     if response.status <> 200 then

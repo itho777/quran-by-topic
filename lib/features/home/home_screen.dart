@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,11 +26,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _semanticSearch = false;
   final _searchController = TextEditingController();
   String get _currentLang => ref.watch(settingsProvider).appLanguage;
-  int _selectedSurahId = 1;
-  final _ayahController = TextEditingController(text: '1');
   Map<String, dynamic>? _lastRead;
-  bool _loadingSurahs = true;
-  final String _surahSearchQuery = '';
 
   // Featured Ayah of the Day
   String _featuredVerseKey = '2:255';  // default: Ayat Kursi
@@ -45,19 +40,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _homeHeroTitle = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
   String _homeHeroSubtitle = 'In the name of Allah, the Most Gracious, the Most Merciful';
 
-  // Initial fallback list of surahs for the dropdown
-  List<Map<String, dynamic>> _dropdownSurahs = [
-    {'id': 1, 'name': '1. Al-Fatihah'},
-    {'id': 2, 'name': '2. Al-Baqarah'},
-    {'id': 3, 'name': '3. Ali \'Imran'},
-    {'id': 4, 'name': '4. An-Nisa\''},
-    {'id': 5, 'name': '5. Al-Ma\'idah'},
-  ];
+
 
   @override
   void initState() {
     super.initState();
-    _loadSurahs();
     _loadLastRead();
     _loadFeaturedAyah();
   }
@@ -198,36 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _loadSurahs() async {
-    try {
-      final res = await Supabase.instance.client
-          .from('surahs')
-          .select('id, name_en, name_id, ayas')
-          .order('id', ascending: true);
-      
-      final list = List<Map<String, dynamic>>.from(res);
-      if (list.isNotEmpty && mounted) {
-        setState(() {
-          _dropdownSurahs = list;
-          _loadingSurahs = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading surahs: $e');
-      if (mounted) {
-        setState(() => _loadingSurahs = false);
-      }
-    }
-  }
 
-  int get _maxAyas {
-    if (_dropdownSurahs.isEmpty) return 7;
-    final s = _dropdownSurahs.firstWhere(
-      (x) => x['id'] == _selectedSurahId,
-      orElse: () => {'id': 1, 'ayas': 7},
-    );
-    return (s['ayas'] as num?)?.toInt() ?? 7;
-  }
 
   String _getTimeAgo(int timestamp, bool isEn) {
     final diff = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
@@ -266,142 +224,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  void _goSpecificAyah() {
-    final ayah = int.tryParse(_ayahController.text) ?? 1;
-    final clamped = ayah.clamp(1, _maxAyas);
-    context.go('/mushaf?verse_key=$_selectedSurahId:$clamped');
-  }
 
-  void _showSurahPicker() {
-    final isEn = _currentLang == 'en';
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.surfaceContainerHigh,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        String query = '';
-        return StatefulBuilder(builder: (ctx2, setSheet) {
-          final filtered = _dropdownSurahs.where((s) {
-            if (query.isEmpty) return true;
-            final nameEn = (s['name_en'] ?? '').toLowerCase();
-            final nameId = (s['name_id'] ?? '').toLowerCase();
-            final id = '${s['id']}';
-            final q = query.toLowerCase();
-            return nameEn.contains(q) || nameId.contains(q) || id.contains(q);
-          }).toList();
-          return Container(
-            height: MediaQuery.of(ctx2).size.height * 0.7,
-            padding: EdgeInsets.only(
-              top: 16,
-              left: 16,
-              right: 16,
-              bottom: MediaQuery.of(ctx2).viewInsets.bottom + 16,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        isEn ? 'Select Surah' : 'Pilih Surah',
-                        style: TextStyle(
-                          color: AppTheme.primary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: AppTheme.outline),
-                      onPressed: () => Navigator.pop(ctx2),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  autofocus: true,
-                  onChanged: (v) => setSheet(() => query = v),
-                  style: TextStyle(color: AppTheme.onSurface),
-                  decoration: InputDecoration(
-                    hintText: isEn ? 'Search surah by name or number…' : 'Cari surah…',
-                    hintStyle: TextStyle(color: AppTheme.outline),
-                    prefixIcon: Icon(Icons.search, color: AppTheme.outline),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.outlineVariant),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.primary),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final s = filtered[i];
-                      final name = isEn
-                          ? (s['name_en'] ?? '')
-                          : (s['name_id'] ?? s['name_en'] ?? '');
-                      final isSelected = s['id'] == _selectedSurahId;
-                      return ListTile(
-                        leading: Container(
-                          width: 36,
-                          height: 36,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppTheme.primary
-                                : AppTheme.surfaceContainer,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${s['id']}',
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : AppTheme.outline,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: TextStyle(
-                            color: isSelected ? AppTheme.primary : AppTheme.onSurface,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${s['ayas'] ?? ''} ${isEn ? 'verses' : 'ayat'}',
-                          style: TextStyle(color: AppTheme.outline, fontSize: 11),
-                        ),
-                        trailing: isSelected
-                            ? Icon(Icons.check, color: AppTheme.primary)
-                            : null,
-                        onTap: () {
-                          setState(() => _selectedSurahId = s['id'] as int);
-                          Navigator.pop(ctx2);
-                          // Reset ayah field
-                          _ayahController.text = '1';
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          );
-        });
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -719,6 +542,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Text(
+                            isEn
+                                ? 'Compare translations, read tafsir commentary, and explore by topic'
+                                : 'Bandingkan terjemahan, baca tafsir, dan jelajahi berdasarkan topik',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppTheme.outline,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.45,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           // Search field
                           TextField(
                             controller: _searchController,
@@ -823,135 +659,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                   )
                                 : const SizedBox.shrink(),
-                          ),
-                          const SizedBox(height: 16),
-                          // Surah + Ayah select row
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      isEn ? 'SELECT SURAH' : 'PILIH SURAH',
-                                      style: TextStyle(
-                                        color: AppTheme.outline,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    // Searchable surah picker (tap to open sheet)
-                                    GestureDetector(
-                                      onTap: _showSurahPicker,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.surfaceContainerHigh,
-                                          borderRadius: BorderRadius.circular(14),
-                                          border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Builder(builder: (_) {
-                                                final s = _dropdownSurahs.isNotEmpty
-                                                    ? _dropdownSurahs.firstWhere(
-                                                        (x) => x['id'] == _selectedSurahId,
-                                                        orElse: () => _dropdownSurahs.first,
-                                                      )
-                                                    : null;
-                                                final name = s == null
-                                                    ? ''
-                                                    : isEn
-                                                        ? '${s['id']}. ${s['name_en'] ?? ''}'
-                                                        : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
-                                                return Text(
-                                                  name,
-                                                  style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
-                                                  overflow: TextOverflow.ellipsis,
-                                                );
-                                              }),
-                                            ),
-                                            Icon(Icons.search, color: AppTheme.outline, size: 18),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      isEn ? 'AYAH (1-$_maxAyas)' : 'AYAT (1-$_maxAyas)',
-                                      style: TextStyle(
-                                        color: AppTheme.outline,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    TextField(
-                                      controller: _ayahController,
-                                      keyboardType: TextInputType.number,
-                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                      style: TextStyle(color: AppTheme.onSurface),
-                                      onSubmitted: (_) => _goSpecificAyah(),
-                                      onChanged: (val) {
-                                        if (val.isNotEmpty) {
-                                          final numVal = int.tryParse(val);
-                                          if (numVal != null) {
-                                            if (numVal > _maxAyas) {
-                                              _ayahController.text = _maxAyas.toString();
-                                              _ayahController.selection = TextSelection.fromPosition(
-                                                TextPosition(offset: _ayahController.text.length),
-                                              );
-                                            } else if (numVal < 1) {
-                                              _ayahController.text = '1';
-                                              _ayahController.selection = TextSelection.fromPosition(
-                                                TextPosition(offset: _ayahController.text.length),
-                                              );
-                                            }
-                                          }
-                                        }
-                                      },
-                                      decoration: InputDecoration(
-                                        hintText: '1',
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Go Button
-                              ElevatedButton(
-                                onPressed: _goSpecificAyah,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryContainer,
-                                  foregroundColor: AppTheme.onPrimary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                    const SizedBox(width: 4),
-                                    Icon(Icons.arrow_forward, size: 14),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),

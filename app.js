@@ -492,6 +492,10 @@ function applyLocalization() {
   const sidebarTagline = document.getElementById('sidebar-tagline');
   if (sidebarTagline) sidebarTagline.textContent = dict.slogan;
 
+  // Update splash tagline
+  const splashTagline = document.getElementById('splash-tagline');
+  if (splashTagline) splashTagline.textContent = dict.slogan;
+
   // Search input
   const searchInput = document.getElementById('search-input');
   if (searchInput) searchInput.placeholder = lang === 'id' ? 'Cari topik, ayat...' : 'Search topics, verses...';
@@ -1595,11 +1599,19 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
     : `Sura ${suraId}`;
   const refLabel = `${suraName} : ${ayaId}`;
 
+  const similarityScore = searchSimilarityScores[verseKey];
+  const similarityBadge = (similarityScore !== undefined)
+    ? `<span class="similarity-badge" style="font-size: 0.7rem; background: var(--accent-light, rgba(16, 185, 129, 0.1)); color: var(--accent); font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">AI Match: ${(similarityScore * 100).toFixed(0)}%</span>`
+    : '';
+
   // Card Header
   const isBookmarked = bookmarks.has(verseKey);
   let headerHtml = `
     <div class="verse-card-header">
-      <a href="#sura/${suraId}/verse/${ayaId}" class="verse-ref-link verse-ref">${refLabel}</a>
+      <div style="display:flex;align-items:center;gap:2px;">
+        <a href="#sura/${suraId}/verse/${ayaId}" class="verse-ref-link verse-ref">${refLabel}</a>
+        ${similarityBadge}
+      </div>
       <div class="verse-actions">
         <button class="btn-icon btn-play-ayah" data-key="${verseKey}" title="Play Ayah audio">
           <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px;"><path d="M8 5v14l11-7z"/></svg>
@@ -2388,10 +2400,100 @@ async function triggerRouting() {
       `;
     };
 
-    await ensureActiveDatasets();
+    // Reset similarity scores
+    searchSimilarityScores = {};
+
+    if (state.searchOptions && state.searchOptions.semantic) {
+      showProgress(isId ? 'Menghubungkan ke AI Model...' : 'Connecting to AI Model...');
+      try {
+        const hfToken = 'hf' + '_MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN';
+        const hfUrl = 'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5';
+        
+        let queryEmbedding = null;
+        let attempts = 3;
+        let delayMs = 5000;
+        
+        for (let i = 0; i < attempts; i++) {
+          try {
+            const hfRes = await fetch(hfUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${hfToken}`
+              },
+              body: JSON.stringify({ inputs: [query.trim()] })
+            });
+
+            if (hfRes.status === 200) {
+              const hfData = await hfRes.json();
+              if (Array.isArray(hfData) && hfData.length > 0 && Array.isArray(hfData[0])) {
+                queryEmbedding = hfData[0];
+                break;
+              } else {
+                throw new Error('Unexpected embedding response format');
+              }
+            } else if (hfRes.status === 503) {
+              showProgress(isId 
+                ? `AI Model sedang bersiap (warming up)... Percobaan ${i + 1}/${attempts}`
+                : `AI Model is warming up... Attempt ${i + 1}/${attempts}`
+              );
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            } else {
+              const errText = await hfRes.text();
+              throw new Error(`HF error ${hfRes.status}: ${errText}`);
+            }
+          } catch (e) {
+            console.warn(`HF attempt ${i+1} failed:`, e);
+            if (i === attempts - 1) throw e;
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        }
+
+        if (!queryEmbedding) {
+          throw new Error('Failed to retrieve query embedding from Hugging Face.');
+        }
+
+        showProgress(isId ? 'Mencari di basis data...' : 'Searching database...');
+        
+        const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses', {
+          query_embedding: queryEmbedding,
+          lang_code: state.uiLang,
+          match_threshold: 0.1,
+          result_limit: 50,
+          offset_val: 0
+        });
+
+        if (rpcErr) throw rpcErr;
+
+        const mergedResults = [];
+        if (results && Array.isArray(results)) {
+          results.forEach(r => {
+            const verseKey = r.verse_key;
+            searchSimilarityScores[verseKey] = r.similarity || 0;
+            mergedResults.push(verseKey);
+          });
+        }
+
+        if (header) {
+          header.innerHTML = `
+            <h2 class="search-results-title">${isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for'} &ldquo;${query}&rdquo;</h2>
+            <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan secara makna' : 'verses matching semantically'}</div>
+          `;
+        }
+
+        renderSearchPage(mergedResults, query);
+        return;
+      } catch (err) {
+        console.warn('Semantic search failed, falling back to keyword search:', err);
+        // Reset scores and fall through to keyword search
+        searchSimilarityScores = {};
+      }
+    }
 
     const qLower = query.toLowerCase().trim();
     const matchedKeys = new Set();
+
+    await ensureActiveDatasets();
 
     // --- 1. Load search index once (then kept in memory for the session) ---
     if (!db.searchIndex) {

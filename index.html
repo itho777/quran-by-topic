@@ -19,13 +19,11 @@
 
 <!-- ===================== SPLASH SCREEN ===================== -->
 <div id="splash" class="splash">
-  <div class="splash-logo">
-    <div class="splash-bismillah" lang="ar">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-    <div class="splash-logo-img-wrap">
-      <img src="logo-dark.png" class="logo-img logo-img-dark" alt="Tafseer.id" style="height:90px;width:auto;" />
-      <img src="logo-light.png" class="logo-img logo-img-light" alt="Tafseer.id" style="height:90px;width:auto;" />
-    </div>
-    <p class="splash-subtitle" id="splash-jargon">Understand the Qur'an</p>
+  <div class="splash-logo" style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <div class="splash-bismillah" lang="ar" style="margin-bottom:0.5rem;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+    <img src="logo-dark-trans.png" class="logo-img-splash logo-img-dark" alt="Tafseer.id Logo" style="height:160px;width:auto;display:block;max-width:90%;object-fit:contain;" />
+    <img src="logo-light-trans.png" class="logo-img-splash logo-img-light" alt="Tafseer.id Logo" style="height:160px;width:auto;display:block;max-width:90%;object-fit:contain;" />
+    <p class="splash-subtitle" id="splash-jargon" style="font-size:1.1rem;letter-spacing:0.04em;font-style:italic;color:var(--text-muted);margin-top:4px;">Baca · Pahami · Amalkan</p>
   </div>
   <div class="splash-loader">
     <div class="splash-progress-bar"><div class="splash-progress-fill" id="splash-progress"></div></div>
@@ -39,10 +37,10 @@
   <!-- === SIDEBAR === -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">
-        <img src="logo-dark-trans.png" class="logo-img logo-img-dark sidebar-logo-img" alt="Tafseer.id" />
-        <img src="logo-light-trans.png" class="logo-img logo-img-light sidebar-logo-img" alt="Tafseer.id" />
-        <span class="sidebar-logo-jargon" id="sidebar-jargon">Understand the Qur'an</span>
+      <div class="sidebar-logo" style="cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:4px;" onclick="window.location.hash='#home'">
+        <img src="logo-dark-trans.png" class="logo-img logo-img-dark" alt="Tafseer.id Logo" style="height:32px;width:auto;display:block;" />
+        <img src="logo-light-trans.png" class="logo-img logo-img-light" alt="Tafseer.id Logo" style="height:32px;width:auto;display:block;" />
+        <span id="sidebar-tagline" style="font-size:0.62rem;color:var(--text-muted);letter-spacing:0.04em;font-style:italic;margin-top:2px;">Baca · Pahami · Amalkan</span>
       </div>
       <button class="btn-icon sidebar-close" id="sidebar-close-btn" aria-label="Close sidebar">
         <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -188,7 +186,7 @@
             <img src="logo-dark-trans.png" class="logo-img logo-img-dark" alt="Tafseer.id Logo" style="height:100px;width:auto;display:block;" />
             <img src="logo-light-trans.png" class="logo-img logo-img-light" alt="Tafseer.id Logo" style="height:100px;width:auto;display:block;" />
           </div>
-          <p class="home-hero-subtitle">Compare translations, read tafsir commentary, and explore by topic</p>
+          <p class="home-hero-subtitle">Baca · Pahami · Amalkan</p>
         </div>
         <div class="sura-grid" id="sura-grid">
           <!-- Populated by JS -->

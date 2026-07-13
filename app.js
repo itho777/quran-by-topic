@@ -194,8 +194,8 @@ applyLanguageDefaultTafsir(true);
 
 const i18n = {
   en: {
-    jargon: "Understand the Qur'an",
-    heroSubtitle: "Compare translations, read tafsir commentary, and explore by topic",
+    jargon: "Baca · Pahami · Amalkan",
+    heroSubtitle: "Baca · Pahami · Amalkan",
     suraList: "Sura List",
     topics: "Topics",
     settings: "Settings",
@@ -212,8 +212,8 @@ const i18n = {
     gotoSubmit: "Go"
   },
   id: {
-    jargon: "Pahami Al-Qur'an",
-    heroSubtitle: "Bandingkan terjemahan, baca tafsir, dan jelajahi berdasarkan topik",
+    jargon: "Baca · Pahami · Amalkan",
+    heroSubtitle: "Baca · Pahami · Amalkan",
     suraList: "Daftar Surah",
     topics: "Topik Tafsir",
     settings: "Pengaturan",
@@ -377,11 +377,11 @@ function applyLocalization() {
   const subtitle = document.querySelector('.home-hero-subtitle');
   if (subtitle) subtitle.textContent = dict.heroSubtitle;
 
-  // Update splash & sidebar jargon
+  // Update splash & sidebar tagline
   const splashJargon = document.getElementById('splash-jargon');
-  const sidebarJargon = document.getElementById('sidebar-jargon');
+  const sidebarTagline = document.getElementById('sidebar-tagline');
   if (splashJargon) splashJargon.textContent = dict.jargon;
-  if (sidebarJargon) sidebarJargon.textContent = dict.jargon;
+  if (sidebarTagline) sidebarTagline.textContent = dict.jargon;
 
   // Search input
   const searchInput = document.getElementById('search-input');

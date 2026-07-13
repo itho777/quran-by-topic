@@ -1807,16 +1807,21 @@ body.has-player {
 
 /* ---------- Theme-responsive Logos & Controls ---------- */
 .logo-img-dark,
-.logo-img-light {
+.logo-img-light,
+.logo-img-splash.logo-img-dark,
+.logo-img-splash.logo-img-light {
   display: none !important;
 }
 
 [data-theme="dark"] .logo-img-dark,
-[data-theme="sepia"] .logo-img-dark {
+[data-theme="sepia"] .logo-img-dark,
+[data-theme="dark"] .logo-img-splash.logo-img-dark,
+[data-theme="sepia"] .logo-img-splash.logo-img-dark {
   display: block !important;
 }
 
-[data-theme="light"] .logo-img-light {
+[data-theme="light"] .logo-img-light,
+[data-theme="light"] .logo-img-splash.logo-img-light {
   display: block !important;
 }
 

@@ -300,18 +300,41 @@
           </div>
           <p class="home-hero-subtitle">Read · Comprehend · Apply</p>
           <div class="home-advanced-search">
+            <!-- Search bar row -->
             <div class="adv-search-row">
               <input type="text" id="adv-search-input" class="input-text" placeholder="Search in the Qur'an…" autocomplete="off" />
               <button class="btn btn-primary" id="adv-search-btn">Search</button>
             </div>
-            <div class="adv-search-options">
+
+            <!-- Mode pills + Advanced toggle -->
+            <div class="search-mode-row">
+              <div class="search-mode-pills">
+                <button class="mode-pill active" id="mode-pill-keyword" data-mode="keyword" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <span id="mode-pill-keyword-label">Keyword</span>
+                </button>
+                <button class="mode-pill" id="mode-pill-semantic" data-mode="semantic" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/><path d="m15 9-3 3-3-3"/></svg>
+                  <span id="mode-pill-semantic-label">Semantic (AI)</span>
+                </button>
+              </div>
+              <button class="adv-toggle-btn" id="adv-toggle-btn" title="Advanced Options" aria-expanded="false" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                <span id="adv-toggle-label">Advanced</span>
+              </button>
+            </div>
+
+            <!-- Collapsible source checkboxes (keyword mode only) -->
+            <div class="adv-search-options" id="adv-search-options-panel" style="display:none;">
               <label><input type="checkbox" id="adv-search-quran" checked> Qur'an Text</label>
               <label><input type="checkbox" id="adv-search-trans" checked> Translations</label>
-              <label><input type="checkbox" id="adv-search-tafsir"> Tafsirs</label>
-              <label><input type="checkbox" id="adv-search-nuzul"> Asbabun Nuzul</label>
-              <label><input type="checkbox" id="adv-search-tags"> Tags</label>
-              <label class="semantic-search-label" style="color: var(--accent); font-weight: 600;"><input type="checkbox" id="adv-search-semantic"> Semantic Search</label>
+              <label><input type="checkbox" id="adv-search-tafsir" checked> Tafsirs</label>
+              <label><input type="checkbox" id="adv-search-nuzul" checked> Asbabun Nuzul</label>
+              <label><input type="checkbox" id="adv-search-tags" checked> Tags</label>
             </div>
+
+            <!-- Hidden semantic checkbox kept for JS compatibility -->
+            <input type="checkbox" id="adv-search-semantic" style="display:none;">
           </div>
         </div>
         <div class="sura-grid" id="sura-grid">

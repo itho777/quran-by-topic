@@ -56,9 +56,9 @@ const defaultState = {
   searchOptions: {
     quran: true,
     trans: true,
-    tafsir: false,
-    nuzul: false,
-    tags: false,
+    tafsir: true,
+    nuzul: true,
+    tags: true,
     semantic: false,
     lang: 'all'
   }
@@ -250,7 +250,16 @@ const i18n = {
     gotoSuraPlaceholder: "Search surah...",
     gotoAyahLabel: "Ayah Number",
     gotoCancel: "Cancel",
-    gotoSubmit: "Go"
+    gotoSubmit: "Go",
+    advSearchPlaceholder: "Search in the Qur'an…",
+    modeKeyword: "Keyword",
+    modeSemantic: "Semantic (AI)",
+    advToggle: "Advanced",
+    searchQuran: "Qur'an Text",
+    searchTrans: "Translations",
+    searchTafsir: "Tafsirs",
+    searchNuzul: "Asbabun Nuzul",
+    searchTags: "Tags"
   },
   id: {
     heroTitle: "Al-Qur'an & Alat Kajian Tafsir",
@@ -269,7 +278,16 @@ const i18n = {
     gotoSuraPlaceholder: "Cari surah...",
     gotoAyahLabel: "Nomor Ayat",
     gotoCancel: "Batal",
-    gotoSubmit: "Lompat"
+    gotoSubmit: "Lompat",
+    advSearchPlaceholder: "Cari di Al-Qur'an…",
+    modeKeyword: "Kata Kunci",
+    modeSemantic: "Semantik (AI)",
+    advToggle: "Lanjutan",
+    searchQuran: "Teks Qur'an",
+    searchTrans: "Terjemahan",
+    searchTafsir: "Tafsir",
+    searchNuzul: "Asbabun Nuzul",
+    searchTags: "Tag / Topik"
   }
 };
 
@@ -514,6 +532,36 @@ function applyLocalization() {
   if (ayahLabel) ayahLabel.textContent = dict.gotoAyahLabel;
   if (cancelBtn) cancelBtn.textContent = dict.gotoCancel;
   if (submitBtn) submitBtn.textContent = dict.gotoSubmit;
+
+  // New Advanced Search localization
+  const advSearchInput = document.getElementById('adv-search-input');
+  if (advSearchInput) advSearchInput.placeholder = dict.advSearchPlaceholder;
+
+  const modePillKeyword = document.getElementById('mode-pill-keyword-label');
+  if (modePillKeyword) modePillKeyword.textContent = dict.modeKeyword;
+
+  const modePillSemantic = document.getElementById('mode-pill-semantic-label');
+  if (modePillSemantic) modePillSemantic.textContent = dict.modeSemantic;
+
+  const advToggleLabel = document.getElementById('adv-toggle-label');
+  if (advToggleLabel) advToggleLabel.textContent = dict.advToggle;
+
+  const updateLabelText = (id, text) => {
+    const input = document.getElementById(id);
+    if (input && input.parentElement) {
+      for (const node of input.parentElement.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          node.textContent = ' ' + text;
+          break;
+        }
+      }
+    }
+  };
+  updateLabelText('adv-search-quran', dict.searchQuran);
+  updateLabelText('adv-search-trans', dict.searchTrans);
+  updateLabelText('adv-search-tafsir', dict.searchTafsir);
+  updateLabelText('adv-search-nuzul', dict.searchNuzul);
+  updateLabelText('adv-search-tags', dict.searchTags);
 }
 
 // --- 4. Lazy-loading Required Datasets ---
@@ -3606,13 +3654,66 @@ function initAdminPanel() {
 // --- ADVANCED SEARCH (Supabase-powered) ---
 // =====================================================================
 function initAdvancedSearch() {
-  const btn = document.getElementById('adv-search-btn');
+  const btn   = document.getElementById('adv-search-btn');
   const input = document.getElementById('adv-search-input');
   if (!btn || !input) return;
 
-  // Initialize and sync checkboxes/selectors with state
-  const options = ['quran', 'trans', 'tafsir', 'nuzul', 'tags', 'semantic'];
-  options.forEach(opt => {
+  // ── Mode pills ──────────────────────────────────────────────────────
+  const pillKeyword  = document.getElementById('mode-pill-keyword');
+  const pillSemantic = document.getElementById('mode-pill-semantic');
+  const optionsPanel = document.getElementById('adv-search-options-panel');
+  const advToggleBtn = document.getElementById('adv-toggle-btn');
+
+  let advOpen = false;  // advanced panel open state
+
+  function applyMode(mode) {
+    // 'keyword' or 'semantic'
+    state.searchOptions.semantic = (mode === 'semantic');
+
+    // Update hidden checkbox (kept for JS routing compat)
+    const semCb = document.getElementById('adv-search-semantic');
+    if (semCb) semCb.checked = state.searchOptions.semantic;
+
+    // Toggle pill active class
+    if (pillKeyword)  pillKeyword.classList.toggle('active',  mode === 'keyword');
+    if (pillSemantic) pillSemantic.classList.toggle('active', mode === 'semantic');
+
+    // Semantic mode: always hide source checkboxes
+    // Keyword mode: show if advOpen
+    if (optionsPanel) {
+      const shouldShow = (mode === 'keyword') && advOpen;
+      optionsPanel.style.display = shouldShow ? 'flex' : 'none';
+    }
+    if (advToggleBtn) {
+      // hide advanced toggle in semantic mode
+      advToggleBtn.style.display = (mode === 'semantic') ? 'none' : '';
+    }
+
+    saveSettings();
+  }
+
+  function toggleAdvPanel() {
+    advOpen = !advOpen;
+    if (optionsPanel) {
+      optionsPanel.style.display = advOpen ? 'flex' : 'none';
+    }
+    if (advToggleBtn) {
+      advToggleBtn.classList.toggle('active', advOpen);
+      advToggleBtn.setAttribute('aria-expanded', advOpen);
+    }
+  }
+
+  if (pillKeyword)  pillKeyword.addEventListener('click',  () => applyMode('keyword'));
+  if (pillSemantic) pillSemantic.addEventListener('click', () => applyMode('semantic'));
+  if (advToggleBtn) advToggleBtn.addEventListener('click', toggleAdvPanel);
+
+  // Restore saved mode
+  const savedMode = state.searchOptions.semantic ? 'semantic' : 'keyword';
+  applyMode(savedMode);
+
+  // ── Source checkboxes ────────────────────────────────────────────────
+  const sourceOpts = ['quran', 'trans', 'tafsir', 'nuzul', 'tags'];
+  sourceOpts.forEach(opt => {
     const el = document.getElementById(`adv-search-${opt}`);
     if (el) {
       el.checked = !!state.searchOptions[opt];
@@ -3623,8 +3724,7 @@ function initAdvancedSearch() {
     }
   });
 
-  // Advanced search options are initialized and saved to settings above
-
+  // ── Trigger search ───────────────────────────────────────────────────
   const doSearch = () => {
     const q = input.value.trim();
     if (q.length >= 2) window.location.hash = `#search/${encodeURIComponent(q)}`;

@@ -1,0 +1,8 @@
+.git
+.gitignore
+.github
+wrangler.jsonc
+wrangler.toml
+README.md
+build_index.py
+DATABASE_MIGRATION.md

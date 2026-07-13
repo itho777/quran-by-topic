@@ -194,8 +194,8 @@ applyLanguageDefaultTafsir(true);
 
 const i18n = {
   en: {
-    jargon: "Baca · Pahami · Amalkan",
-    heroSubtitle: "Baca · Pahami · Amalkan",
+    jargon: "Read · Understand · Apply",
+    heroSubtitle: "Compare translations, read tafsir commentary, and explore by topic",
     suraList: "Sura List",
     topics: "Topics",
     settings: "Settings",
@@ -213,7 +213,7 @@ const i18n = {
   },
   id: {
     jargon: "Baca · Pahami · Amalkan",
-    heroSubtitle: "Baca · Pahami · Amalkan",
+    heroSubtitle: "Bandingkan terjemahan, baca tafsir, dan jelajahi berdasarkan topik",
     suraList: "Daftar Surah",
     topics: "Topik Tafsir",
     settings: "Pengaturan",

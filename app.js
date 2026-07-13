@@ -194,7 +194,7 @@ applyLanguageDefaultTafsir(true);
 
 const i18n = {
   en: {
-    jargon: "Read · Understand · Apply",
+    jargon: "Read · Comprehend · Apply",
     heroSubtitle: "Compare translations, read tafsir commentary, and explore by topic",
     suraList: "Sura List",
     topics: "Topics",

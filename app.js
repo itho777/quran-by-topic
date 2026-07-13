@@ -401,14 +401,39 @@ class Database {
           if (data.length < pageSize) break;
           from += pageSize;
         }
-        this.cache.set(cacheKey, result);
-        return result;
+
+        // Validate completeness of database response before caching it:
+        const count = Object.keys(result).length;
+        let isComplete = false;
+        if (parsed.table === 'translations' || parsed.table === 'tafsirs') {
+          const isChunked = file.includes('.chunks.json');
+          if (isChunked) {
+            isComplete = (count > 0);
+          } else {
+            isComplete = (count >= 6000);
+          }
+        } else if (parsed.table === 'asbabun_nuzul') {
+          if (parsed.sourceId === 'en.wahidi') isComplete = (count >= 630);
+          else if (parsed.sourceId === 'id.kemenag_nuzul') isComplete = (count >= 100);
+          else isComplete = (count > 0);
+        } else {
+          isComplete = (count > 0);
+        }
+
+        if (isComplete) {
+          this.cache.set(cacheKey, result);
+          return result;
+        } else {
+          console.warn(`[DB] Supabase source ${parsed.sourceId} has incomplete/empty rows (${count}), falling back to local file`);
+        }
       } catch (e) {
         console.warn(`[DB] Supabase getResource failed for ${file}, falling back:`, e);
       }
     }
     // Local file fallback
-    const res = await fetch(file);
+    // If it's a chunks.json metadata file, fetch the corresponding .json file instead (which contains the full dataset)
+    const localFile = file.replace('.chunks.json', '.json');
+    const res = await fetch(localFile);
     const data = await res.json();
     this.cache.set(cacheKey, data);
     return data;
@@ -432,10 +457,14 @@ class Database {
           .eq('source_id', parsed.sourceId)
           .eq('verses.sura_id', suraNum);
         if (error) throw error;
-        const unified = this.cache.get(cacheKey);
-        if (data) data.forEach(row => { unified[row.verse_key] = row.text; });
-        loaded.add(suraNum);
-        return unified;
+        if (data && data.length > 0) {
+          const unified = this.cache.get(cacheKey);
+          data.forEach(row => { unified[row.verse_key] = row.text; });
+          loaded.add(suraNum);
+          return unified;
+        } else {
+          console.warn(`[DB] Supabase chunked load returned 0 rows for ${parsed.sourceId} sura ${suraNum}, falling back to local file`);
+        }
       } catch (e) {
         console.warn(`[DB] Supabase chunked load failed for sura ${suraNum}:`, e);
       }
@@ -3456,13 +3485,18 @@ async function showMushafVerseDetail(surahNum, ayahNum) {
   contentEl.style.display = 'block';
   if (detailPane) detailPane.style.display = 'flex';
   contentEl.innerHTML = '<div class="mushaf-detail-loading">Loading…</div>';
+
+  // Ensure active datasets are loaded (translation + tafsir) for this surah
+  await ensureActiveDatasets(surahNum);
+
   const verseKey = `${surahNum}:${ayahNum}`;
   const arabicText = db.quranArabic ? (db.quranArabic[verseKey] || '') : '';
+  const transSource = state.activeTranslation1 || 'en.shakir';
+  const tafsirSource = state.activeTafsir1 || 'id.jalalayn';
   let transText = '', tafsirText = '';
+
   if (supabaseClient) {
     try {
-      const transSource = state.activeTranslation1 || 'en.shakir';
-      const tafsirSource = state.activeTafsir1 || 'id.jalalayn';
       const [{ data: transData }, { data: tafsirData }] = await Promise.all([
         supabaseClient.from('translations').select('text').eq('verse_key', verseKey).eq('source_id', transSource).maybeSingle(),
         supabaseClient.from('tafsirs').select('text').eq('verse_key', verseKey).eq('source_id', tafsirSource).maybeSingle()
@@ -3470,6 +3504,24 @@ async function showMushafVerseDetail(surahNum, ayahNum) {
       if (transData) transText = transData.text;
       if (tafsirData) tafsirText = tafsirData.text;
     } catch (e) { console.warn('[Mushaf] verse detail fetch failed:', e); }
+  }
+
+  // Fallback to local cache if Supabase returned empty (incomplete DB rows)
+  if (!transText) {
+    const tInfo = db.registry && db.registry.translations.find(t => t.id === transSource);
+    if (tInfo) {
+      const localCacheKey = tInfo.file.replace('.chunks.json', '.json');
+      const cached = db.cache.get(localCacheKey);
+      if (cached && cached[verseKey]) transText = cached[verseKey];
+    }
+  }
+  if (!tafsirText) {
+    const tInfo = db.registry && db.registry.tafsirs.find(t => t.id === tafsirSource);
+    if (tInfo) {
+      const cached = getTafsirData(tInfo);
+      const resolved = resolveTafsirText(cached, verseKey);
+      if (resolved) tafsirText = resolved;
+    }
   }
   
   // Apply visual highlight immediately on selection

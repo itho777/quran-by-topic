@@ -52,6 +52,15 @@ const defaultState = {
     nuzul1: true,
     nuzul2: true,
     tags: true
+  },
+  searchOptions: {
+    quran: true,
+    trans: true,
+    tafsir: false,
+    nuzul: false,
+    tags: false,
+    semantic: false,
+    lang: 'all'
   }
 };
 
@@ -59,6 +68,17 @@ const defaultState = {
 let suraPage = 1;
 let topicPage = 1;
 let searchPage = 1;
+
+// Semantic search similarity scores: { "sura:ayah" -> similarity (0-1) }
+let searchSimilarityScores = {};
+let lastActiveHash = '#home';
+
+// Bookmarks store (Set of verse keys: e.g. "1:1")
+const bookmarks = new Set(JSON.parse(localStorage.getItem('tafsir_bookmarks')) || []);
+
+function saveBookmarks() {
+  localStorage.setItem('tafsir_bookmarks', JSON.stringify(Array.from(bookmarks)));
+}
 
 // Settings schema version — bump whenever defaults change meaningfully
 const SETTINGS_VERSION = 8;
@@ -103,7 +123,8 @@ if (!state._v || state._v < SETTINGS_VERSION) {
     ...defaultState,
     ...state,
     _v: SETTINGS_VERSION,
-    layers: { ...defaultState.layers, ...state.layers }
+    layers: { ...defaultState.layers, ...state.layers },
+    searchOptions: { ...defaultState.searchOptions, ...(state.searchOptions || {}) }
   };
 }
 
@@ -215,6 +236,7 @@ const i18n = {
   en: {
     heroTitle: "Qur'an Reader & Study Tool",
     heroSubtitle: "Compare translations, read tafsir commentary, and explore by topic",
+    slogan: "Read · Comprehend · Apply",
     suraList: "Sura List",
     topics: "Topics",
     settings: "Settings",
@@ -233,6 +255,7 @@ const i18n = {
   id: {
     heroTitle: "Al-Qur'an & Alat Kajian Tafsir",
     heroSubtitle: "Bandingkan terjemahan, baca tafsir, dan jelajahi berdasarkan topik",
+    slogan: "Baca · Pahami · Amalkan",
     suraList: "Daftar Surah",
     topics: "Topik Tafsir",
     settings: "Pengaturan",
@@ -464,6 +487,10 @@ function applyLocalization() {
   const subtitle = document.querySelector('.home-hero-subtitle');
   if (title) title.textContent = dict.heroTitle;
   if (subtitle) subtitle.textContent = dict.heroSubtitle;
+  
+  // Update sidebar tagline
+  const sidebarTagline = document.getElementById('sidebar-tagline');
+  if (sidebarTagline) sidebarTagline.textContent = dict.slogan;
 
   // Search input
   const searchInput = document.getElementById('search-input');
@@ -550,10 +577,16 @@ async function reloadTagsDataset() {
 function switchView(viewId) {
   document.querySelectorAll('.view-area .view').forEach(v => {
     v.classList.remove('active');
+    if (v.id === 'view-mushaf') {
+      v.style.setProperty('display', 'none', 'important');
+    }
   });
   const view = document.getElementById(`view-${viewId}`);
   if (view) {
     view.classList.add('active');
+    if (viewId === 'mushaf') {
+      view.style.setProperty('display', 'flex', 'important');
+    }
   }
 }
 
@@ -1563,6 +1596,7 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
   const refLabel = `${suraName} : ${ayaId}`;
 
   // Card Header
+  const isBookmarked = bookmarks.has(verseKey);
   let headerHtml = `
     <div class="verse-card-header">
       <a href="#sura/${suraId}/verse/${ayaId}" class="verse-ref-link verse-ref">${refLabel}</a>
@@ -1570,6 +1604,9 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         <button class="btn-icon btn-play-ayah" data-key="${verseKey}" title="Play Ayah audio">
           <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px;"><path d="M8 5v14l11-7z"/></svg>
           <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="width: 18px; height: 18px; display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="btn-icon btn-bookmark" data-key="${verseKey}" title="Bookmark verse" aria-label="Bookmark" aria-pressed="${isBookmarked}">
+          <svg viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
         </button>
         <button class="btn-icon btn-copy" data-key="${verseKey}" title="Copy verse text">
           <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -1820,6 +1857,22 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
     copyVerse(verseKey, card);
   };
 
+  // Bookmark listener
+  const bookmarkBtn = card.querySelector('.btn-bookmark');
+  if (bookmarkBtn) {
+    bookmarkBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleBookmark(verseKey);
+      // Update all bookmark buttons for this verse (may be on multiple cards)
+      document.querySelectorAll(`.btn-bookmark[data-key="${verseKey}"]`).forEach(btn => {
+        const isBm = bookmarks.has(verseKey);
+        btn.setAttribute('aria-pressed', isBm);
+        const svg = btn.querySelector('svg');
+        if (svg) svg.setAttribute('fill', isBm ? 'currentColor' : 'none');
+      });
+    };
+  }
+
   // "Show more" / "Show less" toggle listeners
   card.querySelectorAll('.verse-layer-more').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1917,15 +1970,123 @@ function shareVerse(type, key, card) {
   }
 }
 
+// --- Bookmarks Controller ---
+function toggleBookmark(verseKey) {
+  if (bookmarks.has(verseKey)) {
+    bookmarks.delete(verseKey);
+  } else {
+    bookmarks.add(verseKey);
+  }
+  saveBookmarks();
+  renderBookmarksList();
+}
+
+function renderBookmarksList() {
+  const container = document.getElementById('bookmarks-list-container');
+  if (!container) return;
+  
+  if (bookmarks.size === 0) {
+    const isId = state.uiLang === 'id';
+    container.innerHTML = `
+      <div class="sidebar-empty-state" style="padding: 2rem 1rem; text-align: center; color: var(--text-muted);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 48px; height: 48px; margin: 0 auto 1rem; opacity: 0.5;">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p style="font-weight: 500;">${isId ? 'Belum ada bookmark' : 'No bookmarks yet'}</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8; line-height: 1.4;">
+          ${isId ? 'Ketuk ikon bookmark pada ayat untuk menyimpannya di sini.' : 'Tap the bookmark icon on any verse to save it here.'}
+        </p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Sort bookmarks by sura:ayah order
+  const sorted = Array.from(bookmarks).sort((a, b) => {
+    const [s1, v1] = a.split(':').map(Number);
+    const [s2, v2] = b.split(':').map(Number);
+    if (s1 !== s2) return s1 - s2;
+    return v1 - v2;
+  });
+  
+  container.innerHTML = '';
+  sorted.forEach(verseKey => {
+    const [suraId, ayaId] = verseKey.split(':');
+    const suraMeta = db.suraList ? db.suraList.find(s => s.id === Number(suraId)) : null;
+    const suraName = suraMeta
+      ? (state.uiLang === 'id' ? suraMeta.name_id : suraMeta.name_en)
+      : `Sura ${suraId}`;
+    
+    const arText = db.quranArabic[verseKey] || '';
+    
+    const item = document.createElement('div');
+    item.className = 'bookmark-item';
+    
+    item.innerHTML = `
+      <div class="bookmark-item-header">
+        <a href="#sura/${suraId}/verse/${ayaId}" class="bookmark-ref-link">
+          ${suraName} : ${ayaId}
+        </a>
+        <button class="btn-icon delete-bookmark" data-key="${verseKey}" title="Remove bookmark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="bookmark-preview-ar" lang="ar">
+        ${arText}
+      </div>
+    `;
+    
+    // Wire click to navigate to the verse detail
+    item.querySelector('a').onclick = (e) => {
+      closeSidebarMobile();
+    };
+    
+    // Wire delete button
+    item.querySelector('.delete-bookmark').onclick = (e) => {
+      e.stopPropagation();
+      toggleBookmark(verseKey);
+      // Also update any bookmark buttons visible on screen
+      document.querySelectorAll(`.btn-bookmark[data-key="${verseKey}"]`).forEach(btn => {
+        btn.setAttribute('aria-pressed', 'false');
+        const svg = btn.querySelector('svg');
+        if (svg) svg.setAttribute('fill', 'none');
+      });
+    };
+    
+    container.appendChild(item);
+  });
+}
+
 // --- 7. Router Trigger Handler ---
 async function triggerRouting() {
   const hash = window.location.hash || '#home';
   closeSidebarMobile();
+
+  // Track the last active hash (excluding mushaf, verse detail views, login, recovery, access_token)
+  if (hash && hash !== '#mushaf' && !hash.includes('/verse/') && !hash.startsWith('#login') && !hash.includes('access_token') && !hash.includes('recovery')) {
+    lastActiveHash = hash;
+  }
+
+  // On OAuth redirect, Supabase needs the hash fragment to extract tokens.
+  // Do NOT clear/redirect the hash here — let Supabase's onAuthStateChange fire
+  // naturally. Once it fires SIGNED_IN, handleAuthSession() will do the redirect.
+  if (hash.includes('access_token') || hash.includes('error_description')) {
+    // Just render home silently while Supabase processes the fragment
+    switchView('home');
+    updateBreadcrumbs('home');
+    renderHomeGrid();
+    return;
+  }
   
   if (hash === '#home' || hash === '' || hash === '#') {
     // Exit split mode if active
     state.mushafSplitMode = false;
     document.body.classList.remove('split-mushaf-mode');
+    const sidebarEl = document.getElementById('sidebar');
+    if (sidebarEl) sidebarEl.classList.remove('collapsed');
     switchView('home');
     updateBreadcrumbs('home');
     highlightActiveSuraInSidebar(null);
@@ -2155,6 +2316,8 @@ async function triggerRouting() {
   } else if (hash.startsWith('#topic/')) {
     state.mushafSplitMode = false;
     document.body.classList.remove('split-mushaf-mode');
+    const sidebarEl = document.getElementById('sidebar');
+    if (sidebarEl) sidebarEl.classList.remove('collapsed');
     const tagId = decodeURIComponent(hash.substring(7));
     switchView('topic');
     highlightActiveSuraInSidebar(null);
@@ -2200,6 +2363,8 @@ async function triggerRouting() {
   } else if (hash.startsWith('#search/')) {
     state.mushafSplitMode = false;
     document.body.classList.remove('split-mushaf-mode');
+    const sidebarEl = document.getElementById('sidebar');
+    if (sidebarEl) sidebarEl.classList.remove('collapsed');
     const query = decodeURIComponent(hash.substring(8));
     switchView('search');
     highlightActiveSuraInSidebar(null);
@@ -2444,16 +2609,12 @@ async function triggerRouting() {
     updateBreadcrumbs('home');
     highlightActiveSuraInSidebar(null);
     // Mushaf view loads SVG via its own controller
-  } else if (hash === '#credits') {
-    state.mushafSplitMode = false;
-    document.body.classList.remove('split-mushaf-mode');
-    switchView('credits');
-    updateBreadcrumbs('home');
-    highlightActiveSuraInSidebar(null);
   } else {
     // Fallback: unknown hash — show home
     state.mushafSplitMode = false;
     document.body.classList.remove('split-mushaf-mode');
+    const sidebarEl = document.getElementById('sidebar');
+    if (sidebarEl) sidebarEl.classList.remove('collapsed');
     switchView('home');
     updateBreadcrumbs('home');
     renderHomeGrid();
@@ -2675,6 +2836,16 @@ function pauseAyah() {
 }
 
 function togglePlayAyah(verseKey) {
+  // If the caller is the global player bar re-playing the old key,
+  // but the user has since selected a different verse, redirect to that verse.
+  const selectedKey = (state.currentSuraId && state.currentAyahNum)
+    ? `${state.currentSuraId}:${state.currentAyahNum}`
+    : null;
+  if (verseKey === currentPlayingKey && selectedKey && selectedKey !== currentPlayingKey) {
+    playAyah(selectedKey);
+    return;
+  }
+
   if (currentPlayingKey === verseKey) {
     if (isAudioPlaying) {
       pauseAyah();
@@ -2721,6 +2892,7 @@ function playNextAyah() {
     } else if (isViewingDetail) {
       window.location.hash = `#sura/${sura}/verse/${ayah + 1}`;
     } else if (hash === '#mushaf') {
+      // Mushaf mode: load page first, then play audio so highlight appears correctly
       (async () => {
         const targetPage = await getVersePageNumber(sura, ayah + 1);
         if (targetPage && targetPage !== mushafCurrentPage) {
@@ -2730,8 +2902,10 @@ function playNextAyah() {
           updateMushafPageLabel();
           await loadMushafPage(targetPage);
         }
-        showMushafVerseDetail(sura, ayah + 1);
+        await showMushafVerseDetail(sura, ayah + 1);
+        playAyah(nextKey);
       })();
+      return; // audio handled inside async block above
     }
     
     setTimeout(() => {
@@ -2748,6 +2922,7 @@ function playNextAyah() {
       const nextSura = sura + 1;
       const hash = window.location.hash;
       if (hash === '#mushaf') {
+        // Mushaf mode: load next sura's page then play
         (async () => {
           const targetPage = await getVersePageNumber(nextSura, 1);
           if (targetPage && targetPage !== mushafCurrentPage) {
@@ -2757,8 +2932,10 @@ function playNextAyah() {
             updateMushafPageLabel();
             await loadMushafPage(targetPage);
           }
-          showMushafVerseDetail(nextSura, 1);
+          await showMushafVerseDetail(nextSura, 1);
+          playAyah(`${nextSura}:1`);
         })();
+        return; // audio handled inside async block
       } else if (state.mushafSplitMode || isViewingDetail) {
         window.location.hash = `#sura/${nextSura}/verse/1`;
       } else {
@@ -3033,6 +3210,19 @@ function syncMushafHighlight() {
 }
 window.syncMushafHighlight = syncMushafHighlight;
 
+function closeMushafDetailPane(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const detailPane = document.getElementById('mushaf-detail-pane');
+  if (detailPane) detailPane.style.display = 'none';
+  state.currentSuraId = null;
+  state.currentAyahNum = null;
+  syncMushafHighlight();
+}
+window.closeMushafDetailPane = closeMushafDetailPane;
+
 async function loadMushafPage(pageNum) {
   const container = document.getElementById('mushaf-page-container');
   if (!container) return;
@@ -3141,8 +3331,14 @@ async function showMushafVerseDetail(surahNum, ayahNum) {
   const isPlaying = (currentPlayingKey === verseKey && isAudioPlaying);
   const playLabel = isPlaying ? 'Pause Audio ⏸' : 'Play Audio ▶';
   
+  const isBookmarked = bookmarks.has(verseKey);
   contentEl.innerHTML = `
-    <div class="mushaf-verse-key">${suraName} ${verseKey}</div>
+    <div class="mushaf-verse-key" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>${suraName} ${verseKey}</span>
+      <button class="btn-icon btn-bookmark" id="btn-mushaf-bookmark" aria-pressed="${isBookmarked}" title="${isBookmarked ? 'Remove bookmark' : 'Bookmark verse'}" style="padding:4px;">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="${isBookmarked ? 'currentColor' : 'none'}" style="width:18px;height:18px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </button>
+    </div>
     ${arabicText ? `<div class="mushaf-verse-arabic" lang="ar">${arabicText}</div>` : ''}
     ${transText ? `<div class="mushaf-verse-trans">${transText}</div>` : ''}
     ${tafsirText ? `<details class="mushaf-verse-tafsir-wrap"><summary>Tafsir</summary><div class="mushaf-verse-tafsir">${tafsirText}</div></details>` : ''}
@@ -3153,6 +3349,18 @@ async function showMushafVerseDetail(surahNum, ayahNum) {
       <button class="btn btn-outline" style="flex:1;text-align:center;" onclick="openMushafSplitDetail(${surahNum}, ${ayahNum})">Open Detail →</button>
     </div>
   `;
+  // Wire bookmark button
+  const bBtn = document.getElementById('btn-mushaf-bookmark');
+  if (bBtn) {
+    bBtn.onclick = () => {
+      toggleBookmark(verseKey);
+      const now = bookmarks.has(verseKey);
+      bBtn.setAttribute('aria-pressed', String(now));
+      bBtn.title = now ? 'Remove bookmark' : 'Bookmark verse';
+      const svg = bBtn.querySelector('svg');
+      if (svg) svg.setAttribute('fill', now ? 'currentColor' : 'none');
+    };
+  }
 }
 
 function openMushafSplitDetail(suraId, ayahId) {
@@ -3173,8 +3381,18 @@ async function initAuth() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) await handleAuthSession(session);
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) await handleAuthSession(session);
-    else if (event === 'SIGNED_OUT') handleAuthSignOut();
+    if (event === 'SIGNED_IN' && session) {
+      await handleAuthSession(session);
+      // After OAuth redirect: restore the page the user was on before login
+      const restoreHash = localStorage.getItem('auth_redirect_hash');
+      if (restoreHash) {
+        localStorage.removeItem('auth_redirect_hash');
+        // Use replaceState so back button still works cleanly
+        window.location.hash = restoreHash;
+      }
+    } else if (event === 'SIGNED_OUT') {
+      handleAuthSignOut();
+    }
   });
   document.getElementById('auth-login-btn')?.addEventListener('click', async () => {
     const email = document.getElementById('auth-email')?.value.trim();
@@ -3187,6 +3405,27 @@ async function initAuth() {
   });
   document.getElementById('auth-logout-btn')?.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
+  });
+
+  // Google OAuth sign-in
+  document.getElementById('auth-google-login')?.addEventListener('click', async () => {
+    const errEl = document.getElementById('auth-error');
+    if (errEl) errEl.style.display = 'none';
+    const btn = document.getElementById('auth-google-login');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
+    // Save current hash to restore after login redirect
+    localStorage.setItem('auth_redirect_hash', window.location.hash || '#home');
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname + '#login'
+      }
+    });
+    if (error) {
+      if (errEl) { errEl.textContent = 'Google sign-in failed: ' + error.message; errEl.style.display = 'block'; }
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    }
+    // On success the browser redirects to Google — no further JS needed here
   });
 }
 
@@ -3268,6 +3507,22 @@ function initAdvancedSearch() {
   const btn = document.getElementById('adv-search-btn');
   const input = document.getElementById('adv-search-input');
   if (!btn || !input) return;
+
+  // Initialize and sync checkboxes/selectors with state
+  const options = ['quran', 'trans', 'tafsir', 'nuzul', 'tags', 'semantic'];
+  options.forEach(opt => {
+    const el = document.getElementById(`adv-search-${opt}`);
+    if (el) {
+      el.checked = !!state.searchOptions[opt];
+      el.onchange = () => {
+        state.searchOptions[opt] = el.checked;
+        saveSettings();
+      };
+    }
+  });
+
+  // Advanced search options are initialized and saved to settings above
+
   const doSearch = () => {
     const q = input.value.trim();
     if (q.length >= 2) window.location.hash = `#search/${encodeURIComponent(q)}`;
@@ -3310,6 +3565,7 @@ async function initApp() {
     // 4. Populate sidebar content
     renderSidebarSuraList();
     renderSidebarTopicList();
+    renderBookmarksList();
 
     // 5. Populate Comparison Settings Panel selectors
     populateSelects();
@@ -3471,25 +3727,30 @@ function setupEventBindings() {
   const tabs = document.querySelectorAll('.nav-tab');
   tabs.forEach(tab => {
     tab.onclick = () => {
+      const viewName = tab.dataset.view;
+
+      if (viewName === 'credits') {
+        const creditsModal = document.getElementById('credits-modal');
+        if (creditsModal) creditsModal.classList.add('open');
+        return;
+      }
+
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
 
-      const viewName = tab.dataset.view;
-
-      if (viewName === 'sura-list' || viewName === 'topic-index') {
+      if (viewName === 'sura-list' || viewName === 'topic-index' || viewName === 'bookmarks') {
         if (window.location.hash === '#mushaf' || window.location.hash === '#credits' || state.mushafSplitMode) {
           window.location.hash = '#home';
         }
       }
 
-      // Mushaf, Credits, and Admin tabs switch the main view area instead of the sidebar panel
+      // Mushaf and Admin tabs switch the main view area instead of the sidebar panel
       if (viewName === 'mushaf') {
         window.location.hash = '#mushaf';
         return;
       }
-      if (viewName === 'credits') {
-        window.location.hash = '#credits';
-        return;
+      if (viewName === 'bookmarks') {
+        renderBookmarksList();
       }
       if (viewName === 'admin') {
         // Switch to admin panel in sidebar
@@ -3571,39 +3832,47 @@ function setupEventBindings() {
   // Mushaf Detail close button trigger
   const mushafDetailClose = document.getElementById('mushaf-detail-close-btn');
   if (mushafDetailClose) {
-    mushafDetailClose.onclick = () => {
-      const detailPane = document.getElementById('mushaf-detail-pane');
-      if (detailPane) detailPane.style.display = 'none';
-      state.currentSuraId = null;
-      state.currentAyahNum = null;
-      syncMushafHighlight();
-    };
+    mushafDetailClose.onclick = closeMushafDetailPane;
   }
 
-  // Ayah Detail close button trigger (exit split-screen mode, return to full Mushaf)
+  // Ayah Detail close button (split view) — collapse split, show full Mushaf
   const ayahDetailClose = document.getElementById('ayah-detail-close-btn');
   if (ayahDetailClose) {
     ayahDetailClose.onclick = () => {
       state.mushafSplitMode = false;
       document.body.classList.remove('split-mushaf-mode');
+      // Hide the ayah detail panel
       const viewAyah = document.getElementById('view-ayah');
       if (viewAyah) viewAyah.classList.remove('active');
       ayahDetailClose.style.display = 'none';
-      window.location.hash = '#mushaf';
+      // Directly switch to full-screen Mushaf without re-routing through hash
+      switchView('mushaf');
     };
   }
 
-  // Mushaf toolbar Exit button trigger (exit Mushaf entirely, return to Home)
+  // Mushaf toolbar Exit button — fully close Mushaf, return to last page
   const mushafExitBtn = document.getElementById('mushaf-exit-btn');
   if (mushafExitBtn) {
     mushafExitBtn.onclick = () => {
+      // Clean up all Mushaf/split state
       state.mushafSplitMode = false;
       document.body.classList.remove('split-mushaf-mode');
       const viewAyah = document.getElementById('view-ayah');
       if (viewAyah) viewAyah.classList.remove('active');
+      const viewMushaf = document.getElementById('view-mushaf');
+      if (viewMushaf) {
+        viewMushaf.classList.remove('active');
+        viewMushaf.style.setProperty('display', 'none', 'important');
+      }
       const closeBtn2 = document.getElementById('ayah-detail-close-btn');
       if (closeBtn2) closeBtn2.style.display = 'none';
-      window.location.hash = '#home';
+      const detailPane = document.getElementById('mushaf-detail-pane');
+      if (detailPane) detailPane.style.display = 'none';
+      // Restore sidebar
+      const sidebarEl = document.getElementById('sidebar');
+      if (sidebarEl) sidebarEl.classList.remove('collapsed');
+      // Navigate to last real page (never #mushaf or /verse/ hashes)
+      window.location.hash = lastActiveHash || '#home';
     };
   }
 
@@ -3735,6 +4004,7 @@ function setupEventBindings() {
     await reloadTagsDataset();
     applyLocalization();
     renderSidebarSuraList();
+    renderBookmarksList();
     triggerRouting();
   }
 
@@ -3834,6 +4104,21 @@ function setupEventBindings() {
   }
   if (gotoCancelBtn) {
     gotoCancelBtn.onclick = closeGotoModal;
+  }
+
+  // Credits modal bindings
+  const creditsClose = document.getElementById('credits-modal-close');
+  const creditsBackdrop = document.getElementById('credits-modal-backdrop');
+  const creditsModal = document.getElementById('credits-modal');
+  if (creditsClose) {
+    creditsClose.onclick = () => {
+      if (creditsModal) creditsModal.classList.remove('open');
+    };
+  }
+  if (creditsBackdrop) {
+    creditsBackdrop.onclick = () => {
+      if (creditsModal) creditsModal.classList.remove('open');
+    };
   }
   if (gotoSubmitBtn) {
     gotoSubmitBtn.onclick = submitGotoModal;

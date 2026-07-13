@@ -1814,10 +1814,14 @@ body.has-player {
    MUSHAF VIEW
    ===================================================== */
 #view-mushaf {
-  display: flex;
+  display: none; /* hidden by default; shown via .active below */
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+/* Override generic .view.active { display: block } for mushaf which needs flex */
+#view-mushaf.active {
+  display: flex !important;
 }
 .mushaf-toolbar {
   display: flex;
@@ -2242,5 +2246,82 @@ body.has-player {
   background: var(--bg-hover);
   color: var(--text-primary);
   border-color: var(--accent);
+}
+
+/* =====================================================
+   BOOKMARKS STYLING
+   ===================================================== */
+.bookmarks-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+.bookmark-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  transition: background var(--trans);
+}
+.bookmark-item:hover {
+  background: var(--bg-hover);
+}
+.bookmark-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bookmark-ref-link {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.bookmark-ref-link:hover {
+  text-decoration: underline;
+}
+.bookmark-preview-ar {
+  font-family: var(--font-arabic);
+  font-size: 1.15rem;
+  text-align: right;
+  direction: rtl;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  line-height: 1.8;
+}
+.delete-bookmark {
+  color: var(--text-muted);
+  transition: color var(--trans);
+  padding: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.delete-bookmark:hover {
+  color: #ef4444;
+}
+.delete-bookmark svg {
+  width: 15px;
+  height: 15px;
+}
+.btn-bookmark {
+  color: var(--text-muted);
+}
+.btn-bookmark:hover {
+  color: var(--accent);
+}
+.btn-bookmark[aria-pressed="true"] {
+  color: var(--accent) !important;
+}
+.btn-bookmark[aria-pressed="true"] svg {
+  fill: var(--accent);
 }
 

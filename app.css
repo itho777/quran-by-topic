@@ -1819,3 +1819,21 @@ body.has-player {
 [data-theme="light"] .logo-img-light {
   display: block !important;
 }
+
+/* Sidebar logo image */
+.sidebar-logo-img {
+  height: 32px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+/* Sidebar jargon tagline */
+.sidebar-logo-jargon {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -2654,11 +2654,15 @@ async function triggerRouting() {
     await ensureActiveDatasets();
 
     // --- 1. Load search index once (then kept in memory for the session) ---
-    if (!db.searchIndex) {
+    const isOtherLang = state.searchOptions.lang !== 'en' && state.searchOptions.lang !== 'id' && state.searchOptions.lang !== 'all';
+    if (!db.searchIndex || (isOtherLang && !db.isFullIndex)) {
       showProgress(isId ? 'Memuat indeks pencarian...' : 'Loading search index...');
       try {
-        const res = await fetch('data/search_index.json');
+        const indexFile = isOtherLang ? 'data/search_index_full.json' : 'data/search_index.json';
+        console.log('[Search] Fetching index file:', indexFile);
+        const res = await fetch(indexFile);
         db.searchIndex = await res.json();
+        db.isFullIndex = isOtherLang;
       } catch (e) {
         console.warn('Search index unavailable, falling back to raw scan:', e);
         db.searchIndex = null;

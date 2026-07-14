@@ -2312,7 +2312,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                             Text(
 
-                              '${_getSurahName()} Ã¢â‚¬Â¢ ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
+                              '${_getSurahName()} • ${(_currentLang == 'en' ? 'Page $_currentPage' : 'Halaman $_currentPage')}',
 
                               style: TextStyle(
 

@@ -510,17 +510,74 @@ class MoreScreen extends ConsumerWidget {
           FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snapshot) {
-              final version = snapshot.hasData
-                  ? '${snapshot.data!.version} (Build ${snapshot.data!.buildNumber})'
-                  : 'Loading...';
-              final verOnly = snapshot.hasData ? snapshot.data!.version : '...';
-              return _SettingsTile(
-                icon: Icons.info_outline,
-                iconColor: AppTheme.outline,
-                title: 'App Version',
-                subtitle: 'Tafseer.id v$version',
-                trailing: Text(verOnly,
-                    style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold)),
+              final version = snapshot.hasData ? snapshot.data!.version : '3.0.0-beta';
+              final buildNum = snapshot.hasData ? snapshot.data!.buildNumber : '7';
+              final packageName = snapshot.hasData ? snapshot.data!.packageName : 'id.tafseer.app';
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.menu_book_rounded, color: AppTheme.primary, size: 26),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tafseer.id — Qurʼan by Topic',
+                            style: TextStyle(
+                              color: AppTheme.onSurface,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'v$version  •  Build $buildNum',
+                                  style: TextStyle(
+                                    color: AppTheme.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            packageName,
+                            style: TextStyle(
+                              color: AppTheme.outline,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),

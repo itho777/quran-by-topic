@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -30,18 +30,25 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Write local.properties (CI override)
+        # The checked-in local.properties has a Windows dev machine path.
+        # Overwrite it with the actual Flutter SDK path on the CI runner.
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT"  >> android/local.properties
+
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: tafseer-id-v3.0-beta7-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
+          retention-days: 30
 
   build-ios:
     name: Build iOS App
@@ -57,6 +64,10 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Write local.properties (CI override)
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -68,9 +79,9 @@ jobs:
           cd build/ios/iphoneos
           zip -r Runner.zip Runner.app
 
-      - name: Upload iOS App
+      - name: Upload iOS App artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-ios-app
+          name: tafseer-id-v3.0-beta7-ios
           path: build/ios/iphoneos/Runner.zip
-          retention-days: 7
+          retention-days: 30

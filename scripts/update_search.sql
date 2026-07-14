@@ -14,6 +14,7 @@ create extension if not exists vector;
 -- ─────────────────────────────────────────────────────────────────────────────
 drop function if exists search_verses(text, text, integer, integer);
 drop function if exists semantic_search_verses_by_text(text, text, float, integer, integer);
+drop function if exists semantic_search_verses(vector, text, float, integer, integer);
 drop function if exists get_query_embedding(text);
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -111,14 +112,55 @@ $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. search_verses (UPDATED: High-Performance Multi-Word AND Search)
+-- 4. semantic_search_verses
+--    Accepts a pre-computed vector embedding from the client (web / Flutter).
+--    Called after the client generates the embedding via HuggingFace API.
+--    Uses pgvector cosine distance to rank the most semantically similar verses.
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function semantic_search_verses(
+    query_embedding  vector(384),
+    lang_code        text    default 'id',
+    match_threshold  float   default 0.1,
+    result_limit     integer default 50,
+    offset_val       integer default 0
+)
+returns table (
+    verse_key        text,
+    text_ar          text,
+    translation_text text,
+    similarity       float
+)
+language sql stable
+security definer
+as $$
+    select
+        v.verse_key,
+        v.text_ar,
+        t.text as translation_text,
+        (1 - (t.embedding <=> query_embedding))::float as similarity
+    from translations t
+    join verses v on v.id = t.verse_id
+    where (1 - (t.embedding <=> query_embedding)) > match_threshold
+      and t.source_id = case when lang_code = 'id' then 'id.kemenag' else 'en.sahih' end
+      and t.embedding is not null
+    order by t.embedding <=> query_embedding
+    limit result_limit
+    offset offset_val;
+$$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 5. search_verses v7 — Cross-language unified search (Optimized)
+--    Searches ALL languages (en.% AND id.%) simultaneously.
+--    lang_code only controls which translation shows on the result card.
 --    Matches keywords across:
 --      - Arabic text (verses)
---      - Translations (translations)
---      - Tafsirs (commentaries)
---      - Asbabun Nuzul (revelation context)
---      - Topic Tags (tags)
---    Returns dynamic matched_tags array, match_note, and context_snippet JSON array.
+--      - Translations EN + ID (translations)
+--      - Tafsirs EN + ID (tafsirs)
+--      - Asbabun Nuzul EN + ID (asbabun_nuzul)
+--      - Topic Tags EN + ID (tags)
+--    Optimizes search performance by performing a fast GIN candidate UNION.
+--    Completely eliminates slow ILIKE scans over thousands of rows.
 -- ─────────────────────────────────────────────────────────────────────────────
 create or replace function search_verses(
     query        text,
@@ -139,207 +181,190 @@ language plpgsql
 security definer
 as $$
 declare
-    query_words text[];
-    num_words integer;
+    query_words   text[];
+    num_words     integer;
     target_source text;
 begin
-    -- Split query by whitespace into lowercase words
+    -- Split query into lowercase words
     query_words := regexp_split_to_array(lower(trim(query)), '\s+');
-    num_words := array_length(query_words, 1);
-    
-    if num_words is null or num_words = 0 then
-        return;
-    end if;
+    num_words   := array_length(query_words, 1);
+    if num_words is null or num_words = 0 then return; end if;
 
-    -- Default display translation source based on language
+    -- Display translation: lang_code controls card headline only
     target_source := case when lang_code = 'id' then 'id.kemenag' else 'en.sahih' end;
 
     return query
-    with word_matches as (
-        -- Match in translations (utilizing indexed GIN full text search pre-filtering)
-        select tr.verse_id, w.word
-        from (
-            select translations.verse_id, translations.text
-            from translations
-            where translations.source_id like lang_code || '.%'
-              and case 
-                when lang_code = 'id' then to_tsvector('simple', translations.text) @@ plainto_tsquery('simple', query)
-                else to_tsvector('english', translations.text) @@ plainto_tsquery('english', query)
-              end
-        ) tr
-        join unnest(query_words) as w(word) on tr.text ilike '%' || w.word || '%'
-        
-        union all
-        
-        -- Match in verses (Arabic text, exactly 6,236 rows)
-        select v.id as verse_id, w.word
-        from verses v
-        join unnest(query_words) as w(word) on v.text_ar ilike '%' || w.word || '%'
-        
-        union all
-        
-        -- Match in tafsirs (utilizing indexed GIN full text search pre-filtering)
-        select tf.verse_id, w.word
-        from (
-            select tafsirs.verse_id, tafsirs.text
-            from tafsirs
-            where tafsirs.source_id like lang_code || '.%'
-              and case 
-                when lang_code = 'id' then to_tsvector('simple', tafsirs.text) @@ plainto_tsquery('simple', query)
-                else to_tsvector('english', tafsirs.text) @@ plainto_tsquery('english', query)
-              end
-        ) tf
-        join unnest(query_words) as w(word) on tf.text ilike '%' || w.word || '%'
-        
-        union all
-        
-        -- Match in asbabun_nuzul (utilizing indexed GIN full text search pre-filtering)
-        select snap.verse_id, w.word
-        from (
-            select asbabun_nuzul.verse_id, asbabun_nuzul.text
-            from asbabun_nuzul
-            where asbabun_nuzul.source_id like lang_code || '.%'
-              and case 
-                when lang_code = 'id' then to_tsvector('simple', asbabun_nuzul.text) @@ plainto_tsquery('simple', query)
-                else to_tsvector('english', asbabun_nuzul.text) @@ plainto_tsquery('english', query)
-              end
-        ) snap
-        join unnest(query_words) as w(word) on snap.text ilike '%' || w.word || '%'
-        
-        union all
-        
-        -- Match in tags (pre-filtered by tag language)
-        select vt.verse_id, w.word
+    with
+
+    -- Step 1: Candidate matching using separate, highly-optimized GIN index scans
+    matched_translations as (
+        select verse_id, 4 as score, 'Translation'::text as note
+        from translations
+        where (source_id like 'id.%' and to_tsvector('simple', text) @@ plainto_tsquery('simple', query))
+           or (source_id like 'en.%' and to_tsvector('english', text) @@ plainto_tsquery('english', query))
+    ),
+    matched_tafsirs as (
+        select verse_id, 2 as score, 'Tafsir'::text as note
+        from tafsirs
+        where (source_id like 'id.%' and to_tsvector('simple', text) @@ plainto_tsquery('simple', query))
+           or (source_id like 'en.%' and to_tsvector('english', text) @@ plainto_tsquery('english', query))
+    ),
+    matched_nuzul as (
+        select verse_id, 2 as score, 'Asbabun Nuzul'::text as note
+        from asbabun_nuzul
+        where (source_id like 'id.%' and to_tsvector('simple', text) @@ plainto_tsquery('simple', query))
+           or (source_id like 'en.%' and to_tsvector('english', text) @@ plainto_tsquery('english', query))
+    ),
+    matched_arabic as (
+        select ar_v.id as verse_id, 5 as score, 'Arabic'::text as note
+        from verses ar_v
+        where ar_v.text_ar ilike '%' || query || '%'
+    ),
+    matched_tags as (
+        select vt.verse_id, 3 as score, 'Tag'::text as note
         from verse_tags vt
         join tags tg on tg.id = vt.tag_id
-        join unnest(query_words) as w(word) on tg.name ilike '%' || w.word || '%'
-        where tg.lang = lang_code
+        where tg.name ilike '%' || query || '%'
     ),
-    
-    -- Filter verses that match ALL query words
-    matching_verse_ids as (
-        select wm.verse_id
-        from word_matches wm
-        group by wm.verse_id
-        having count(distinct wm.word) = num_words
+
+    -- Combine all candidate matches
+    all_matches as (
+        select verse_id, score, note from matched_translations
+        union all
+        select verse_id, score, note from matched_tafsirs
+        union all
+        select verse_id, score, note from matched_nuzul
+        union all
+        select verse_id, score, note from matched_arabic
+        union all
+        select verse_id, score, note from matched_tags
+    ),
+
+    -- Step 2: Group by verse_id to select the best match score and match note
+    best_matches as (
+        select 
+            am.verse_id,
+            max(am.score) as match_score,
+            min(am.note) as match_note
+        from all_matches am
+        group by am.verse_id
+    ),
+
+    -- Step 3: Sort and Paginate (Late Row Lookup)
+    ordered_ids as (
+        select 
+            bm.verse_id,
+            v.verse_key,
+            v.text_ar,
+            v.sura_id,
+            v.ayah_number,
+            t.text as translation_text,
+            bm.match_score,
+            bm.match_note
+        from best_matches bm
+        join verses v on v.id = bm.verse_id
+        left join translations t 
+               on t.verse_id = bm.verse_id and t.source_id = target_source
+        order by 
+            bm.match_score desc,
+            v.sura_id asc,
+            v.ayah_number asc
+        limit result_limit
+        offset offset_val
     )
-    
+
+    -- Step 4: Generate tags and context snippets ONLY for the final page subset
     select
-        v.verse_key,
-        v.text_ar,
-        t.text   as translation_text,
-        case
-            -- highest score: exact phrase match in Arabic
-            when v.text_ar ilike '%' || query || '%' then 5
-            -- high score: exact phrase match in translation
-            when t.text ilike '%' || query || '%' then 4
-            else 2
-        end as match_score,
-        
-        -- Collect tag names linked to this verse matching any query keyword
+        o.verse_key,
+        o.text_ar,
+        o.translation_text,
+        o.match_score,
+
+        -- Matched tags (both EN and ID)
         (
             select array_agg(tg.name)
             from verse_tags vt
             join tags tg on tg.id = vt.tag_id
-            where vt.verse_id = v.id
-              and tg.lang = lang_code
-              and (
-                  select bool_or(tg.name ilike '%' || w.word || '%')
-                  from unnest(query_words) as w(word)
+            where vt.verse_id = o.verse_id
+              and exists (
+                  select 1 from unnest(query_words) w(word)
+                  where tg.name ilike '%' || w.word || '%'
               )
         ) as matched_tags,
-        
-        -- Match source metadata notes
-        case
-            when exists (
-                select 1 from translations tr
-                where tr.verse_id = v.id and tr.source_id = target_source
-                  and (select bool_and(tr.text ilike '%' || w.word || '%') from unnest(query_words) as w(word))
-            ) then 'Translation'
-            when exists (
-                select 1 from tafsirs tf
-                where tf.verse_id = v.id and tf.source_id ilike lang_code || '.%'
-                  and (select bool_and(tf.text ilike '%' || w.word || '%') from unnest(query_words) as w(word))
-            ) then 'Tafsir'
-            when exists (
-                select 1 from asbabun_nuzul an
-                where an.verse_id = v.id
-                  and (select bool_and(an.text ilike '%' || w.word || '%') from unnest(query_words) as w(word))
-            ) then 'Asbabun Nuzul'
-            else null
-        end as match_note,
-        
-        -- JSON array of all source matches for context display and highlight in the UI.
-        -- Each entry is centered on the first keyword match using strpos() offset.
+
+        o.match_note,
+
+        -- Context snippets from ALL matching sources across ALL languages
         (
-            select json_agg(item)
+            select json_agg(item)::text
             from (
-                -- Match in translations (centered on first keyword)
-                select
-                    json_build_object(
-                        'source_name', case when tr.source_id = 'id.kemenag' then 'Kemenag RI Translation' else 'Sahih International' end,
-                        'source_type', 'Translation',
-                        'text', (
-                            select substring(tr.text from greatest(1,
-                                min(strpos(lower(tr.text), w.word)) - 120) for 300)
-                            from unnest(query_words) as w(word)
-                            where strpos(lower(tr.text), w.word) > 0
-                        )
-                    ) as item
-                from translations tr
-                where tr.verse_id = v.id
-                  and tr.source_id = target_source
-                  and (select bool_or(tr.text ilike '%' || w.word || '%') from unnest(query_words) as w(word))
+                -- All matching translations
+                select json_build_object(
+                    'source_name', case tr2.source_id
+                        when 'id.kemenag'   then 'Kemenag RI'
+                        when 'en.sahih'     then 'Sahih International'
+                        when 'en.hilali'    then 'Hilali & Khan'
+                        when 'en.pickthall' then 'Pickthall'
+                        else tr2.source_id
+                    end,
+                    'source_type', 'Translation',
+                    'text', (
+                        select substring(tr2.text from greatest(1,
+                            min(strpos(lower(tr2.text), w.word)) - 120) for 300)
+                        from unnest(query_words) w(word)
+                        where strpos(lower(tr2.text), w.word) > 0
+                    )
+                ) as item
+                from translations tr2
+                where tr2.verse_id = o.verse_id
+                  and exists (select 1 from unnest(query_words) w(word)
+                              where tr2.text ilike '%' || w.word || '%')
 
                 union all
 
-                -- Match in tafsirs (centered on first keyword)
-                select
-                    json_build_object(
-                        'source_name', case
-                            when tf.source_id = 'id.jalalayn' then 'Tafsir Jalalayn (ID)'
-                            when tf.source_id = 'id.kemenag'  then 'Tafsir Kemenag (ID)'
-                            when tf.source_id = 'en.katsir'   then 'Tafsir Ibn Kathir (EN)'
-                            else tf.source_id
-                        end,
-                        'source_type', 'Tafsir',
-                        'text', (
-                            select substring(tf.text from greatest(1,
-                                min(strpos(lower(tf.text), w.word)) - 120) for 300)
-                            from unnest(query_words) as w(word)
-                            where strpos(lower(tf.text), w.word) > 0
-                        )
-                    ) as item
-                from tafsirs tf
-                where tf.verse_id = v.id
-                  and tf.source_id ilike lang_code || '.%'
-                  and (select bool_or(tf.text ilike '%' || w.word || '%') from unnest(query_words) as w(word))
+                -- All matching tafsirs
+                select json_build_object(
+                    'source_name', case tf2.source_id
+                        when 'id.jalalayn' then 'Tafsir Jalalayn (ID)'
+                        when 'id.kemenag'  then 'Tafsir Kemenag (ID)'
+                        when 'en.katsir'   then 'Tafsir Ibn Kathir (EN)'
+                        else tf2.source_id
+                    end,
+                    'source_type', 'Tafsir',
+                    'text', (
+                        select substring(tf2.text from greatest(1,
+                            min(strpos(lower(tf2.text), w.word)) - 120) for 300)
+                        from unnest(query_words) w(word)
+                        where strpos(lower(tf2.text), w.word) > 0
+                    )
+                ) as item
+                from tafsirs tf2
+                where tf2.verse_id = o.verse_id
+                  and exists (select 1 from unnest(query_words) w(word)
+                              where tf2.text ilike '%' || w.word || '%')
 
                 union all
 
-                -- Match in asbabun nuzul (centered on first keyword)
-                select
-                    json_build_object(
-                        'source_name', 'Asbabun Nuzul (al-Wahidi)',
-                        'source_type', 'Asbabun Nuzul',
-                        'text', (
-                            select substring(an.text from greatest(1,
-                                min(strpos(lower(an.text), w.word)) - 120) for 300)
-                            from unnest(query_words) as w(word)
-                            where strpos(lower(an.text), w.word) > 0
-                        )
-                    ) as item
-                from asbabun_nuzul an
-                where an.verse_id = v.id
-                  and (select bool_or(an.text ilike '%' || w.word || '%') from unnest(query_words) as w(word))
+                -- All matching asbabun nuzul
+                select json_build_object(
+                    'source_name', 'Asbabun Nuzul (al-Wahidi)',
+                    'source_type', 'Asbabun Nuzul',
+                    'text', (
+                        select substring(an2.text from greatest(1,
+                            min(strpos(lower(an2.text), w.word)) - 120) for 300)
+                        from unnest(query_words) w(word)
+                        where strpos(lower(an2.text), w.word) > 0
+                    )
+                ) as item
+                from asbabun_nuzul an2
+                where an2.verse_id = o.verse_id
+                  and exists (select 1 from unnest(query_words) w(word)
+                              where an2.text ilike '%' || w.word || '%')
             ) snippets
-        )::text as context_snippet
-        
-    from matching_verse_ids mv
-    join verses v on v.id = mv.verse_id
-    left join translations t on t.verse_id = mv.verse_id and t.source_id = target_source
-    order  by match_score desc, v.sura_id asc, v.ayah_number asc
-    limit  result_limit
-    offset offset_val;
+        ) as context_snippet
+
+    from ordered_ids o
+    order by o.match_score desc, o.sura_id asc, o.ayah_number asc;
+
 end;
 $$;

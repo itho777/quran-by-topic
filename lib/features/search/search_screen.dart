@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:http/http.dart' as http;
 import '../../core/theme.dart';
 import '../../core/static_index_service.dart';
+import '../../core/local_db.dart';
 
 class SearchScreen extends StatefulWidget {
   final String initialQuery;
@@ -30,12 +30,15 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _loadingMore = false;
   bool _hasMore = true;
   String _error = '';
-  // 'id', 'en', or 'other' (other = static index search for all other langs)
+  String _offlineMessage = '';
   String _langCode = 'id';
   bool _didSearch = false;
   String _searchMode = 'keyword'; // 'keyword' or 'semantic'
 
-  bool get _isOtherLang => _langCode == 'other';
+  // Phase 2: static multilingual index results
+  List<Map<String, dynamic>> _staticResults = [];
+  bool _staticLoading = false;
+  bool _staticExpanded = false;
 
   // Cache of surah names for display
   final Map<int, Map<String, String>> _surahCache = {};
@@ -44,6 +47,13 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery);
+    // Warm up static index in background so it's ready when user searches
+    StaticIndexService.instance.ensureLoaded();
+    StaticIndexService.instance.addListener(_onStaticIndexReady);
+  }
+
+  void _onStaticIndexReady() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -102,18 +112,15 @@ class _SearchScreenState extends State<SearchScreen> {
     if (query.trim().isEmpty) return;
     setState(() {
       _loading = true;
-      _loadingStatus = _langCode == 'id'
-          ? 'Mencari...'
-          : _isOtherLang
-              ? 'Loading search index...'
-              : 'Searching...';
+      _loadingStatus = _langCode == 'id' ? 'Mencari...' : 'Searching...';
       _error = '';
+      _offlineMessage = '';
       _results = [];
       _hasMore = true;
       _didSearch = true;
     });
 
-    int _attempts = 0;
+    int attempts = 0;
     while (true) {
       try {
         if (_searchMode == 'semantic') {
@@ -126,8 +133,8 @@ class _SearchScreenState extends State<SearchScreen> {
         final isTimeout = e.toString().contains('57014') ||
             e.toString().contains('statement timeout') ||
             e.toString().contains('query_canceled');
-        if (isTimeout && _attempts < 1) {
-          _attempts++;
+        if (isTimeout && attempts < 1) {
+          attempts++;
           // Brief pause before retry
           await Future.delayed(const Duration(milliseconds: 600));
           continue;
@@ -136,37 +143,43 @@ class _SearchScreenState extends State<SearchScreen> {
             ? 'Search timed out. Please try again or narrow your query.'
             : e.toString());
         break;
-      } finally {
-        if (!(_loading)) break; // already cleared
       }
     }
     setState(() => _loading = false);
   }
 
   Future<void> _performKeywordSearch(String query) async {
-    // For non-EN/ID languages: use static pre-built index (covers all 110+ langs)
-    if (_isOtherLang) {
-      await _performStaticIndexSearch(query);
+    // ── Phase 1: DB search (fast GIN index, EN/ID/AR) ──────────────────────
+    List<Map<String, dynamic>> list = [];
+    bool isOffline = false;
+    try {
+      final res = await Supabase.instance.client.rpc('search_verses', params: {
+        'p_query': query.trim(),
+        'p_lang_code': _langCode,
+        'p_result_limit': 100,
+        'p_offset_val': 0,
+      });
+      list = List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      debugPrint('[Search] DB search failed (offline fallback): $e');
+      isOffline = true;
+    }
+
+    if (isOffline) {
+      setState(() {
+        _results = [];
+        _hasMore = false;
+        _staticResults = [];
+        _staticExpanded = false;
+        _offlineMessage = _langCode == 'id'
+            ? 'Koneksi internet bermasalah. Mencari di indeks offline lokal...'
+            : 'Offline mode. Searching local offline index...';
+      });
+      await _runPhase2Search(query, alreadyFoundKeys: {});
       return;
     }
 
-    // 1. Fetch matching verses from the GIN-indexed search_verses RPC (EN/ID only)
-    final res = await Supabase.instance.client.rpc('search_verses', params: {
-      'query': query.trim(),
-      'lang_code': _langCode,
-      'result_limit': 100,
-      'offset_val': 0,
-    });
-    final list = List<Map<String, dynamic>>.from(res);
-
-    // If RPC returns 0 results, fall through to static index as safety net
-    if (list.isEmpty) {
-      debugPrint('[Search] RPC returned 0 results, trying static index fallback...');
-      await _performStaticIndexSearch(query);
-      return;
-    }
-
-    // 2. Map direct database fields to widget expectations. Parse context_snippet JSON array.
+    // Map DB fields to widget format, parse context_snippet JSON
     final mapped = list.map((r) {
       final tagsList = List<String>.from(r['matched_tags'] as List? ?? []);
       List<Map<String, dynamic>> sources = [];
@@ -180,7 +193,6 @@ class _SearchScreenState extends State<SearchScreen> {
         } catch (_) {}
       }
 
-      // Check which sources matched the query keywords to satisfy checkboxes
       final queryLower = query.toLowerCase();
       final words = queryLower.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
 
@@ -190,18 +202,12 @@ class _SearchScreenState extends State<SearchScreen> {
       bool hasNuzulMatch = false;
       bool hasTagMatch = false;
 
-      // 1. Check Quran (Arabic text match)
       final arText = (r['text_ar'] as String? ?? '').toLowerCase();
       if (words.isNotEmpty && words.every((w) => arText.contains(w))) {
         hasQuranMatch = true;
       }
+      if (tagsList.isNotEmpty) hasTagMatch = true;
 
-      // 2. Check Tag match
-      if (tagsList.isNotEmpty) {
-        hasTagMatch = true;
-      }
-
-      // 3. Check matches inside context sources
       for (final src in sources) {
         final type = src['source_type'] as String? ?? '';
         if (type == 'Translation') hasTranslationMatch = true;
@@ -214,19 +220,15 @@ class _SearchScreenState extends State<SearchScreen> {
       if (note == 'Tafsir') hasTafsirMatch = true;
       if (note == 'Asbabun Nuzul') hasNuzulMatch = true;
 
-      // Keep results that match at least one selected category
       bool keep = false;
       if (_searchQuran && hasQuranMatch) keep = true;
       if (_searchTranslation && hasTranslationMatch) keep = true;
       if (_searchTafsir && hasTafsirMatch) keep = true;
       if (_searchNuzul && hasNuzulMatch) keep = true;
       if (_searchTag && hasTagMatch) keep = true;
-
-      // If nothing is selected, display all as fallback
       if (!_searchQuran && !_searchTranslation && !_searchTafsir && !_searchNuzul && !_searchTag) {
         keep = true;
       }
-
       if (!keep) return null;
 
       return {
@@ -241,137 +243,116 @@ class _SearchScreenState extends State<SearchScreen> {
       };
     }).whereType<Map<String, dynamic>>().toList();
 
+    // Show Phase 1 results immediately
     setState(() {
       _results = mapped;
       _hasMore = list.length >= 100;
+      _staticResults = [];
+      _staticExpanded = false;
     });
+
+    // ── Phase 2: Static index search (all 111 languages) ───────────────────
+    // Run asynchronously so Phase 1 results are already showing
+    _runPhase2Search(query, alreadyFoundKeys: mapped.map((r) => r['verse_key'] as String).toSet());
   }
 
-  /// Search the static pre-built index (all 110+ languages).
-  /// Used when _langCode == 'other' or as EN/ID fallback.
-  Future<void> _performStaticIndexSearch(String query) async {
-    if (!StaticIndexService.isLoaded) {
-      setState(() => _loadingStatus = 'Loading index (first use, ~16MB)…');
-      await StaticIndexService.ensureLoaded();
-      if (StaticIndexService.loadError != null) {
-        setState(() => _error = 'Could not load search index: ${StaticIndexService.loadError}');
+  Future<void> _runPhase2Search(String query, {required Set<String> alreadyFoundKeys}) async {
+    final service = StaticIndexService.instance;
+    if (!service.isReady) {
+      setState(() => _staticLoading = true);
+      await service.ensureLoaded();
+      if (!service.isReady) {
+        setState(() => _staticLoading = false);
         return;
       }
     }
-    setState(() => _loadingStatus = 'Searching all translations…');
 
-    final matchedKeys = StaticIndexService.search(query);
-    if (matchedKeys.isEmpty) {
-      setState(() {
-        _results = [];
-        _hasMore = false;
-      });
-      return;
-    }
-
-    // Fetch Arabic text for matched verse keys from Supabase
-    setState(() => _loadingStatus = 'Fetching verse details…');
+    setState(() => _staticLoading = true);
     try {
-      final res = await Supabase.instance.client
-          .from('verses')
-          .select('verse_key, text_ar')
-          .inFilter('verse_key', matchedKeys.take(100).toList());
-      final rows = List<Map<String, dynamic>>.from(res);
-      final mapped = rows.map((r) => {
-            'verse_key': r['verse_key'],
-            'text_ar': r['text_ar'],
-            'translation_text': '',
-            'match_score': 1,
-            '_from_tag': false,
-            '_matched_tags': <String>[],
-            '_match_note': 'Other language match',
-            '_context_sources': <Map<String, dynamic>>[],
-          }).toList();
-      setState(() {
-        _results = mapped;
-        _hasMore = matchedKeys.length > 100;
-      });
+      final hits = await service.search(query, maxResults: 60);
+      // Remove verse_keys already shown in Phase 1
+      final newHits = hits.where((h) => !alreadyFoundKeys.contains(h.verseKey)).toList();
+      if (newHits.isEmpty) {
+        setState(() => _staticLoading = false);
+        return;
+      }
+
+      // Fetch verse data from DB for the new keys
+      final keys = newHits.map((h) => h.verseKey).take(40).toList();
+      final arMap = <String, String>{};
+      final transMap = <String, String>{};
+      final sourceId = _langCode == 'id' ? 'id.kemenag' : 'en.sahih';
+
+      try {
+        final dbRes = await Supabase.instance.client
+            .from('verses')
+            .select('verse_key, text_ar')
+            .inFilter('verse_key', keys);
+
+        for (final row in List<Map<String, dynamic>>.from(dbRes)) {
+          arMap[row['verse_key'] as String] = row['text_ar'] as String? ?? '';
+        }
+
+        final transRes = await Supabase.instance.client
+            .from('translations')
+            .select('verse_key, text')
+            .eq('source_id', sourceId)
+            .inFilter('verse_key', keys);
+
+        for (final row in List<Map<String, dynamic>>.from(transRes)) {
+          transMap[row['verse_key'] as String] = row['text'] as String? ?? '';
+        }
+      } catch (dbErr) {
+        debugPrint('[Phase2] DB query failed, attempting local cache fallback: $dbErr');
+        // Offline / Cache fallback:
+        for (final vk in keys) {
+          final cachedVerse = await LocalDatabase.instance.getVerse(vk);
+          if (cachedVerse != null) {
+            arMap[vk] = cachedVerse['text_ar'] as String? ?? '';
+          }
+          final cachedTrans = await LocalDatabase.instance.getTextData('translations', vk, sourceId);
+          if (cachedTrans != null) {
+            transMap[vk] = cachedTrans;
+          }
+        }
+      }
+
+      final staticMapped = newHits
+          .where((h) => arMap.containsKey(h.verseKey))
+          .map((h) => <String, dynamic>{
+                'verse_key': h.verseKey,
+                'text_ar': arMap[h.verseKey] ?? '',
+                'translation_text': transMap[h.verseKey] ?? '',
+                'match_score': h.score,
+                '_from_tag': false,
+                '_matched_tags': <String>[],
+                '_match_note': 'Multilingual',
+                '_context_sources': <Map<String, dynamic>>[],
+                '_is_static': true,
+              })
+          .toList();
+
+      if (mounted && staticMapped.isNotEmpty) {
+        setState(() => _staticResults = staticMapped);
+      }
     } catch (e) {
-      // Even if DB fetch fails, show verse keys only
-      final fallback = matchedKeys.take(100).map((k) => {
-            'verse_key': k,
-            'text_ar': '',
-            'translation_text': '',
-            'match_score': 1,
-            '_from_tag': false,
-            '_matched_tags': <String>[],
-            '_match_note': 'Other language match',
-            '_context_sources': <Map<String, dynamic>>[],
-          }).toList();
-      setState(() {
-        _results = fallback;
-        _hasMore = matchedKeys.length > 100;
-      });
+      debugPrint('[Phase2] Static search error: $e');
+    } finally {
+      if (mounted) setState(() => _staticLoading = false);
     }
   }
 
   Future<void> _performSemanticSearch(String query) async {
     try {
-      final hfToken = 'hf_' 'MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN';
-      const hfUrl   = 'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5';
-
-      List<double>? queryEmbedding;
-      const int attempts = 3;
-      const int delaySeconds = 5;
-
-      for (int i = 1; i <= attempts; i++) {
-        setState(() {
-          _loadingStatus = _langCode == 'id'
-              ? 'Menghubungkan ke AI...'
-              : 'Connecting to AI...';
-        });
-
-        final response = await http.post(
-          Uri.parse(hfUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $hfToken',
-          },
-          body: json.encode({'inputs': [query.trim()]}),
-        ).timeout(const Duration(seconds: 20));
-
-        if (response.statusCode == 200) {
-          final List<dynamic> resData = json.decode(response.body);
-          if (resData.isEmpty || resData[0] is! List) {
-            throw Exception('Unexpected embedding response format');
-          }
-          queryEmbedding = List<double>.from(
-            (resData[0] as List<dynamic>).map((e) => (e as num).toDouble())
-          );
-          break;
-        } else if (response.statusCode == 503) {
-          if (i == attempts) {
-            throw Exception('AI Model failed to load after $attempts attempts.');
-          }
-          setState(() {
-            _loadingStatus = _langCode == 'id'
-                ? 'AI Model sedang bersiap (warming up)... Percobaan $i/$attempts'
-                : 'AI Model is warming up... Attempt $i/$attempts';
-          });
-          await Future.delayed(const Duration(seconds: delaySeconds));
-        } else {
-          throw Exception('HF router returned ${response.statusCode}: ${response.body}');
-        }
-      }
-
-      if (queryEmbedding == null) {
-        throw Exception('Failed to generate query embedding.');
-      }
-
       setState(() {
         _loadingStatus = _langCode == 'id'
-            ? 'Mencari di basis data...'
-            : 'Searching database...';
+            ? 'Mencari makna dengan AI...'
+            : 'Searching meaning with AI...';
       });
 
-      // 2. Query pgvector via Supabase RPC
-      final res = await Supabase.instance.client.rpc('semantic_search_verses', params: {
-        'query_embedding': queryEmbedding,
+      // Query database-side semantic search RPC
+      final res = await Supabase.instance.client.rpc('semantic_search_verses_by_text', params: {
+        'query_text': query.trim(),
         'lang_code': _langCode,
         'match_threshold': 0.1,
         'result_limit': 50,
@@ -407,10 +388,10 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _loadingMore = true);
     try {
       final res = await Supabase.instance.client.rpc('search_verses', params: {
-        'query': _controller.text.trim(),
-        'lang_code': _langCode,
-        'result_limit': 50,
-        'offset_val': _results.length,
+        'p_query': _controller.text.trim(),
+        'p_lang_code': _langCode,
+        'p_result_limit': 50,
+        'p_offset_val': _results.length,
       });
       final newItems = List<Map<String, dynamic>>.from(res);
       setState(() {
@@ -437,6 +418,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    StaticIndexService.instance.removeListener(_onStaticIndexReady);
     _controller.dispose();
     super.dispose();
   }
@@ -473,6 +455,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               _results = [];
                               _didSearch = false;
                               _error = '';
+                              _offlineMessage = '';
                             });
                           },
                         )
@@ -483,7 +466,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 textInputAction: TextInputAction.search,
               ),
             ),
-            // Language selector: ID | EN | Other (static index, all langs)
+            // EN/ID language toggle
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Container(
@@ -494,76 +477,34 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ...['id', 'en'].map((lang) {
-                      final active = _langCode == lang;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _langCode = lang);
-                          if (_didSearch && _controller.text.isNotEmpty) {
-                            _search(_controller.text);
-                          }
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20),
-                            border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-                          ),
-                          child: Text(
-                            lang.toUpperCase(),
-                            style: TextStyle(
-                              color: active ? AppTheme.primary : AppTheme.outline,
-                              fontSize: 11,
-                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                    // "Other" pill — uses static index for all 110+ languages
-                    GestureDetector(
+                  children: ['id', 'en'].map((lang) {
+                    final active = _langCode == lang;
+                    return GestureDetector(
                       onTap: () {
-                        setState(() => _langCode = 'other');
+                        setState(() => _langCode = lang);
                         if (_didSearch && _controller.text.isNotEmpty) {
                           _search(_controller.text);
                         }
                       },
-                      child: Tooltip(
-                        message: 'Search all 110+ languages via pre-built index',
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: _isOtherLang ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20),
-                            border: _isOtherLang ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.language,
-                                size: 11,
-                                color: _isOtherLang ? AppTheme.primary : AppTheme.outline,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                'Other',
-                                style: TextStyle(
-                                  color: _isOtherLang ? AppTheme.primary : AppTheme.outline,
-                                  fontSize: 11,
-                                  fontWeight: _isOtherLang ? FontWeight.bold : FontWeight.normal,
-                                ),
-                              ),
-                            ],
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                          border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
+                        ),
+                        child: Text(
+                          lang.toUpperCase(),
+                          style: TextStyle(
+                            color: active ? AppTheme.primary : AppTheme.outline,
+                            fontSize: 11,
+                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    );
+                  }).toList(),
                 ),
               ),
             ),
@@ -833,31 +774,91 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    if (!_loading && _results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, size: 64, color: AppTheme.outline),
-            const SizedBox(height: 16),
-            Text(
-              _langCode == 'id'
-                  ? 'Tidak ada hasil untuk "${_controller.text}"'
-                  : 'No results for "${_controller.text}"',
-              style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 15, fontWeight: FontWeight.w600),
+    if (!_loading && _results.isEmpty && _staticResults.isEmpty && !_staticLoading) {
+      return Column(
+        children: [
+          if (_offlineMessage.isNotEmpty)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.wifi_off, size: 18, color: AppTheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _offlineMessage,
+                      style: TextStyle(color: AppTheme.error, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              _langCode == 'id' ? 'Coba kata yang berbeda' : 'Try a different word',
-              style: TextStyle(color: AppTheme.outline, fontSize: 12),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_off, size: 64, color: AppTheme.outline),
+                  const SizedBox(height: 16),
+                  Text(
+                    _langCode == 'id'
+                        ? 'Tidak ada hasil untuk "${_controller.text}"'
+                        : 'No results for "${_controller.text}"',
+                    style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _langCode == 'id' ? 'Coba kata yang berbeda' : 'Try a different word',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
+    final isEn = _langCode == 'en';
+    final totalFound = _results.length;
+    // Combine: Phase 1 results + (if expanded) Phase 2 static results
+    final displayList = [
+      ..._results,
+      if (_staticExpanded) ..._staticResults,
+    ];
+
     return Column(
       children: [
+        if (_offlineMessage.isNotEmpty)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.wifi_off, size: 18, color: AppTheme.error),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _offlineMessage,
+                    style: TextStyle(color: AppTheme.error, fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
         // Results header
         if (_results.isNotEmpty)
           Container(
@@ -869,23 +870,36 @@ class _SearchScreenState extends State<SearchScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    _langCode == 'id'
-                        ? 'Ditemukan ${_results.length} ayat untuk "${_controller.text}"'
-                        : 'Found ${_results.length} verses for "${_controller.text}"',
+                    isEn
+                        ? 'Found $totalFound verses for "${_controller.text}"'
+                        : 'Ditemukan $totalFound ayat untuk "${_controller.text}"',
                     style: TextStyle(color: AppTheme.outline, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
+                // Static index status indicator
+                if (_staticLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: SizedBox(
+                      width: 10, height: 10,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 1.5,
+                        color: AppTheme.outline,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: _results.length + (_hasMore ? 1 : 0),
+            itemCount: displayList.length + (_hasMore ? 1 : 0) + (_staticResults.isNotEmpty || _staticLoading ? 1 : 0),
             itemBuilder: (context, i) {
-              if (i == _results.length) {
+              // "Load More" button for Phase 1
+              if (i == _results.length && _hasMore && !_staticExpanded) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Center(
                     child: _loadingMore
                         ? CircularProgressIndicator(color: AppTheme.primary)
@@ -893,27 +907,138 @@ class _SearchScreenState extends State<SearchScreen> {
                             onPressed: _loadMore,
                             icon: Icon(Icons.expand_more, color: AppTheme.primary),
                             label: Text(
-                              _langCode == 'id' ? 'Muat Lebih Banyak' : 'Load More',
+                              isEn ? 'Load More' : 'Muat Lebih Banyak',
                               style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
                             ),
                           ),
                   ),
                 );
               }
+
+              // Phase 2 "Also found in" expandable header
+              final staticHeaderIndex = _results.length + (_hasMore ? 1 : 0);
+              if (i == staticHeaderIndex && (_staticResults.isNotEmpty || _staticLoading)) {
+                return _MultilingualHeader(
+                  count: _staticResults.length,
+                  isLoading: _staticLoading,
+                  isExpanded: _staticExpanded,
+                  isEn: isEn,
+                  onTap: () => setState(() => _staticExpanded = !_staticExpanded),
+                );
+              }
+
+              // Phase 2 results (when expanded)
+              final resultIndex = i >= staticHeaderIndex + 1
+                  ? i - staticHeaderIndex - 1 + _results.length
+                  : i;
+
+              if (resultIndex >= displayList.length) return const SizedBox.shrink();
+
+              final r = displayList[resultIndex];
               return _ResultCard(
-                result: _results[i],
+                result: r,
                 query: _controller.text.trim(),
-                surahName: _surahName(_results[i]['verse_key'] as String? ?? ''),
-                translationText: _results[i]['translation_text'] as String? ?? '',
-                isFromTag: _results[i]['_from_tag'] == true,
-                matchedTags: List<String>.from(
-                  _results[i]['_matched_tags'] as List? ?? [],
-                ),
+                surahName: _surahName(r['verse_key'] as String? ?? ''),
+                translationText: r['translation_text'] as String? ?? '',
+                isFromTag: r['_from_tag'] == true,
+                matchedTags: List<String>.from(r['_matched_tags'] as List? ?? []),
+                isMultilingual: r['_is_static'] == true,
               );
             },
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Expandable header for Phase 2 multilingual results
+class _MultilingualHeader extends StatelessWidget {
+  final int count;
+  final bool isLoading;
+  final bool isExpanded;
+  final bool isEn;
+  final VoidCallback onTap;
+
+  const _MultilingualHeader({
+    required this.count,
+    required this.isLoading,
+    required this.isExpanded,
+    required this.isEn,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: count > 0 ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppTheme.outlineVariant.withValues(alpha: 0.35),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8E6BAE).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.language, size: 16, color: Color(0xFF8E6BAE)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isEn ? 'Also found in other languages' : 'Juga ditemukan dalam bahasa lain',
+                    style: TextStyle(
+                      color: AppTheme.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  if (isLoading)
+                    Text(
+                      isEn ? 'Searching 111 languages…' : 'Mencari 111 bahasa…',
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                    )
+                  else if (count > 0)
+                    Text(
+                      isEn ? '$count additional verses matched' : '$count ayat tambahan ditemukan',
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                    )
+                  else
+                    Text(
+                      isEn ? 'No additional results' : 'Tidak ada hasil tambahan',
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                    ),
+                ],
+              ),
+            ),
+            if (isLoading)
+              SizedBox(
+                width: 16, height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: const Color(0xFF8E6BAE)),
+              )
+            else if (count > 0)
+              Icon(
+                isExpanded ? Icons.expand_less : Icons.expand_more,
+                color: AppTheme.outline,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -925,6 +1050,7 @@ class _ResultCard extends StatelessWidget {
   final String translationText;
   final bool isFromTag;
   final List<String> matchedTags;
+  final bool isMultilingual;
 
   const _ResultCard({
     required this.result,
@@ -933,6 +1059,7 @@ class _ResultCard extends StatelessWidget {
     required this.translationText,
     required this.isFromTag,
     required this.matchedTags,
+    this.isMultilingual = false,
   });
 
   // Source type → color mapping
@@ -960,7 +1087,10 @@ class _ResultCard extends StatelessWidget {
     // Determine badge label & colors from match_note
     final String badgeLabel;
     final Color  badgeColor;
-    if (result['_similarity'] != null) {
+    if (isMultilingual) {
+      badgeLabel = 'MULTILANG';
+      badgeColor = const Color(0xFF8E6BAE);
+    } else if (result['_similarity'] != null) {
       final pct = ((result['_similarity'] as double) * 100).toStringAsFixed(0);
       badgeLabel = '$pct% MATCH';
       badgeColor = AppTheme.primary;
@@ -1021,8 +1151,7 @@ class _ResultCard extends StatelessWidget {
                     p['tab'] = '2';
                   }
                   final url = p.isEmpty ? base
-                      : '$base?' + p.entries.map((e) =>
-                          '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+                      : '$base?${p.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
                   context.go(url);
                 }
               : null,
@@ -1206,8 +1335,7 @@ class _SourceExcerpt extends StatelessWidget {
     }
     final base = '/surahs/$surahId/ayahs/$ayahNum';
     if (p.isEmpty) return base;
-    return '$base?' + p.entries.map((e) =>
-        '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+    return '$base?${p.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
   }
 
   @override

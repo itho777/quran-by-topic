@@ -552,7 +552,44 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
     }
+    if (_surah == null) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          backgroundColor: AppTheme.surfaceContainer,
+          title: Text('Surah ${widget.surahId}', style: TextStyle(color: AppTheme.onSurface)),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_outlined, color: AppTheme.outline, size: 56),
+              const SizedBox(height: 16),
+              Text(
+                _currentLang == 'id' ? 'Data tidak tersedia' : 'Data not available',
+                style: TextStyle(color: AppTheme.onSurface, fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _currentLang == 'id'
+                    ? 'Periksa koneksi internet dan coba lagi'
+                    : 'Check your internet connection and try again',
+                style: TextStyle(color: AppTheme.outline, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+                label: Text(_currentLang == 'id' ? 'Coba Lagi' : 'Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final surah = _surah!;
+
     final isEn = _currentLang == 'en';
     final surahDisplayName = isEn
         ? (surah['name_en'] as String? ?? '')

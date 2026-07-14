@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 import '../../core/theme.dart';
+import '../../core/static_index_service.dart';
 
 class SearchScreen extends StatefulWidget {
   final String initialQuery;
@@ -29,9 +30,12 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _loadingMore = false;
   bool _hasMore = true;
   String _error = '';
+  // 'id', 'en', or 'other' (other = static index search for all other langs)
   String _langCode = 'id';
   bool _didSearch = false;
   String _searchMode = 'keyword'; // 'keyword' or 'semantic'
+
+  bool get _isOtherLang => _langCode == 'other';
 
   // Cache of surah names for display
   final Map<int, Map<String, String>> _surahCache = {};
@@ -98,7 +102,11 @@ class _SearchScreenState extends State<SearchScreen> {
     if (query.trim().isEmpty) return;
     setState(() {
       _loading = true;
-      _loadingStatus = _langCode == 'id' ? 'Mencari...' : 'Searching...';
+      _loadingStatus = _langCode == 'id'
+          ? 'Mencari...'
+          : _isOtherLang
+              ? 'Loading search index...'
+              : 'Searching...';
       _error = '';
       _results = [];
       _hasMore = true;
@@ -136,14 +144,27 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _performKeywordSearch(String query) async {
-    // 1. Fetch matching verses directly from optimized multi-table search_verses RPC
+    // For non-EN/ID languages: use static pre-built index (covers all 110+ langs)
+    if (_isOtherLang) {
+      await _performStaticIndexSearch(query);
+      return;
+    }
+
+    // 1. Fetch matching verses from the GIN-indexed search_verses RPC (EN/ID only)
     final res = await Supabase.instance.client.rpc('search_verses', params: {
       'query': query.trim(),
       'lang_code': _langCode,
-      'result_limit': 100, // retrieve slightly more for filtering overhead
+      'result_limit': 100,
       'offset_val': 0,
     });
     final list = List<Map<String, dynamic>>.from(res);
+
+    // If RPC returns 0 results, fall through to static index as safety net
+    if (list.isEmpty) {
+      debugPrint('[Search] RPC returned 0 results, trying static index fallback...');
+      await _performStaticIndexSearch(query);
+      return;
+    }
 
     // 2. Map direct database fields to widget expectations. Parse context_snippet JSON array.
     final mapped = list.map((r) {
@@ -224,6 +245,69 @@ class _SearchScreenState extends State<SearchScreen> {
       _results = mapped;
       _hasMore = list.length >= 100;
     });
+  }
+
+  /// Search the static pre-built index (all 110+ languages).
+  /// Used when _langCode == 'other' or as EN/ID fallback.
+  Future<void> _performStaticIndexSearch(String query) async {
+    if (!StaticIndexService.isLoaded) {
+      setState(() => _loadingStatus = 'Loading index (first use, ~16MB)…');
+      await StaticIndexService.ensureLoaded();
+      if (StaticIndexService.loadError != null) {
+        setState(() => _error = 'Could not load search index: ${StaticIndexService.loadError}');
+        return;
+      }
+    }
+    setState(() => _loadingStatus = 'Searching all translations…');
+
+    final matchedKeys = StaticIndexService.search(query);
+    if (matchedKeys.isEmpty) {
+      setState(() {
+        _results = [];
+        _hasMore = false;
+      });
+      return;
+    }
+
+    // Fetch Arabic text for matched verse keys from Supabase
+    setState(() => _loadingStatus = 'Fetching verse details…');
+    try {
+      final res = await Supabase.instance.client
+          .from('verses')
+          .select('verse_key, text_ar')
+          .inFilter('verse_key', matchedKeys.take(100).toList());
+      final rows = List<Map<String, dynamic>>.from(res);
+      final mapped = rows.map((r) => {
+            'verse_key': r['verse_key'],
+            'text_ar': r['text_ar'],
+            'translation_text': '',
+            'match_score': 1,
+            '_from_tag': false,
+            '_matched_tags': <String>[],
+            '_match_note': 'Other language match',
+            '_context_sources': <Map<String, dynamic>>[],
+          }).toList();
+      setState(() {
+        _results = mapped;
+        _hasMore = matchedKeys.length > 100;
+      });
+    } catch (e) {
+      // Even if DB fetch fails, show verse keys only
+      final fallback = matchedKeys.take(100).map((k) => {
+            'verse_key': k,
+            'text_ar': '',
+            'translation_text': '',
+            'match_score': 1,
+            '_from_tag': false,
+            '_matched_tags': <String>[],
+            '_match_note': 'Other language match',
+            '_context_sources': <Map<String, dynamic>>[],
+          }).toList();
+      setState(() {
+        _results = fallback;
+        _hasMore = matchedKeys.length > 100;
+      });
+    }
   }
 
   Future<void> _performSemanticSearch(String query) async {
@@ -399,7 +483,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 textInputAction: TextInputAction.search,
               ),
             ),
-            // EN/ID language toggle
+            // Language selector: ID | EN | Other (static index, all langs)
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Container(
@@ -410,34 +494,76 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: ['id', 'en'].map((lang) {
-                    final active = _langCode == lang;
-                    return GestureDetector(
+                  children: [
+                    ...['id', 'en'].map((lang) {
+                      final active = _langCode == lang;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _langCode = lang);
+                          if (_didSearch && _controller.text.isNotEmpty) {
+                            _search(_controller.text);
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
+                          ),
+                          child: Text(
+                            lang.toUpperCase(),
+                            style: TextStyle(
+                              color: active ? AppTheme.primary : AppTheme.outline,
+                              fontSize: 11,
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    // "Other" pill — uses static index for all 110+ languages
+                    GestureDetector(
                       onTap: () {
-                        setState(() => _langCode = lang);
+                        setState(() => _langCode = 'other');
                         if (_didSearch && _controller.text.isNotEmpty) {
                           _search(_controller.text);
                         }
                       },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-                        ),
-                        child: Text(
-                          lang.toUpperCase(),
-                          style: TextStyle(
-                            color: active ? AppTheme.primary : AppTheme.outline,
-                            fontSize: 11,
-                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                      child: Tooltip(
+                        message: 'Search all 110+ languages via pre-built index',
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: _isOtherLang ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: _isOtherLang ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.language,
+                                size: 11,
+                                color: _isOtherLang ? AppTheme.primary : AppTheme.outline,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                'Other',
+                                style: TextStyle(
+                                  color: _isOtherLang ? AppTheme.primary : AppTheme.outline,
+                                  fontSize: 11,
+                                  fontWeight: _isOtherLang ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ],
                 ),
               ),
             ),

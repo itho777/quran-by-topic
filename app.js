@@ -3038,18 +3038,22 @@ const SURAH_LEVEL_RECITERS = {
   'wdee3': 'https://server6.mp3quran.net/wdee3/'
 };
 
-function getAudioUrl(verseKey, reciterId, useMirror = true) {
+function getAudioUrl(verseKey, reciterId, mirror = 0) {
   const [sura, ayah] = verseKey.split(':');
   const suraPad = sura.padStart(3, '0');
   // Surah-level reciter: one MP3 per surah, ignore ayah
   if (SURAH_LEVEL_RECITERS[reciterId]) {
     return `${SURAH_LEVEL_RECITERS[reciterId]}${suraPad}.mp3`;
   }
-  // Per-ayah everyayah reciter
+  // Per-ayah: try three CDNs in order
   const ayahPad = ayah.padStart(3, '0');
-  const host = useMirror 
-    ? 'https://mirrors.quranicaudio.com/everyayah' 
-    : 'https://everyayah.com/data';
+  const hosts = [
+    'https://mirrors.quranicaudio.com/everyayah',  // 0: primary mirror
+    'https://everyayah.com/data',                   // 1: direct everyayah
+    `https://cdn.islamic.network/quran/audio/128`,  // 2: islamic.network CDN
+  ];
+  const host = hosts[mirror] || hosts[0];
+  // islamic.network uses a different path format: /{reciter}/{sura}{ayah}.mp3 → already ok
   return `${host}/${reciterId}/${suraPad}${ayahPad}.mp3`;
 }
 
@@ -3061,7 +3065,8 @@ function playAyah(verseKey) {
   currentPlayingKey = verseKey;
   isAudioPlaying = true;
   
-  function tryPlay(url, isFallback = false) {
+  let _mirrorIndex = 0;
+  function tryPlay(url) {
     currentAudio = new Audio(url);
     currentAudio.onended = () => {
       playNextAyah();
@@ -3071,20 +3076,22 @@ function playAyah(verseKey) {
       updateAudioUI();
     }).catch(err => {
       console.warn(`Audio playback failed on ${url}:`, err);
-      if (!isFallback) {
-        // Try fallback to primary everyayah.com server
-        const fallbackUrl = getAudioUrl(verseKey, state.activeReciter, false);
-        tryPlay(fallbackUrl, true);
+      _mirrorIndex++;
+      if (_mirrorIndex <= 2) {
+        const fallbackUrl = getAudioUrl(verseKey, state.activeReciter, _mirrorIndex);
+        console.log(`Trying mirror ${_mirrorIndex}: ${fallbackUrl}`);
+        tryPlay(fallbackUrl);
       } else {
-        console.error("Audio playback failed completely:", err);
+        console.error('Audio playback failed on all mirrors:', err);
         isAudioPlaying = false;
+        currentPlayingKey = null;
         updateAudioUI();
       }
     });
   }
 
-  const url = getAudioUrl(verseKey, state.activeReciter, true);
-  tryPlay(url, false);
+  const url = getAudioUrl(verseKey, state.activeReciter, 0);
+  tryPlay(url);
 }
 
 function pauseAyah() {

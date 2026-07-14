@@ -2507,59 +2507,10 @@ async function triggerRouting() {
     searchContextSnippets = {};
 
     if (state.searchOptions && state.searchOptions.semantic) {
-      showProgress(isId ? 'Menghubungkan ke AI Model...' : 'Connecting to AI Model...');
+      showProgress(isId ? 'Menghubungkan ke AI...' : 'Connecting to AI...');
       try {
-        const hfToken = 'hf' + '_MIVqVBXMpKXQOtwYGveskiHeHbexMnsjHN';
-        const hfUrl = 'https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5';
-        
-        let queryEmbedding = null;
-        let attempts = 3;
-        let delayMs = 5000;
-        
-        for (let i = 0; i < attempts; i++) {
-          try {
-            const hfRes = await fetch(hfUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${hfToken}`
-              },
-              body: JSON.stringify({ inputs: [query.trim()] })
-            });
-
-            if (hfRes.status === 200) {
-              const hfData = await hfRes.json();
-              if (Array.isArray(hfData) && hfData.length > 0 && Array.isArray(hfData[0])) {
-                queryEmbedding = hfData[0];
-                break;
-              } else {
-                throw new Error('Unexpected embedding response format');
-              }
-            } else if (hfRes.status === 503) {
-              showProgress(isId 
-                ? `AI Model sedang bersiap (warming up)... Percobaan ${i + 1}/${attempts}`
-                : `AI Model is warming up... Attempt ${i + 1}/${attempts}`
-              );
-              await new Promise(resolve => setTimeout(resolve, delayMs));
-            } else {
-              const errText = await hfRes.text();
-              throw new Error(`HF error ${hfRes.status}: ${errText}`);
-            }
-          } catch (e) {
-            console.warn(`HF attempt ${i+1} failed:`, e);
-            if (i === attempts - 1) throw e;
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          }
-        }
-
-        if (!queryEmbedding) {
-          throw new Error('Failed to retrieve query embedding from Hugging Face.');
-        }
-
-        showProgress(isId ? 'Mencari di basis data...' : 'Searching database...');
-        
-        const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses', {
-          query_embedding: queryEmbedding,
+        const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses_by_text', {
+          query_text: query.trim(),
           lang_code: state.uiLang,
           match_threshold: 0.1,
           result_limit: 50,
@@ -2584,6 +2535,7 @@ async function triggerRouting() {
           `;
         }
 
+        await ensureActiveDatasets();
         renderSearchPage(mergedResults, query);
         return;
       } catch (err) {
@@ -2600,10 +2552,10 @@ async function triggerRouting() {
       showProgress(isId ? 'Mencari di basis data...' : 'Searching database...');
       try {
         const { data: results, error: rpcErr } = await supabaseClient.rpc('search_verses', {
-          query: query.trim(),
-          lang_code: state.uiLang,
-          result_limit: 100,
-          offset_val: 0
+          p_query: query.trim(),
+          p_lang_code: state.uiLang,
+          p_result_limit: 100,
+          p_offset_val: 0
         });
 
         if (rpcErr) throw rpcErr;
@@ -2677,6 +2629,10 @@ async function triggerRouting() {
           });
         }
 
+        if (filteredResults.length === 0) {
+          throw new Error('No database results found, falling back to local index.');
+        }
+
         if (header) {
           header.innerHTML = `
             <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
@@ -2684,6 +2640,7 @@ async function triggerRouting() {
           `;
         }
 
+        await ensureActiveDatasets();
         renderSearchPage(filteredResults, query);
         return;
       } catch (err) {

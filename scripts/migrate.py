@@ -14,12 +14,32 @@ END = "\033[0m"
 def print_status(msg, color=GREEN):
     print(f"{color}{msg}{END}")
 
-# 1. LOAD CONFIGURATION
-supabase_url = os.getenv("SUPABASE_URL")
-supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+# 1. LOAD CONFIGURATION — try .env file in parent directory first
+def load_dotenv(path):
+    if not os.path.exists(path):
+        return {}
+    result = {}
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            k, v = line.split('=', 1)
+            result[k.strip()] = v.strip()
+    return result
 
-if not supabase_url or not supabase_key:
-    print_status("Supabase credentials not found in environment variables.", RED)
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+env_vars = load_dotenv(env_path)
+
+supabase_url = os.getenv("SUPABASE_URL") or env_vars.get("SUPABASE_URL", "")
+supabase_key = (os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+                or env_vars.get("SUPABASE_SERVICE_ROLE_KEY")
+                or env_vars.get("SUPABASE_SERVICE_KEY", ""))
+
+if supabase_url and supabase_key:
+    print_status(f"Loaded credentials from: {env_path}", BLUE)
+else:
+    print_status("Supabase credentials not found in .env or environment variables.", RED)
     print("Please enter them manually:")
     supabase_url = input("Enter SUPABASE_URL (e.g. https://xxxx.supabase.co): ").strip()
     supabase_key = input("Enter SUPABASE_SERVICE_ROLE_KEY (Service Role Key, NOT Anon Key): ").strip()
@@ -66,19 +86,31 @@ def send_batch(table, records, on_conflict=None):
                 raise e
             print_status(f"\n[Warning] Retrying batch insert into {table} (Attempt {attempt+1}/{retries})...", YELLOW)
 
-def fetch_table(table, select_query="*"):
-    url = f"{supabase_url}rest/v1/{table}?select={select_query}"
+def fetch_table(table, select_query="*", filters=""):
+    """Paginate through all rows of a table, bypassing the 1000-row Supabase default."""
+    all_rows = []
+    limit = 1000
+    offset = 0
     headers = {
         "apikey": supabase_key,
         "Authorization": f"Bearer {supabase_key}"
     }
-    req = urllib.request.Request(url, headers=headers, method="GET")
-    try:
-        with urllib.request.urlopen(req) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        print_status(f"Error fetching from table {table}: {e}", RED)
-        return []
+    while True:
+        url = f"{supabase_url}rest/v1/{table}?select={select_query}&limit={limit}&offset={offset}"
+        if filters:
+            url += f"&{filters}"
+        req = urllib.request.Request(url, headers=headers, method="GET")
+        try:
+            with urllib.request.urlopen(req) as response:
+                batch = json.loads(response.read().decode("utf-8"))
+                all_rows.extend(batch)
+                if len(batch) < limit:
+                    break
+                offset += limit
+        except Exception as e:
+            print_status(f"Error fetching from table {table} (offset={offset}): {e}", RED)
+            break
+    return all_rows
 
 # 3. MIGRATION RUNNER
 def run_migration():
@@ -121,15 +153,28 @@ def run_migration():
     with open(arabic_file, "r", encoding="utf-8-sig") as f:
         arabic_data = json.load(f)
     
+    meta_file = os.path.join(data_dir, "verse_meta.json")
+    verse_meta = {}
+    if os.path.exists(meta_file):
+        with open(meta_file, "r", encoding="utf-8") as f:
+            verse_meta = json.load(f)
+            print_status(f"Loaded {len(verse_meta)} verse metadata items (page & juz) from verse_meta.json", BLUE)
+    else:
+        print_status("Warning: verse_meta.json not found, verses will be uploaded without page & juz numbers", YELLOW)
+
     verses_records = []
     for key, text in arabic_data.items():
         sura_id, ayah_number = map(int, key.split(":"))
-        verses_records.append({
+        record = {
             "sura_id": sura_id,
             "ayah_number": ayah_number,
             "verse_key": key,
             "text_ar": text
-        })
+        }
+        if key in verse_meta:
+            record["page_number"] = verse_meta[key]["page"]
+            record["juz_number"] = verse_meta[key]["juz"]
+        verses_records.append(record)
     
     # Batch upload verses (1000 at a time)
     batch_size = 1000
@@ -153,8 +198,20 @@ def run_migration():
     trans_dir = os.path.join(data_dir, "translations")
     trans_files = [f for f in os.listdir(trans_dir) if f.endswith(".json")]
     
+    essential_sources = {
+        'id.kemenag',
+        'id.kemenag_translit',
+        'en.sahih',
+        'en.pickthall',
+        'en.yusufali',
+        'en.transliteration',
+    }
+    
     for filename in trans_files:
         source_id = filename[:-5] # remove ".json" extension
+        if source_id not in essential_sources:
+            continue
+            
         filepath = os.path.join(trans_dir, filename)
         
         with open(filepath, "r", encoding="utf-8-sig") as f:
@@ -198,8 +255,9 @@ def run_migration():
                 })
                 
         # Batch upload
-        for i in range(0, len(tafsir_records), batch_size):
-            send_batch("tafsirs", tafsir_records[i:i+batch_size], on_conflict="source_id,verse_id")
+        tafsir_batch_size = 100
+        for i in range(0, len(tafsir_records), tafsir_batch_size):
+            send_batch("tafsirs", tafsir_records[i:i+tafsir_batch_size], on_conflict="source_id,verse_id")
         print_status(f"Migrated tafsir: {source_id} ({len(tafsir_records)} entries)")
 
     # --- E. MIGRATE ASBABUN NUZUL ---

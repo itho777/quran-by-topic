@@ -156,12 +156,16 @@ begin
 
     return query
     with word_matches as (
-        -- Match in translations (pre-filtered by target language to avoid scanning 150k rows)
+        -- Match in translations (utilizing indexed GIN full text search pre-filtering)
         select tr.verse_id, w.word
         from (
             select translations.verse_id, translations.text
             from translations
-            where translations.source_id ilike lang_code || '.%'
+            where translations.source_id like lang_code || '.%'
+              and case 
+                when lang_code = 'id' then to_tsvector('simple', translations.text) @@ plainto_tsquery('simple', query)
+                else to_tsvector('english', translations.text) @@ plainto_tsquery('english', query)
+              end
         ) tr
         join unnest(query_words) as w(word) on tr.text ilike '%' || w.word || '%'
         
@@ -174,21 +178,33 @@ begin
         
         union all
         
-        -- Match in tafsirs (pre-filtered by target language to avoid scanning all commentaries)
+        -- Match in tafsirs (utilizing indexed GIN full text search pre-filtering)
         select tf.verse_id, w.word
         from (
             select tafsirs.verse_id, tafsirs.text
             from tafsirs
-            where tafsirs.source_id ilike lang_code || '.%'
+            where tafsirs.source_id like lang_code || '.%'
+              and case 
+                when lang_code = 'id' then to_tsvector('simple', tafsirs.text) @@ plainto_tsquery('simple', query)
+                else to_tsvector('english', tafsirs.text) @@ plainto_tsquery('english', query)
+              end
         ) tf
         join unnest(query_words) as w(word) on tf.text ilike '%' || w.word || '%'
         
         union all
         
-        -- Match in asbabun_nuzul (~500 rows)
-        select an.verse_id, w.word
-        from asbabun_nuzul an
-        join unnest(query_words) as w(word) on an.text ilike '%' || w.word || '%'
+        -- Match in asbabun_nuzul (utilizing indexed GIN full text search pre-filtering)
+        select snap.verse_id, w.word
+        from (
+            select asbabun_nuzul.verse_id, asbabun_nuzul.text
+            from asbabun_nuzul
+            where asbabun_nuzul.source_id like lang_code || '.%'
+              and case 
+                when lang_code = 'id' then to_tsvector('simple', asbabun_nuzul.text) @@ plainto_tsquery('simple', query)
+                else to_tsvector('english', asbabun_nuzul.text) @@ plainto_tsquery('english', query)
+              end
+        ) snap
+        join unnest(query_words) as w(word) on snap.text ilike '%' || w.word || '%'
         
         union all
         

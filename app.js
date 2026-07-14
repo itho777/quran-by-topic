@@ -71,6 +71,7 @@ let searchPage = 1;
 
 // Semantic search similarity scores: { "sura:ayah" -> similarity (0-1) }
 let searchSimilarityScores = {};
+let searchContextSnippets = {};
 let lastActiveHash = '#home';
 
 // Bookmarks store (Set of verse keys: e.g. "1:1")
@@ -1373,6 +1374,30 @@ function getSearchExcerpts(verseKey, query) {
     return highlightSnippet(text, q);
   }
 
+  if (searchContextSnippets && searchContextSnippets[verseKey]) {
+    let snippets = [];
+    try {
+      const raw = searchContextSnippets[verseKey];
+      snippets = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch (_) {}
+
+    if (Array.isArray(snippets) && snippets.length > 0) {
+      snippets.forEach(s => {
+        if (s && s.text) {
+          const highlighted = highlightText(s.text, query);
+          const typeClass = s.source_type === 'Tafsir' ? 'tafsir-source' : 
+                            s.source_type === 'Asbabun Nuzul' ? 'nuzul-source' : 'translation-source';
+          html += `
+            <div class="search-excerpt-item">
+              <span class="search-excerpt-source ${typeClass}">${s.source_name}</span>
+              <div class="search-excerpt-text">...${highlighted}...</div>
+            </div>
+          `;
+        }
+      });
+    }
+  }
+
   // Check all translations
   db.registry.translations.forEach(t => {
     const data = db.cache.get(t.file);
@@ -2477,8 +2502,9 @@ async function triggerRouting() {
       `;
     };
 
-    // Reset similarity scores
+    // Reset similarity scores and context snippets
     searchSimilarityScores = {};
+    searchContextSnippets = {};
 
     if (state.searchOptions && state.searchOptions.semantic) {
       showProgress(isId ? 'Menghubungkan ke AI Model...' : 'Connecting to AI Model...');
@@ -2564,6 +2590,104 @@ async function triggerRouting() {
         console.warn('Semantic search failed, falling back to keyword search:', err);
         // Reset scores and fall through to keyword search
         searchSimilarityScores = {};
+      }
+    }
+
+    // Reset context snippets
+    searchContextSnippets = {};
+
+    if (supabaseClient) {
+      showProgress(isId ? 'Mencari di basis data...' : 'Searching database...');
+      try {
+        const { data: results, error: rpcErr } = await supabaseClient.rpc('search_verses', {
+          query: query.trim(),
+          lang_code: state.uiLang,
+          result_limit: 100,
+          offset_val: 0
+        });
+
+        if (rpcErr) throw rpcErr;
+
+        const filteredResults = [];
+        if (results && Array.isArray(results)) {
+          results.forEach(r => {
+            let hasQuranMatch = false;
+            let hasTranslationMatch = false;
+            let hasTafsirMatch = false;
+            let hasNuzulMatch = false;
+            let hasTagMatch = false;
+
+            // 1. Check Quran (Arabic text match)
+            const qLower = query.toLowerCase();
+            const words = qLower.split(/\s+/).filter(w => w.length > 0);
+            const arText = (r.text_ar || '').toLowerCase();
+            if (words.length > 0 && words.every(w => arText.includes(w))) {
+              hasQuranMatch = true;
+            }
+
+            // 2. Check Tag match
+            const tagsList = r.matched_tags || [];
+            if (tagsList.length > 0) {
+              hasTagMatch = true;
+            }
+
+            // Parse context snippet to check matches inside translation/tafsir/nuzul context sources
+            let contextSources = [];
+            const rawContext = r.context_snippet;
+            if (rawContext) {
+              try {
+                const decoded = typeof rawContext === 'string' ? JSON.parse(rawContext) : rawContext;
+                if (Array.isArray(decoded)) {
+                  contextSources = decoded;
+                }
+              } catch (_) {}
+            }
+
+            contextSources.forEach(src => {
+              const type = src.source_type || '';
+              if (type === 'Translation') hasTranslationMatch = true;
+              if (type === 'Tafsir') hasTafsirMatch = true;
+              if (type === 'Asbabun Nuzul') hasNuzulMatch = true;
+            });
+
+            const note = r.match_note || '';
+            if (note === 'Translation') hasTranslationMatch = true;
+            if (note === 'Tafsir') hasTafsirMatch = true;
+            if (note === 'Asbabun Nuzul') hasNuzulMatch = true;
+
+            // Keep results that match at least one selected category
+            let keep = false;
+            if (state.searchOptions.quran && hasQuranMatch) keep = true;
+            if (state.searchOptions.trans && hasTranslationMatch) keep = true;
+            if (state.searchOptions.tafsir && hasTafsirMatch) keep = true;
+            if (state.searchOptions.nuzul && hasNuzulMatch) keep = true;
+            if (state.searchOptions.tags && hasTagMatch) keep = true;
+
+            // If nothing is selected, display all as fallback
+            if (!state.searchOptions.quran && !state.searchOptions.trans && !state.searchOptions.tafsir && !state.searchOptions.nuzul && !state.searchOptions.tags) {
+              keep = true;
+            }
+
+            if (keep) {
+              filteredResults.push(r.verse_key);
+              if (r.context_snippet) {
+                searchContextSnippets[r.verse_key] = r.context_snippet;
+              }
+            }
+          });
+        }
+
+        if (header) {
+          header.innerHTML = `
+            <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
+            <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${filteredResults.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs, asbabun nuzul & topics'}</div>
+          `;
+        }
+
+        renderSearchPage(filteredResults, query);
+        return;
+      } catch (err) {
+        console.warn('Database search failed, falling back to local index:', err);
       }
     }
 

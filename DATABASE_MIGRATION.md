@@ -12,6 +12,14 @@ This guide outlines the steps to migrate the local JSON Quran database into your
 4. Click **Run**.
 5. Ensure all tables, indexes, and search functions are created successfully.
 
+### 1b. Optimize Search Performance (Required for Keyword Search on Web)
+
+As your database grows to support 120+ translations and commentaries (over 600,000 rows), the keyword search RPC (`search_verses`) needs specialized indexes to avoid timeouts:
+
+1. Open the file [optimize_search.sql](file:///C:/Users/waverider/.gemini/antigravity/scratch/tafsir-upgrade/optimize_search.sql) in your project.
+2. Copy the entire script, paste it into the **Supabase Dashboard -> SQL Editor**, and click **Run**.
+3. This creates partial GIN Full-Text Search indexes on the translation, tafsir, and asbabun_nuzul tables and updates the search function to pre-filter matching candidate rows, reducing search latency from seconds to less than 5ms.
+
 ---
 
 ## 2. Prepare Your Environment

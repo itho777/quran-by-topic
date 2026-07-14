@@ -33,11 +33,7 @@ class StaticIndexService extends ChangeNotifier {
   String? get loadError => _loadError;
 
   void setIndexForTesting(Map<String, String> index) {
-    final terms = <String, dynamic>{};
-    index.forEach((key, value) {
-      terms[key] = value.split(',').map((v) => v.trim()).toList();
-    });
-    _indexData = {'terms': terms};
+    _indexData = index;
     notifyListeners();
   }
 
@@ -66,7 +62,7 @@ class StaticIndexService extends ChangeNotifier {
       final decodedString = utf8.decode(bytes);
       final parsed = jsonDecode(decodedString) as Map<String, dynamic>;
       _indexData = parsed;
-      debugPrint('[StaticIndex] Loaded. Keys: ${_indexData!['terms']?.length}');
+      debugPrint('[StaticIndex] Loaded. Keys: ${_indexData!.length}');
       notifyListeners();
     } catch (e) {
       _loadError = e.toString();
@@ -83,8 +79,7 @@ class StaticIndexService extends ChangeNotifier {
 
   Future<List<StaticIndexHit>> search(String query, {int? maxResults}) async {
     if (_indexData == null) return [];
-    final terms = _indexData!['terms'] as Map<String, dynamic>?;
-    if (terms == null) return [];
+    final terms = _indexData!;
 
     final rawWords = query
         .toLowerCase()
@@ -115,9 +110,15 @@ class StaticIndexService extends ChangeNotifier {
         }
 
         if (termScore > 0) {
-          final keys = (terms[term] as List).cast<String>();
-          for (final key in keys) {
-            scoreMap[key] = (scoreMap[key] ?? 0) + termScore;
+          final val = terms[term];
+          if (val is String) {
+            final entries = val.split(',');
+            for (final entry in entries) {
+              final key = entry.split('_')[0].trim();
+              if (key.isNotEmpty) {
+                scoreMap[key] = (scoreMap[key] ?? 0) + termScore;
+              }
+            }
           }
         }
       }

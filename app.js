@@ -335,15 +335,19 @@ class Database {
           supabaseClient.from('tags').select('id, name').eq('lang', lang || 'en'),
           supabaseClient.from('verse_tags').select('verse_key, tag_id').eq('lang', lang || 'en')
         ]);
-        this.tags = tagsData || [];
-        this.verseTags = {};
-        if (mapData) {
-          mapData.forEach(item => {
-            if (!this.verseTags[item.verse_key]) this.verseTags[item.verse_key] = [];
-            this.verseTags[item.verse_key].push(item.tag_id);
-          });
+        // If Supabase returned real data (not empty due to RLS), use it
+        if (tagsData && tagsData.length > 0) {
+          this.tags = tagsData;
+          this.verseTags = {};
+          if (mapData) {
+            mapData.forEach(item => {
+              if (!this.verseTags[item.verse_key]) this.verseTags[item.verse_key] = [];
+              this.verseTags[item.verse_key].push(item.tag_id);
+            });
+          }
+          return;
         }
-        return;
+        console.warn('[DB] Tags Supabase returned empty (likely RLS), falling back to local files.');
       } catch (e) {
         console.warn('[DB] Tags Supabase load failed, trying local files:', e);
       }

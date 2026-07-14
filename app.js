@@ -2818,37 +2818,41 @@ async function triggerRouting() {
       const matchedSet = new Set(mergedResults);
 
       // Collect unique source-file indices referenced for those verses.
-      // We scan the index once per effective query term (same terms used during search),
-      // keeping only entries that belong to a matched verse.
       const neededFileIndices = new Set();
 
-      // Re-parse the query terms exactly as the search engine did
-      const qLowerPre = query.toLowerCase().trim();
-      const epPre = [], bwPre = [];
-      const rxPre = /"([^"]+)"|(\S+)/g;
-      let mPre;
-      while ((mPre = rxPre.exec(qLowerPre)) !== null) {
-        if (mPre[1]) epPre.push(...mPre[1].split(/\s+/).filter(w => w.length >= 2)); // phrase words
-        else if (mPre[2] && mPre[2].length >= 2) bwPre.push(mPre[2]);               // bare words
+      // 1. Always pre-fetch the user's currently active translation / tafsir / nuzul sources
+      const activeIds = [
+        state.activeTranslation1,
+        state.activeTranslation2,
+        state.activeTafsir1,
+        state.activeTafsir2
+      ].filter(Boolean);
+      for (const id of activeIds) {
+        const idx = allRegistrySources.findIndex(s => s.id === id);
+        if (idx !== -1) neededFileIndices.add(idx);
       }
-      const lookupTerms = [...new Set([...epPre, ...bwPre])];
-      if (lookupTerms.length === 0) lookupTerms.push(qLowerPre);
 
-      for (const term of lookupTerms) {
-        for (const word in db.searchIndex) {
-          if (!word.includes(term)) continue;
-          const entryStr = db.searchIndex[word];
-          if (!entryStr) continue;
-          const pairs = entryStr.split(',');
-          for (const pair of pairs) {
-            const parts = pair.split('_');
-            if (matchedSet.has(parts[0])) {
-              for (let i = 1; i < parts.length; i++) {
-                neededFileIndices.add(Number(parts[i]));
-              }
-            }
-          }
-        }
+      // 2. Also pre-fetch a broad list of common multilingual translations for excerpt search
+      const commonMultilingualIds = [
+        'nl.keyzer', 'nl.leemhuis', 'nl.siregar',
+        'de.bubenheim', 'de.khoury', 'de.aburida', 'de.zaidan',
+        'fr.hamidullah',
+        'tr.ates', 'tr.bulac', 'tr.diyanet',
+        'bs.korkut', 'bs.mlivo',
+        'es.garcia', 'es.cortes', 'es.bornez',
+        'ru.kuliev', 'ru.krachkovsky', 'ru.osmanov',
+        'ur.maududi', 'ur.jalandhry',
+        'pt.elhayek',
+        'ms.basmeih',
+        'it.piccardo',
+        'no.berg',
+        'sv.bernstrom',
+        'pl.bielawskiego',
+        'ro.grigore'
+      ];
+      for (const id of commonMultilingualIds) {
+        const idx = allRegistrySources.findIndex(s => s.id === id);
+        if (idx !== -1) neededFileIndices.add(idx);
       }
 
       // Pre-fetch any not-yet-cached source files in parallel

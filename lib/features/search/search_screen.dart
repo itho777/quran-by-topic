@@ -334,18 +334,33 @@ class _SearchScreenState extends State<SearchScreen> {
         'en.hilali':       'Hilali & Khan',
         'en.pickthall':    'Pickthall',
         'nl.keyzer':       'Keyzer (Dutch)',
-        'nl.salomo':       'Salomo (Dutch)',
+        'nl.leemhuis':     'Leemhuis (Dutch)',
+        'nl.siregar':      'Siregar (Dutch)',
         'de.bubenheim':    'Bubenheim (German)',
         'de.khoury':       'Khoury (German)',
+        'de.aburida':      'Abu Rida (German)',
+        'de.zaidan':       'Zaidan (German)',
         'tr.ates':         'Ates (Turkish)',
         'tr.bulac':        'Bulac (Turkish)',
+        'tr.diyanet':      'Diyanet (Turkish)',
         'fr.hamidullah':   'Hamidullah (French)',
         'bs.korkut':       'Korkut (Bosnian)',
+        'bs.mlivo':        'Mlivo (Bosnian)',
         'es.garcia':       'García (Spanish)',
+        'es.cortes':       'Cortés (Spanish)',
+        'es.bornez':       'Bornez (Spanish)',
         'ru.kuliev':       'Kuliev (Russian)',
+        'ru.krachkovsky':  'Krachkovsky (Russian)',
+        'ru.osmanov':      'Osmanov (Russian)',
         'ur.maududi':      'Maududi (Urdu)',
+        'ur.jalandhry':    'Jalandhry (Urdu)',
         'pt.elhayek':      'El-Hayek (Portuguese)',
-        'id.muntakhab':    'Muntakhab (ID)',
+        'ms.basmeih':      'Basmeih (Malay)',
+        'it.piccardo':     'Piccardo (Italian)',
+        'no.berg':         'Berg (Norwegian)',
+        'sv.bernstrom':    'Bernström (Swedish)',
+        'pl.bielawskiego': 'Bielawskiego (Polish)',
+        'ro.grigore':      'Grigore (Romanian)',
       };
 
       void _addExcerpt(String vk, String sid, String txt, List<String> qWords) {
@@ -406,17 +421,37 @@ class _SearchScreenState extends State<SearchScreen> {
           final stillEmpty = sourceExcerpts.isEmpty ||
               keys.every((k) => (sourceExcerpts[k]?.isEmpty ?? true));
           if (stillEmpty) {
-            const cdnSources = [
-              'nl.keyzer', 'nl.salomo',
-              'de.bubenheim', 'de.khoury',
+          const cdnSources = [
+              // Dutch (all 3 exist on CDN — bedekking is in nl.siregar)
+              'nl.keyzer', 'nl.leemhuis', 'nl.siregar',
+              // German
+              'de.bubenheim', 'de.khoury', 'de.aburida', 'de.zaidan',
+              // French
               'fr.hamidullah',
-              'tr.ates', 'tr.bulac',
-              'bs.korkut',
-              'es.garcia',
-              'ru.kuliev',
-              'ur.maududi',
+              // Turkish
+              'tr.ates', 'tr.bulac', 'tr.diyanet',
+              // Bosnian
+              'bs.korkut', 'bs.mlivo',
+              // Spanish
+              'es.garcia', 'es.cortes', 'es.bornez',
+              // Russian
+              'ru.kuliev', 'ru.krachkovsky', 'ru.osmanov',
+              // Urdu
+              'ur.maududi', 'ur.jalandhry',
+              // Portuguese
               'pt.elhayek',
-              'id.muntakhab',
+              // Malay
+              'ms.basmeih',
+              // Italian
+              'it.piccardo',
+              // Norwegian
+              'no.berg',
+              // Swedish
+              'sv.bernstrom',
+              // Polish
+              'pl.bielawskiego',
+              // Romanian
+              'ro.grigore',
             ];
             final cdnHits = await cdn.searchCdnSources(cdnSources, keys, firstWord);
             for (final entry in cdnHits.entries) {

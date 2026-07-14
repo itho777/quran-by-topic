@@ -274,11 +274,14 @@ CREATE INDEX IF NOT EXISTS idx_tafsirs_en_gin
   WHERE source_id LIKE 'en.%';
 
 -- ============================================================
--- STEP 9: VACUUM to reclaim freed disk space
+-- STEP 9: Space reclaim note
 -- ============================================================
-VACUUM FULL public.translations;
-VACUUM FULL public.tafsirs;
-VACUUM FULL public.verse_embeddings;
+-- VACUUM FULL cannot run inside a transaction block (Supabase SQL Editor limitation).
+-- Postgres autovacuum will reclaim the freed space automatically within minutes.
+-- If you want to force it immediately, run each line SEPARATELY in the SQL Editor:
+--   VACUUM FULL public.translations;
+--   VACUUM FULL public.tafsirs;
+--   VACUUM FULL public.verse_embeddings;
 
 -- ============================================================
 -- STEP 10: Verify — show table sizes after cleanup

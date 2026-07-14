@@ -111,16 +111,20 @@ class CdnTranslationService {
   Future<void> evict(String sourceId) async {
     _loaded.remove(sourceId);
     _meta.remove(sourceId);
-    final file = await _cacheFile(sourceId);
-    if (await file.exists()) await file.delete();
+    if (!kIsWeb) {
+      final file = await _cacheFile(sourceId);
+      if (await file.exists()) await file.delete();
+    }
   }
 
   /// Clears all cached translation files from disk.
   Future<void> clearAll() async {
     _loaded.clear();
     _meta.clear();
-    final dir = await _cacheDir();
-    if (await dir.exists()) await dir.delete(recursive: true);
+    if (!kIsWeb) {
+      final dir = await _cacheDir();
+      if (await dir.exists()) await dir.delete(recursive: true);
+    }
   }
 
   // ── Metadata cache (sourceId → display name) ──────────────────────────────
@@ -148,14 +152,16 @@ class CdnTranslationService {
 
   Future<Map<String, String>?> _loadSource(String sourceId) async {
     // 1. Try on-disk cache first
-    try {
-      final file = await _cacheFile(sourceId);
-      if (await file.exists()) {
-        final raw = await file.readAsString();
-        return _parsePayload(raw);
+    if (!kIsWeb) {
+      try {
+        final file = await _cacheFile(sourceId);
+        if (await file.exists()) {
+          final raw = await file.readAsString();
+          return _parsePayload(raw);
+        }
+      } catch (e) {
+        debugPrint('[CDN] Cache read failed for $sourceId: $e');
       }
-    } catch (e) {
-      debugPrint('[CDN] Cache read failed for $sourceId: $e');
     }
 
     // 2. Download from CDN
@@ -175,12 +181,14 @@ class CdnTranslationService {
       final body = utf8.decode(response.bodyBytes);
 
       // Save to disk cache (non-fatal)
-      try {
-        final file = await _cacheFile(sourceId);
-        await file.parent.create(recursive: true);
-        await file.writeAsString(body);
-      } catch (e) {
-        debugPrint('[CDN] Cache write failed for $sourceId (non-fatal): $e');
+      if (!kIsWeb) {
+        try {
+          final file = await _cacheFile(sourceId);
+          await file.parent.create(recursive: true);
+          await file.writeAsString(body);
+        } catch (e) {
+          debugPrint('[CDN] Cache write failed for $sourceId (non-fatal): $e');
+        }
       }
 
       return _parsePayload(body);

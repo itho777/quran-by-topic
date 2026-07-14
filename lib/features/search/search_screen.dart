@@ -248,7 +248,7 @@ class _SearchScreenState extends State<SearchScreen> {
       _results = mapped;
       _hasMore = list.length >= 100;
       _staticResults = [];
-      _staticExpanded = false;
+    _staticExpanded = false;
     });
 
     // ── Phase 2: Static index search (all 111 languages) ───────────────────
@@ -283,6 +283,7 @@ class _SearchScreenState extends State<SearchScreen> {
       final transMap = <String, String>{};
       final sourceId = _langCode == 'id' ? 'id.kemenag' : 'en.sahih';
 
+      // ── Base verse + primary translation lookup ──────────────────────────
       try {
         final dbRes = await Supabase.instance.client
             .from('verses')
@@ -317,19 +318,79 @@ class _SearchScreenState extends State<SearchScreen> {
         }
       }
 
+      // ── Phase 2 excerpt enrichment ───────────────────────────────────────
+      // Find which translation source(s) actually contain the query terms,
+      // and build highlighted source excerpt blocks — same as Phase 1.
+      final Map<String, List<Map<String, dynamic>>> sourceExcerpts = {};
+
+      try {
+        final queryWords = query.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.length >= 3).toList();
+        if (queryWords.isNotEmpty) {
+          final firstWord = queryWords.first;
+
+          // Fetch all translation rows for the matched verse keys where any row contains the word
+          final matchingTransRows = await Supabase.instance.client
+              .from('translations')
+              .select('verse_key, source_id, text')
+              .inFilter('verse_key', keys)
+              .ilike('text', '%$firstWord%');
+
+          const sourceNames = <String, String>{
+            'id.kemenag':    'Kemenag RI',
+            'id.kemenag2':   'Kemenag RI (2019)',
+            'en.sahih':      'Sahih International',
+            'en.hilali':     'Hilali & Khan',
+            'en.pickthall':  'Pickthall',
+            'nl.keyzer':     'Keyzer (Dutch)',
+            'nl.salomo':     'Salomo (Dutch)',
+            'de.bubenheim':  'Bubenheim (German)',
+            'tr.ates':       'Ates (Turkish)',
+            'fr.hamidullah': 'Hamidullah (French)',
+            'bs.korkut':     'Korkut (Bosnian)',
+          };
+
+          for (final row in List<Map<String, dynamic>>.from(matchingTransRows)) {
+            final vk  = row['verse_key'] as String? ?? '';
+            final sid = row['source_id'] as String? ?? '';
+            final txt = row['text'] as String? ?? '';
+            if (vk.isEmpty || txt.isEmpty) continue;
+
+            // Only include sources where at least one query word actually appears
+            final lowerTxt = txt.toLowerCase();
+            final hasMatch = queryWords.any((w) => lowerTxt.contains(w));
+            if (!hasMatch) continue;
+
+            final name = sourceNames[sid] ?? sid;
+            sourceExcerpts.putIfAbsent(vk, () => []);
+            sourceExcerpts[vk]!.add({
+              'source_name': name,
+              'source_type': 'Translation',
+              'source_id':   sid,
+              'text':        txt,
+            });
+          }
+        }
+      } catch (excerptErr) {
+        debugPrint('[Phase2] Excerpt enrichment skipped (offline?): $excerptErr');
+        // Gracefully skip — falls back to plain translation text in the card
+      }
+
       final staticMapped = newHits
           .where((h) => arMap.containsKey(h.verseKey))
-          .map((h) => <String, dynamic>{
-                'verse_key': h.verseKey,
-                'text_ar': arMap[h.verseKey] ?? '',
-                'translation_text': transMap[h.verseKey] ?? '',
-                'match_score': h.score,
-                '_from_tag': false,
-                '_matched_tags': <String>[],
-                '_match_note': 'Multilingual',
-                '_context_sources': <Map<String, dynamic>>[],
-                '_is_static': true,
-              })
+          .map((h) {
+            final excerpts = sourceExcerpts[h.verseKey] ?? <Map<String, dynamic>>[];
+            return <String, dynamic>{
+              'verse_key': h.verseKey,
+              'text_ar': arMap[h.verseKey] ?? '',
+              'translation_text': transMap[h.verseKey] ?? '',
+              'match_score': h.score,
+              '_from_tag': false,
+              '_matched_tags': <String>[],
+              '_match_note': 'Multilingual',
+              '_context_sources': excerpts,
+              '_is_static': true,
+            };
+          })
           .toList();
 
       if (mounted && staticMapped.isNotEmpty) {

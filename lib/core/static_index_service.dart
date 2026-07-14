@@ -7,9 +7,9 @@
 //   assets/search_index.json.gz
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:archive/archive.dart';
 
 class StaticIndexHit {
   final String verseKey;
@@ -60,7 +60,7 @@ class StaticIndexService extends ChangeNotifier {
       List<int> bytes = response.bodyBytes;
       if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) {
         debugPrint('[StaticIndex] Gzip header detected. Decompressing...');
-        bytes = gzip.decode(bytes);
+        bytes = GZipDecoder().decodeBytes(bytes);
       }
 
       final decodedString = utf8.decode(bytes);

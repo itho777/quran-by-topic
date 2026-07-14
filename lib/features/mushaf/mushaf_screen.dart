@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'dart:ui';
 
@@ -2246,7 +2246,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
             curve: Curves.easeInOut,
 
-            top: _menusVisible ? 0 : -100,
+            top: _menusVisible ? 0 : -110,
 
             left: 0,
 
@@ -2260,9 +2260,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                 child: Container(
 
-                  height: 90,
+                  height: 96,
 
-                  padding: const EdgeInsets.only(top: 36, left: 16, right: 16),
+                  padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
 
                   decoration: BoxDecoration(
 

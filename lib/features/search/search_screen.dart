@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../core/static_index_service.dart';
 import '../../core/local_db.dart';
+import '../../core/cdn_translation_service.dart';
 
 class SearchScreen extends StatefulWidget {
   final String initialQuery;
@@ -319,60 +320,114 @@ class _SearchScreenState extends State<SearchScreen> {
       }
 
       // ── Phase 2 excerpt enrichment ───────────────────────────────────────
-      // Find which translation source(s) actually contain the query terms,
-      // and build highlighted source excerpt blocks — same as Phase 1.
+      // Strategy:
+      //   1. DB ilike query  — primary translations (id/en) still in Supabase
+      //   2. CDN in-memory   — any CDN sources already downloaded this session
+      //   3. CDN download    — fetch a broad set of CDN sources and search them
+      // Result: highlighted excerpt for whatever language the user searched in.
       final Map<String, List<Map<String, dynamic>>> sourceExcerpts = {};
 
+      const sourceNames = <String, String>{
+        'id.kemenag':      'Kemenag RI',
+        'id.kemenag2':     'Kemenag RI (2019)',
+        'en.sahih':        'Sahih International',
+        'en.hilali':       'Hilali & Khan',
+        'en.pickthall':    'Pickthall',
+        'nl.keyzer':       'Keyzer (Dutch)',
+        'nl.salomo':       'Salomo (Dutch)',
+        'de.bubenheim':    'Bubenheim (German)',
+        'de.khoury':       'Khoury (German)',
+        'tr.ates':         'Ates (Turkish)',
+        'tr.bulac':        'Bulac (Turkish)',
+        'fr.hamidullah':   'Hamidullah (French)',
+        'bs.korkut':       'Korkut (Bosnian)',
+        'es.garcia':       'García (Spanish)',
+        'ru.kuliev':       'Kuliev (Russian)',
+        'ur.maududi':      'Maududi (Urdu)',
+        'pt.elhayek':      'El-Hayek (Portuguese)',
+        'id.muntakhab':    'Muntakhab (ID)',
+      };
+
+      void _addExcerpt(String vk, String sid, String txt, List<String> qWords) {
+        final lowerTxt = txt.toLowerCase();
+        if (!qWords.any((w) => lowerTxt.contains(w))) return;
+        final name = sourceNames[sid] ?? sid;
+        sourceExcerpts.putIfAbsent(vk, () => []);
+        // Avoid duplicates
+        if (sourceExcerpts[vk]!.any((e) => e['source_id'] == sid)) return;
+        sourceExcerpts[vk]!.add({
+          'source_name': name,
+          'source_type': 'Translation',
+          'source_id':   sid,
+          'text':        txt,
+        });
+      }
+
       try {
-        final queryWords = query.trim().toLowerCase().split(RegExp(r'\s+')).where((w) => w.length >= 3).toList();
+        final queryWords = query.trim().toLowerCase()
+            .split(RegExp(r'\s+'))
+            .where((w) => w.length >= 3)
+            .toList();
+
         if (queryWords.isNotEmpty) {
           final firstWord = queryWords.first;
+          final cdn = CdnTranslationService.instance;
 
-          // Fetch all translation rows for the matched verse keys where any row contains the word
-          final matchingTransRows = await Supabase.instance.client
-              .from('translations')
-              .select('verse_key, source_id, text')
-              .inFilter('verse_key', keys)
-              .ilike('text', '%$firstWord%');
+          // ── Step 1: DB ilike (only primary sources that are in Supabase) ──
+          try {
+            final dbRows = await Supabase.instance.client
+                .from('translations')
+                .select('verse_key, source_id, text')
+                .inFilter('verse_key', keys)
+                .ilike('text', '%$firstWord%');
+            for (final row in List<Map<String, dynamic>>.from(dbRows)) {
+              _addExcerpt(
+                row['verse_key'] as String? ?? '',
+                row['source_id'] as String? ?? '',
+                row['text']      as String? ?? '',
+                queryWords,
+              );
+            }
+          } catch (dbEx) {
+            debugPrint('[Phase2] DB excerpt query failed: $dbEx');
+          }
 
-          const sourceNames = <String, String>{
-            'id.kemenag':    'Kemenag RI',
-            'id.kemenag2':   'Kemenag RI (2019)',
-            'en.sahih':      'Sahih International',
-            'en.hilali':     'Hilali & Khan',
-            'en.pickthall':  'Pickthall',
-            'nl.keyzer':     'Keyzer (Dutch)',
-            'nl.salomo':     'Salomo (Dutch)',
-            'de.bubenheim':  'Bubenheim (German)',
-            'tr.ates':       'Ates (Turkish)',
-            'fr.hamidullah': 'Hamidullah (French)',
-            'bs.korkut':     'Korkut (Bosnian)',
-          };
+          // ── Step 2: CDN in-memory (instant, no network) ──────────────────
+          final cachedHits = cdn.searchLoaded(keys, firstWord);
+          for (final entry in cachedHits.entries) {
+            for (final vkEntry in entry.value.entries) {
+              _addExcerpt(vkEntry.key, entry.key, vkEntry.value, queryWords);
+            }
+          }
 
-          for (final row in List<Map<String, dynamic>>.from(matchingTransRows)) {
-            final vk  = row['verse_key'] as String? ?? '';
-            final sid = row['source_id'] as String? ?? '';
-            final txt = row['text'] as String? ?? '';
-            if (vk.isEmpty || txt.isEmpty) continue;
-
-            // Only include sources where at least one query word actually appears
-            final lowerTxt = txt.toLowerCase();
-            final hasMatch = queryWords.any((w) => lowerTxt.contains(w));
-            if (!hasMatch) continue;
-
-            final name = sourceNames[sid] ?? sid;
-            sourceExcerpts.putIfAbsent(vk, () => []);
-            sourceExcerpts[vk]!.add({
-              'source_name': name,
-              'source_type': 'Translation',
-              'source_id':   sid,
-              'text':        txt,
-            });
+          // ── Step 3: CDN download fallback (if nothing found yet) ─────────
+          // Download a broad set of non-primary CDN translation files and
+          // search them locally. They are cached after first download.
+          final stillEmpty = sourceExcerpts.isEmpty ||
+              keys.every((k) => (sourceExcerpts[k]?.isEmpty ?? true));
+          if (stillEmpty) {
+            const cdnSources = [
+              'nl.keyzer', 'nl.salomo',
+              'de.bubenheim', 'de.khoury',
+              'fr.hamidullah',
+              'tr.ates', 'tr.bulac',
+              'bs.korkut',
+              'es.garcia',
+              'ru.kuliev',
+              'ur.maududi',
+              'pt.elhayek',
+              'id.muntakhab',
+            ];
+            final cdnHits = await cdn.searchCdnSources(cdnSources, keys, firstWord);
+            for (final entry in cdnHits.entries) {
+              for (final vkEntry in entry.value.entries) {
+                _addExcerpt(vkEntry.key, entry.key, vkEntry.value, queryWords);
+              }
+            }
           }
         }
       } catch (excerptErr) {
-        debugPrint('[Phase2] Excerpt enrichment skipped (offline?): $excerptErr');
-        // Gracefully skip — falls back to plain translation text in the card
+        debugPrint('[Phase2] Excerpt enrichment skipped: $excerptErr');
       }
 
       final staticMapped = newHits

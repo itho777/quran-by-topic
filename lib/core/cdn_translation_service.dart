@@ -65,6 +65,48 @@ class CdnTranslationService {
     await Future.wait(sourceIds.map((id) => _getVerses(id)));
   }
 
+  /// Scans all **already-in-memory** loaded sources for [queryWord] across
+  /// [verseKeys]. Returns a map of { sourceId → { verseKey → matchedText } }.
+  /// This is instant (no network) — use before trying CDN downloads.
+  Map<String, Map<String, String>> searchLoaded(
+      List<String> verseKeys, String queryWord) {
+    final result = <String, Map<String, String>>{};
+    final lower = queryWord.toLowerCase();
+    for (final entry in _loaded.entries) {
+      for (final vk in verseKeys) {
+        final text = entry.value[vk];
+        if (text != null && text.toLowerCase().contains(lower)) {
+          result.putIfAbsent(entry.key, () => {})[vk] = text;
+        }
+      }
+    }
+    return result;
+  }
+
+  /// Downloads [sourceIds] from CDN (cached after first call) and checks
+  /// each for [queryWord] in the provided [verseKeys].
+  /// Returns { sourceId → { verseKey → matchedText } }.
+  Future<Map<String, Map<String, String>>> searchCdnSources(
+      List<String> sourceIds,
+      List<String> verseKeys,
+      String queryWord) async {
+    final result = <String, Map<String, String>>{};
+    final lower = queryWord.toLowerCase();
+    await Future.wait(sourceIds.map((sid) async {
+      try {
+        final verses = await _getVerses(sid);
+        if (verses == null) return;
+        for (final vk in verseKeys) {
+          final text = verses[vk];
+          if (text != null && text.toLowerCase().contains(lower)) {
+            result.putIfAbsent(sid, () => {})[vk] = text;
+          }
+        }
+      } catch (_) {}
+    }));
+    return result;
+  }
+
   /// Removes the on-disk cache for [sourceId] (to reclaim space).
   Future<void> evict(String sourceId) async {
     _loaded.remove(sourceId);

@@ -13,6 +13,7 @@ import '../../shared/widgets/reciter_picker_sheet.dart';
 import '../../core/quran_sources.dart';
 import '../mushaf/source_picker_sheet.dart';
 import '../../core/local_db.dart';
+import '../../core/cdn_translation_service.dart';
 
 class SurahDetailScreen extends ConsumerStatefulWidget {
   final int surahId;
@@ -218,34 +219,80 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     final verseKeys = _verses.map((v) => (v['verse_key'] as String?) ?? '').toList();
 
     final map = <int, String>{};
-    try {
-      final res = await Supabase.instance.client
-          .from('translations')
-          .select('verse_id, text')
-          .eq('source_id', _selectedSource)
-          .inFilter('verse_id', verseIds);
-      
-      for (final r in res) {
-        if (r['verse_id'] != null) {
-          final vId = r['verse_id'] as int;
-          final txt = (r['text'] as String?) ?? '';
-          map[vId] = txt;
-          
-          final vMap = _verses.firstWhere((v) => v['id'] == vId, orElse: () => {});
-          final vKey = vMap['verse_key'] as String?;
-          if (vKey != null) {
-            unawaited(db.saveTextData('translations', vKey, _selectedSource, txt));
+    
+    const primarySources = {
+      'en.sahih',
+      'id.kemenag',
+      'id.indonesian',
+      'en.transliteration',
+      'id.kemenag_translit',
+    };
+    
+    final isPrimary = primarySources.contains(_selectedSource);
+    bool loadedFromSupabase = false;
+
+    if (isPrimary) {
+      try {
+        final res = await Supabase.instance.client
+            .from('translations')
+            .select('verse_id, text')
+            .eq('source_id', _selectedSource)
+            .inFilter('verse_id', verseIds);
+        
+        if (res.isNotEmpty) {
+          loadedFromSupabase = true;
+          for (final r in res) {
+            if (r['verse_id'] != null) {
+              final vId = r['verse_id'] as int;
+              final txt = (r['text'] as String?) ?? '';
+              map[vId] = txt;
+              
+              final vMap = _verses.firstWhere((v) => v['id'] == vId, orElse: () => {});
+              final vKey = vMap['verse_key'] as String?;
+              if (vKey != null) {
+                unawaited(db.saveTextData('translations', vKey, _selectedSource, txt));
+              }
+            }
           }
         }
+      } catch (e) {
+        debugPrint('SurahDetail translation online load failed: $e');
       }
-    } catch (e) {
-      debugPrint('SurahDetail translation online load failed, trying local DB: $e');
+    }
+
+    if (!loadedFromSupabase) {
+      // 1. Try local DB first
       final localTrans = await db.getBatchTextData('translations', _selectedSource, verseKeys);
       for (final v in _verses) {
         final vKey = v['verse_key'] as String?;
         final vId = v['id'] as int?;
         if (vKey != null && vId != null && localTrans.containsKey(vKey)) {
           map[vId] = localTrans[vKey]!;
+        }
+      }
+      
+      // 2. Fetch missing from CDN
+      final missingVerses = _verses.where((v) {
+        final vId = v['id'] as int?;
+        return vId != null && !map.containsKey(vId);
+      }).toList();
+      
+      if (missingVerses.isNotEmpty) {
+        try {
+          final cdn = CdnTranslationService.instance;
+          for (final v in missingVerses) {
+            final vKey = v['verse_key'] as String?;
+            final vId = v['id'] as int?;
+            if (vKey != null && vId != null) {
+              final text = await cdn.getVerse(_selectedSource, vKey);
+              if (text != null) {
+                map[vId] = text;
+                unawaited(db.saveTextData('translations', vKey, _selectedSource, text));
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('SurahDetail translation CDN load failed: $e');
         }
       }
     }

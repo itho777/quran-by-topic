@@ -16,6 +16,10 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/web_audio_player.dart';
 
+import '../../core/local_db.dart';
+
+import '../../core/cdn_translation_service.dart';
+
 import '../../core/theme.dart';
 
 import '../../core/settings_manager.dart';
@@ -706,20 +710,69 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       } else if (_studyContentTab == 'translation') {
 
-        final res = await Supabase.instance.client
+        final primarySources = {
+          'en.sahih',
+          'id.kemenag',
+          'id.indonesian',
+          'en.transliteration',
+          'id.kemenag_translit',
+        };
 
-            .from('translations')
+        final isPrimary = primarySources.contains(_selectedSource);
+        bool loadedFromSupabase = false;
 
-            .select('verse_id, text')
+        if (isPrimary) {
+          try {
+            final res = await Supabase.instance.client
+                .from('translations')
+                .select('verse_id, text')
+                .eq('source_id', _selectedSource)
+                .inFilter('verse_id', verseIds);
 
-            .eq('source_id', _selectedSource)
+            if (res.isNotEmpty) {
+              loadedFromSupabase = true;
+              for (final r in res) {
+                textsMap[r['verse_id'] as int] = r['text'] as String;
+              }
+            }
+          } catch (_) {}
+        }
 
-            .inFilter('verse_id', verseIds);
+        if (!loadedFromSupabase) {
+          // 1. Try local DB first
+          final localDb = LocalDatabase.instance;
+          final verseKeys = _pageVerses.map((v) => (v['verse_key'] as String?) ?? '').toList();
+          final localTrans = await localDb.getBatchTextData('translations', _selectedSource, verseKeys);
+          for (final v in _pageVerses) {
+            final vKey = v['verse_key'] as String?;
+            final vId = v['id'] as int?;
+            if (vKey != null && vId != null && localTrans.containsKey(vKey)) {
+              textsMap[vId] = localTrans[vKey]!;
+            }
+          }
 
-        for (final r in res) {
+          // 2. Fetch missing from CDN
+          final missingVerses = _pageVerses.where((v) {
+            final vId = v['id'] as int?;
+            return vId != null && !textsMap.containsKey(vId);
+          }).toList();
 
-          textsMap[r['verse_id'] as int] = r['text'] as String;
-
+          if (missingVerses.isNotEmpty) {
+            try {
+              final cdn = CdnTranslationService.instance;
+              for (final v in missingVerses) {
+                final vKey = v['verse_key'] as String?;
+                final vId = v['id'] as int?;
+                if (vKey != null && vId != null) {
+                  final text = await cdn.getVerse(_selectedSource, vKey);
+                  if (text != null) {
+                    textsMap[vId] = text;
+                    unawaited(localDb.saveTextData('translations', vKey, _selectedSource, text));
+                  }
+                }
+              }
+            } catch (_) {}
+          }
         }
 
       } else if (_studyContentTab == 'tafsir') {

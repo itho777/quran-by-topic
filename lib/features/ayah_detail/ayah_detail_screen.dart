@@ -14,6 +14,7 @@ import '../admin/admin_cms_widgets.dart';
 import '../../shared/widgets/reciter_picker_sheet.dart';
 import '../mushaf/source_picker_sheet.dart';
 import '../../core/quran_sources.dart';
+import '../../core/cdn_translation_service.dart';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Data model for each "slot" the user can toggle between two sources
@@ -349,6 +350,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         _loading = false;
       });
 
+      for (final slot in _transSlots) {
+        unawaited(_ensureTranslationLoaded(slot.sourceId));
+      }
+
       final rpcVerseKey = (verseRes['verse_key'] as String?) ?? '';
       final transSource = _currentLang == 'en' ? 'en.sahih' : 'id.kemenag';
       try {
@@ -390,6 +395,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           _loading = false;
         });
 
+        for (final slot in _transSlots) {
+          unawaited(_ensureTranslationLoaded(slot.sourceId));
+        }
+
         // Populate transliteration
         final translit = cachedVerse['transliteration'] as String?;
         if (translit != null && translit.isNotEmpty) {
@@ -417,6 +426,64 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
 
   String _getText(Map<String, String> map, String source, String fallback) {
     return map[source] ?? fallback;
+  }
+
+  Future<void> _ensureTranslationLoaded(String sourceId) async {
+    if (_translationTexts.containsKey(sourceId)) return;
+
+    final localDb = LocalDatabase.instance;
+    final verseKey = '${widget.surahId}:${widget.ayahNumber}';
+    final localText = await localDb.getTextData('translations', verseKey, sourceId);
+    if (localText != null && localText.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _translationTexts[sourceId] = localText;
+        });
+      }
+      return;
+    }
+
+    const primarySources = {
+      'en.sahih',
+      'id.kemenag',
+      'id.indonesian',
+      'en.transliteration',
+      'id.kemenag_translit',
+    };
+
+    if (primarySources.contains(sourceId)) {
+      try {
+        final res = await Supabase.instance.client
+            .from('translations')
+            .select('text')
+            .eq('verse_id', _verseId ?? 0)
+            .eq('source_id', sourceId)
+            .maybeSingle();
+        if (res != null && res['text'] != null) {
+          final txt = res['text'] as String;
+          if (mounted) {
+            setState(() {
+              _translationTexts[sourceId] = txt;
+            });
+          }
+          unawaited(localDb.saveTextData('translations', verseKey, sourceId, txt));
+          return;
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final cdn = CdnTranslationService.instance;
+      final txt = await cdn.getVerse(sourceId, verseKey);
+      if (txt != null) {
+        if (mounted) {
+          setState(() {
+            _translationTexts[sourceId] = txt;
+          });
+        }
+        unawaited(localDb.saveTextData('translations', verseKey, sourceId, txt));
+      }
+    } catch (_) {}
   }
 
   String _getAudioUrl({bool useMirror = true}) {
@@ -1177,6 +1244,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                     newSrc,
                   );
                 });
+                _ensureTranslationLoaded(newSrc);
               },
             );
           },

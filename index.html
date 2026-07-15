@@ -187,6 +187,15 @@
             <img src="logo-light-trans.png" class="logo-img logo-img-light" alt="Tafseer.id Logo" style="height:100px;width:auto;display:block;" />
           </div>
           <p class="home-hero-subtitle">Compare translations, read tafsir commentary, and explore by topic</p>
+          <div class="home-search-wrap" style="max-width: 500px; margin: 1.5rem auto 0; width: 100%; position: relative;">
+            <div class="search-input-wrap">
+              <svg class="search-icon" viewBox="0 0 24 24" style="left: 14px; width: 18px; height: 18px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="home-search-input" class="search-input" placeholder="Search topics, verses..." autocomplete="off" style="padding: 12px 40px 12px 42px; font-size: 1rem; border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0,0,0,0.08);" />
+              <button class="search-clear btn-icon" id="home-search-clear-btn" aria-label="Clear search" style="display:none; right: 10px;">
+                <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
         <div class="sura-grid" id="sura-grid">
           <!-- Populated by JS -->

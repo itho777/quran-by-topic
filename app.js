@@ -1858,6 +1858,21 @@ async function triggerRouting() {
     updateBreadcrumbs('home');
     highlightActiveSuraInSidebar(null);
     renderHomeGrid();
+
+    // Clear search values when navigating back to home
+    const sInput = document.getElementById('search-input');
+    if (sInput) {
+      sInput.value = '';
+      const sClear = document.getElementById('search-clear-btn');
+      if (sClear) sClear.style.display = 'none';
+      sInput.dispatchEvent(new Event('input'));
+    }
+    const hInput = document.getElementById('home-search-input');
+    if (hInput) {
+      hInput.value = '';
+      const hClear = document.getElementById('home-search-clear-btn');
+      if (hClear) hClear.style.display = 'none';
+    }
   } else if (hash.startsWith('#sura/')) {
     const parts = hash.split('/');
     const suraId = parseInt(parts[1], 10);
@@ -2072,6 +2087,20 @@ async function triggerRouting() {
     switchView('search');
     highlightActiveSuraInSidebar(null);
     updateBreadcrumbs('search');
+
+    // Sync input values and clear buttons
+    const sInput = document.getElementById('search-input');
+    if (sInput) {
+      sInput.value = query;
+      const sClear = document.getElementById('search-clear-btn');
+      if (sClear) sClear.style.display = 'inline-flex';
+    }
+    const hInput = document.getElementById('home-search-input');
+    if (hInput) {
+      hInput.value = query;
+      const hClear = document.getElementById('home-search-clear-btn');
+      if (hClear) hClear.style.display = 'inline-flex';
+    }
 
     // Reset pagination on new search
     searchPage = 1;
@@ -3022,6 +3051,35 @@ function setupEventBindings() {
       searchInput.value = '';
       searchInput.dispatchEvent(new Event('input'));
       searchInput.focus();
+    };
+  }
+
+  // Home search live filtering & clearing
+  const homeSearchInput = document.getElementById('home-search-input');
+  const homeSearchClear = document.getElementById('home-search-clear-btn');
+  if (homeSearchInput) {
+    homeSearchInput.addEventListener('input', () => {
+      const query = homeSearchInput.value.toLowerCase().trim();
+      if (homeSearchClear) {
+        homeSearchClear.style.display = query.length > 0 ? 'inline-flex' : 'none';
+      }
+    });
+
+    homeSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const query = homeSearchInput.value.trim();
+        if (query.length >= 3) {
+          window.location.hash = `#search/${encodeURIComponent(query)}`;
+        }
+      }
+    });
+  }
+
+  if (homeSearchClear && homeSearchInput) {
+    homeSearchClear.onclick = () => {
+      homeSearchInput.value = '';
+      homeSearchClear.style.display = 'none';
+      homeSearchInput.focus();
     };
   }
 

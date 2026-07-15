@@ -684,8 +684,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         crossAxisCount: 2,
                         crossAxisSpacing: 14,
                         mainAxisSpacing: 14,
-                        // Fix #9: Increased ratio so tall text (Indonesian) never clips.
-                        childAspectRatio: 1.45,
+                        // Balanced ratio: fits both EN and ID text fully inside card
+                        childAspectRatio: 1.3,
                         children: [
                           _QuickCard(
                             icon: Icons.menu_book,
@@ -912,25 +912,26 @@ class _QuickCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: iconBg,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(icon, color: color, size: 24),
+                      child: Icon(icon, color: color, size: 20),
                     ),
-                    Icon(Icons.arrow_forward, color: AppTheme.outline, size: 18),
+                    Icon(Icons.arrow_forward, color: AppTheme.outline, size: 16),
                   ],
                 ),
-                const Spacer(),
+                const SizedBox(height: 10),
                 Text(
                   title,
                   maxLines: 2,
@@ -938,18 +939,17 @@ class _QuickCard extends StatelessWidget {
                   style: TextStyle(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.bold,
-                    // Fix #9: slightly smaller font so Indonesian text fits.
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppTheme.onSurfaceVariant,
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
                 ),
               ],

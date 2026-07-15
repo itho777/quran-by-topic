@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../core/settings_manager.dart';
 import 'qibla_service.dart';
 
 /// Provider for streaming the current phone heading from the magnetometer.
@@ -27,5 +28,10 @@ final qiblaResultProvider = FutureProvider<QiblaResult>((ref) async {
 /// Provider for daily prayer times based on current GPS location.
 final prayerTimesProvider = FutureProvider<PrayerTimesResult>((ref) async {
   final position = await ref.watch(currentLocationProvider.future);
-  return QiblaService.getPrayerTimes(position.latitude, position.longitude);
+  final settings = ref.watch(settingsProvider);
+  return QiblaService.getPrayerTimes(
+    position.latitude,
+    position.longitude,
+    settings.prayerCalculationMethod,
+  );
 });

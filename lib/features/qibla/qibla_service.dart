@@ -86,11 +86,28 @@ class QiblaService {
 
   // ── Prayer Times ─────────────────────────────────────────────────────────────
 
-  /// Calculates today's prayer times using the Singapore/Shafi'i standard,
-  /// which is the recognised calculation for Indonesia (MUI).
-  static PrayerTimesResult getPrayerTimes(double lat, double lng) {
+  static CalculationMethod _parseMethod(String method) {
+    switch (method) {
+      case 'karachi': return CalculationMethod.karachi;
+      case 'isna': return CalculationMethod.north_america;
+      case 'mwl': return CalculationMethod.muslim_world_league;
+      case 'egyptian': return CalculationMethod.egyptian;
+      case 'makkah': return CalculationMethod.umm_al_qura;
+      case 'dubai': return CalculationMethod.dubai;
+      case 'kuwait': return CalculationMethod.kuwait;
+      case 'qatar': return CalculationMethod.qatar;
+      case 'tehran': return CalculationMethod.tehran;
+      case 'turkey': return CalculationMethod.turkey;
+      case 'singapore':
+      default:
+        return CalculationMethod.singapore;
+    }
+  }
+
+  /// Calculates today's prayer times using the selected calculation method.
+  static PrayerTimesResult getPrayerTimes(double lat, double lng, String method) {
     final coords = Coordinates(lat, lng);
-    final params = CalculationMethod.singapore.getParameters()
+    final params = _parseMethod(method).getParameters()
       ..madhab = Madhab.shafi;
 
     final date = DateComponents.from(DateTime.now());

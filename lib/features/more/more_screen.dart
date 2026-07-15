@@ -362,6 +362,50 @@ class MoreScreen extends ConsumerWidget {
                   ),
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
+                
+                // Prayer Calculation Method
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.explore_outlined, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Prayer Calculation Method' : 'Metode Hitungan Shalat',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.prayerCalculationMethod.toUpperCase(),
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: settings.prayerCalculationMethod,
+                      dropdownColor: AppTheme.surfaceContainer,
+                      icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
+                      style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                      onChanged: (newVal) {
+                        if (newVal != null) {
+                          ref.read(settingsProvider.notifier).setPrayerCalculationMethod(newVal);
+                        }
+                      },
+                      items: const [
+                        DropdownMenuItem(value: 'singapore', child: Text('SINGAPORE (MUI)')),
+                        DropdownMenuItem(value: 'makkah', child: Text('MAKKAH (UMM AL-QURA)')),
+                        DropdownMenuItem(value: 'karachi', child: Text('KARACHI (UIS)')),
+                        DropdownMenuItem(value: 'isna', child: Text('NORTH AMERICA (ISNA)')),
+                        DropdownMenuItem(value: 'mwl', child: Text('WORLD LEAGUE (MWL)')),
+                        DropdownMenuItem(value: 'egyptian', child: Text('EGYPTIAN SURVEY')),
+                        DropdownMenuItem(value: 'turkey', child: Text('TURKEY (DIYANET)')),
+                        DropdownMenuItem(value: 'tehran', child: Text('TEHRAN (UNIVERSITY)')),
+                      ],
+                    ),
+                  ),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
 
                 // Arabic Font Size Slider
                 Padding(

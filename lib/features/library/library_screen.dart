@@ -393,7 +393,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             automaticallyImplyLeading: false,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(116),
+              preferredSize: const Size.fromHeight(136),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

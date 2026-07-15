@@ -10,6 +10,7 @@ class SettingsState {
   final String appLanguage;
   final String selectedReciter;
   final bool mushafFullWidth;
+  final String prayerCalculationMethod;
 
   SettingsState({
     required this.arabicFontSize,
@@ -19,6 +20,7 @@ class SettingsState {
     required this.appLanguage,
     required this.selectedReciter,
     this.mushafFullWidth = true,
+    this.prayerCalculationMethod = 'singapore',
   });
 
   SettingsState copyWith({
@@ -29,6 +31,7 @@ class SettingsState {
     String? appLanguage,
     String? selectedReciter,
     bool? mushafFullWidth,
+    String? prayerCalculationMethod,
   }) {
     return SettingsState(
       arabicFontSize: arabicFontSize ?? this.arabicFontSize,
@@ -38,6 +41,7 @@ class SettingsState {
       appLanguage: appLanguage ?? this.appLanguage,
       selectedReciter: selectedReciter ?? this.selectedReciter,
       mushafFullWidth: mushafFullWidth ?? this.mushafFullWidth,
+      prayerCalculationMethod: prayerCalculationMethod ?? this.prayerCalculationMethod,
     );
   }
 }
@@ -52,6 +56,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           appLanguage: 'id', // Default to Indonesian
           selectedReciter: 'Alafasy_128kbps',
           mushafFullWidth: true,
+          prayerCalculationMethod: 'singapore',
         )) {
     _loadSettings();
   }
@@ -65,6 +70,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final defaultSource = prefs.getString('default_translation_source') ?? 'id.kemenag';
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
+      final calcMethod = prefs.getString('prayer_calculation_method') ?? 'singapore';
 
       // mushafFullWidth is intentionally NOT loaded from storage.
       // It always defaults to true on each app launch.
@@ -76,6 +82,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         appLanguage: lang,
         selectedReciter: reciter,
         mushafFullWidth: true,
+        prayerCalculationMethod: calcMethod,
       );
     } catch (_) {}
   }
@@ -127,6 +134,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(mushafFullWidth: val);
   }
 
+  Future<void> setPrayerCalculationMethod(String method) async {
+    state = state.copyWith(prayerCalculationMethod: method);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('prayer_calculation_method', method);
+  }
+
   /// Reset ALL settings to factory defaults and clear persisted preferences.
   Future<void> resetToDefaults() async {
     state = SettingsState(
@@ -137,6 +150,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       appLanguage: 'id',
       selectedReciter: 'Alafasy_128kbps',
       mushafFullWidth: true,
+      prayerCalculationMethod: 'singapore',
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -191,6 +205,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         appLanguage: (data['app_language'] as String?) ?? state.appLanguage,
         selectedReciter: (data['selected_reciter'] as String?) ?? state.selectedReciter,
         mushafFullWidth: true,
+        prayerCalculationMethod: prefs.getString('prayer_calculation_method') ?? state.prayerCalculationMethod,
       );
       state = newState;
       await prefs.setDouble('arabic_font_size', newState.arabicFontSize);

@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-android:
-    name: Build Android APK
+    name: Build Android (APK + AAB)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -37,20 +37,36 @@ jobs:
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT"  >> android/local.properties
 
+      - name: Decode upload keystore from secret
+        # The keystore is stored as a base64-encoded GitHub Actions secret.
+        # If the secret is not set, fall back to debug signing gracefully.
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+            echo "Keystore decoded from secret."
+          else
+            echo "KEYSTORE_BASE64 secret not set — will use debug signing."
+          fi
+
       - name: Create key.properties (CI release signing)
         run: |
-          echo "storePassword=tafseeridpass" > android/key.properties
-          echo "keyPassword=tafseeridpass" >> android/key.properties
-          echo "keyAlias=upload" >> android/key.properties
-          echo "storeFile=upload-keystore.jks" >> android/key.properties
+          if [ -f "android/app/upload-keystore.jks" ]; then
+            echo "storePassword=${{ secrets.KEYSTORE_PASSWORD || 'tafseeridpass' }}" > android/key.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD || 'tafseeridpass' }}" >> android/key.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS || 'upload' }}" >> android/key.properties
+            echo "storeFile=upload-keystore.jks" >> android/key.properties
+          else
+            echo "No keystore found — skipping key.properties."
+          fi
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK and AAB
-        run: |
-          flutter build apk --release
-          flutter build appbundle --release
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Build release AAB (Google Play)
+        run: flutter build appbundle --release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -59,7 +75,7 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
-      - name: Upload AAB artifact
+      - name: Upload AAB artifact (Google Play)
         uses: actions/upload-artifact@v4
         with:
           name: tafseer-id-release-aab

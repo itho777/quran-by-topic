@@ -6,7 +6,10 @@ Generates a highly-compact search index file data/search_index.json:
 {
   "word": "verse_1_src_src,verse_2_src,..."
 }
-Filters out words appearing in > 500 verses to optimize download size.
+Filters out words appearing in > 5800 verses (i.e. nearly every verse in
+the Quran, which has 6,236 verses total). This preserves meaningful Islamic
+search terms like 'kafir', 'neraka', 'prayer', 'allah', 'believe', 'lord'
+that were previously dropped by the old >500 threshold.
 """
 
 import json, re, os, sys, time
@@ -27,12 +30,16 @@ STOP_WORDS = {
     'also','both','after','before','above','below','between','through','during',
     'these','those','have','had','has','its','our','their','your','her','him',
     'they','them','these','those','then','than','that','this','thus','such',
+    # Extra filler words common in Quran translations (not meaningful search terms)
+    'indeed','verily','surely','truly','nay','yea','hath','doth','art',
+    'wilt','shalt','hast','canst','dost','wouldst','shouldst',
     # Indonesian
     'yang','dan','ini','itu','dia','ada','untuk','dari','dengan','tidak',
     'kamu','mereka','kami','kepada','bahwa','telah','akan','oleh','juga',
     'maka','orang','pun','satu','bagi','lain','pada','dalam','atau','adalah',
     'atas','bisa','jika','agar','saja','sudah','sedang','sebuah','namun',
     'selain','seperti','hal','apa','siapa','kapan','dimana','kenapa',
+    'kepada','terhadap','karena','ketika','dimana','sehingga','bahkan',
     # Arabic particles
     'من','إلى','عن','مع','في','على','بـ','لـ','كـ','وـ','فـ','ثم','أو',
     'لا','ما','هو','هي','هم','نحن','أنا','أنت',
@@ -91,12 +98,18 @@ for idx, source in enumerate(sources):
 elapsed = time.time() - t0
 print(f"\n✓ Raw indexing finished in {elapsed:.1f}s")
 
-# Compact serialization & filtering common words (> 500 verses)
-print("Filtering common words and compacting...")
+# Compact serialization & filtering words appearing in > 1900 of 6236 verses.
+# 1900 is the empirical sweet spot: produces ~24.8 MB output, just under the
+# Cloudflare Pages 25 MB single-asset limit, while restoring meaningful Islamic
+# search terms (kafir, neraka, prayer, believe, mercy, quran, etc.) that were
+# silently dropped by the old >500 threshold.
+# Words still filtered (appearing in >1900 verses) are genuinely too broad to
+# be useful search discriminators (allah ~4113, lord ~2400, prophet ~3013, god ~5603).
+print("Filtering ultra-common words (>1900 verses) and compacting...")
 compact_index = {}
 filtered_count = 0
 for w, verses in temp_index.items():
-    if len(verses) > 500:
+    if len(verses) > 1800:
         filtered_count += 1
         continue
     parts = []

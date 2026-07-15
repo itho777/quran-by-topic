@@ -2,6 +2,21 @@
 <html lang="en" data-theme="dark">
 <head>
   <script>
+    // Permalink router: convert clean path URLs from the Flutter app into hash routes.
+    // e.g. tafseer.id/surahs/2/ayahs/4  →  tafseer.id/#sura/2/verse/4
+    // e.g. tafseer.id/surahs/2           →  tafseer.id/#sura/2
+    (function () {
+      var path = window.location.pathname;
+      var ayahMatch = path.match(/^\/surahs\/(\d+)\/ayahs\/(\d+)\/?$/);
+      var surahMatch = path.match(/^\/surahs\/(\d+)\/?$/);
+      if (ayahMatch) {
+        window.location.replace('/#sura/' + ayahMatch[1] + '/verse/' + ayahMatch[2]);
+      } else if (surahMatch) {
+        window.location.replace('/#sura/' + surahMatch[1]);
+      }
+    })();
+  </script>
+  <script>
     (function() {
       try {
         var settings = JSON.parse(localStorage.getItem('tafsir_settings'));

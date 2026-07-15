@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Tafseer.id</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #0d0d10;
+      --surface: #13131a;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-light: rgba(16, 185, 129, 0.1);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: rgba(0, 0, 0, 0.06);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --primary: #059669;
+      --primary-hover: #047857;
+      --primary-light: rgba(5, 150, 105, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 80px;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background-color: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .nav-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--primary);
+      border-radius: 50%;
+    }
+
+    .lang-switcher {
+      display: flex;
+      gap: 8px;
+      background-color: var(--bg);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .lang-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .lang-btn.active {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto 0 auto;
+      padding: 0 24px;
+    }
+
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--text) 50%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .last-updated {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-top: 36px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+    }
+
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background-color: var(--primary);
+      border-radius: 2px;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-size: 1rem;
+    }
+
+    ul {
+      margin-left: 20px;
+      margin-bottom: 20px;
+      color: var(--text-muted);
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .highlight-box {
+      background-color: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 20px;
+      border-radius: 12px;
+      margin: 24px 0;
+    }
+
+    .highlight-box p {
+      color: var(--text);
+      margin-bottom: 0;
+      font-weight: 500;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .lang-section {
+      display: none;
+    }
+
+    .lang-section.active {
+      display: block;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        padding: 24px;
+      }
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <a href="/" class="logo">
+        <div class="logo-dot"></div>
+        Tafseer.id
+      </a>
+      <div class="lang-switcher">
+        <button class="lang-btn active" onclick="switchLang('en')">English</button>
+        <button class="lang-btn" onclick="switchLang('id')">Indonesia</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      
+      <!-- ================= ENGLISH VERSION ================= -->
+      <div id="lang-en" class="lang-section active">
+        <h1>Privacy Policy</h1>
+        <div class="last-updated">Last updated: July 15, 2026</div>
+
+        <div class="highlight-box">
+          <p>Tafseer.id is a free, privacy-first application built to help you read and understand the Quran. We collect absolutely zero personal information, require no registration, and serve no ads.</p>
+        </div>
+
+        <h2>1. Information We Do Not Collect</h2>
+        <p>Because we value your privacy, Tafseer.id does not collect any personal data. This means:</p>
+        <ul>
+          <li>We do not collect names, email addresses, phone numbers, or account info.</li>
+          <li>We do not track your location or device identifier (IMEI/Ad ID).</li>
+          <li>We do not use any third-party analytics trackers, cookies, or SDKs that monitor your behaviour.</li>
+        </ul>
+
+        <h2>2. Data Stored Locally</h2>
+        <p>All your active app data (such as bookmarks, theme choices, last read progress, and active translations) is stored directly on your own device using local storage (LocalStorage / IndexedDB). This data remains on your device at all times. We have no way to access, view, or modify your locally stored information.</p>
+
+        <h2>3. Online Requests & CDNs</h2>
+        <p>Tafseer.id queries online resources only to deliver Quranic content:</p>
+        <ul>
+          <li><strong>Database Queries</strong>: Sura list and search terms are fetched from our Supabase database. These requests are anonymous and do not contain user identifiers.</li>
+          <li><strong>Translation CDNs</strong>: Translation files are downloaded on-demand from our secure public storage CDN. The CDN logs only standard server requests required to deliver files and does not track users.</li>
+        </ul>
+
+        <h2>4. Required App Permissions</h2>
+        <p>The app requires the following device permissions to operate:</p>
+        <ul>
+          <li><strong>Internet Access</strong>: Needed to search suras, download translation files, and play audio recitations.</li>
+          <li><strong>Storage Access</strong>: Needed to cache translations and save your preferences on your device.</li>
+        </ul>
+
+        <h2>5. Changes to This Privacy Policy</h2>
+        <p>We may update our Privacy Policy from time to time. Any changes will be posted on this page with an updated revision date.</p>
+
+        <h2>6. Contact Us</h2>
+        <p>If you have any questions or feedback about our privacy practices, please contact us via our GitHub repository or website.</p>
+      </div>
+
+      <!-- ================= INDONESIAN VERSION ================= -->
+      <div id="lang-id" class="lang-section">
+        <h1>Kebijakan Privasi</h1>
+        <div class="last-updated">Terakhir diperbarui: 15 Juli 2026</div>
+
+        <div class="highlight-box">
+          <p>Tafseer.id adalah aplikasi gratis yang mengutamakan privasi Anda, dibuat untuk membantu Anda membaca dan memahami Al-Qur'an. Kami sama sekali tidak mengumpulkan informasi pribadi, tidak memerlukan pendaftaran, dan bebas dari iklan.</p>
+        </div>
+
+        <h2>1. Informasi yang Tidak Kami Kumpulkan</h2>
+        <p>Karena kami sangat menghargai privasi Anda, Tafseer.id tidak mengumpulkan data pribadi apa pun. Ini berarti:</p>
+        <ul>
+          <li>Kami tidak mengumpulkan nama, alamat email, nomor telepon, atau info akun.</li>
+          <li>Kami tidak melacak lokasi Anda atau pengidentifikasi perangkat Anda (IMEI/ID Iklan).</li>
+          <li>Kami tidak menggunakan pelacak analitik pihak ketiga, cookie, atau SDK yang memantau perilaku Anda.</li>
+        </ul>
+
+        <h2>2. Data yang Disimpan Secara Lokal</h2>
+        <p>Semua data aplikasi Anda (seperti penanda halaman/bookmarks, pilihan tema, batas bacaan terakhir, dan terjemahan aktif) disimpan langsung di perangkat Anda sendiri menggunakan penyimpanan lokal (LocalStorage / IndexedDB). Data ini tetap berada di perangkat Anda setiap saat. Kami tidak memiliki cara untuk mengakses, melihat, atau mengubah informasi Anda yang disimpan secara lokal.</p>
+
+        <h2>3. Permintaan Online & CDN</h2>
+        <p>Tafseer.id meminta sumber daya online hanya untuk mengirimkan konten Al-Qur'an:</p>
+        <ul>
+          <li><strong>Kueri Database</strong>: Daftar surah dan pencarian diambil dari database Supabase kami. Permintaan ini bersifat anonim dan tidak berisi pengenal pengguna.</li>
+          <li><strong>CDN Terjemahan</strong>: File terjemahan diunduh sesuai permintaan dari CDN penyimpanan publik kami yang aman. CDN hanya mencatat permintaan server standar yang diperlukan untuk mengirimkan file dan tidak melacak pengguna.</li>
+        </ul>
+
+        <h2>4. Izin Aplikasi yang Diperlukan</h2>
+        <p>Aplikasi memerlukan izin perangkat berikut untuk beroperasi:</p>
+        <ul>
+          <li><strong>Akses Internet</strong>: Diperlukan untuk mencari surah, mengunduh file terjemahan, dan memutar murottal audio.</li>
+          <li><strong>Akses Penyimpanan</strong>: Diperlukan untuk menyimpan cache terjemahan dan menyimpan preferensi Anda di perangkat Anda.</li>
+        </ul>
+
+        <h2>5. Perubahan pada Kebijakan Privasi Ini</h2>
+        <p>Kami dapat memperbarui Kebijakan Privasi kami dari waktu ke waktu. Setiap perubahan akan diposting di halaman ini dengan tanggal revisi yang diperbarui.</p>
+
+        <h2>6. Hubungi Kami</h2>
+        <p>Jika Anda memiliki pertanyaan atau masukan tentang praktik privasi kami, silakan hubungi kami melalui repositori GitHub atau situs web kami.</p>
+      </div>
+
+      <div class="footer">
+        <p>© 2026 Tafseer.id. Back to <a href="/">Homepage</a>.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.lang-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+      
+      document.getElementById('lang-' + lang).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

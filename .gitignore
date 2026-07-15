@@ -46,3 +46,7 @@ app.*.map.json
 
 # Local secrets
 .env
+
+android/app/*.b64
+android/app/*.jks
+android/key.properties

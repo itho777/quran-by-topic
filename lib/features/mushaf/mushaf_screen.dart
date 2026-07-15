@@ -103,7 +103,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   // Study Panel Settings & Navigation
 
-  String _studyContentTab = 'transliteration'; // Defaults to transliteration
+  // Fix #4: Default to translation (not transliteration) — set dynamically in initState
+  String _studyContentTab = 'translation';
 
   double _fontSize = 15.0;
 
@@ -239,6 +240,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       _nuzulSource = 'en.wahidi';
 
+      // Fix #4: Default study tab is translation for English too
+      _studyContentTab = 'translation';
+
     } else {
 
       _selectedSource = 'id.kemenag';
@@ -248,6 +252,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       _tafsirSource = 'id.jalalayn';
 
       _nuzulSource = 'id.kemenag_nuzul';
+
+      // Fix #4: Default study tab is translation
+      _studyContentTab = 'translation';
 
     }
 
@@ -974,6 +981,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     _scrollToActiveVerse(vId, alignment: 0.0);
 
+    // Fix #2: Fully select the active playing verse so the study panel is in sync.
+    _selectVerse(verse, fetchDetails: true);
+
     final s = _surahNames[surahId];
 
     final surahName = s != null ? (s['name_en'] ?? '') : 'Surah $surahId';
@@ -1304,15 +1314,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final ayahNum = current['ayah_number'];
 
-    final base = Uri.base;
-
-    final origin = base.host.isNotEmpty
-
-        ? '${base.scheme}://${base.host}${base.port != 80 && base.port != 443 && base.port != 0 ? ':${base.port}' : ''}'
-
-        : 'https://tafseer.id';
-
-    final link = '$origin/#/surahs/$surahId/ayahs/$ayahNum';
+    // Fix #5: Link format matches the full-web version's hash routing scheme.
+    // Web uses: tafseer.id/#sura/{surahId}/verse/{ayahNum}
+    const webBase = 'https://tafseer.id';
+    final link = '$webBase/#sura/$surahId/verse/$ayahNum';
 
     final text = "${current['text_ar']}\n\n${_translations[_selectedVerseId] ?? ''}\n(${current['verse_key']})\n\n$link";
 
@@ -2163,6 +2168,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                     reverse: true,
 
+                    // Fix #3: Disable horizontal swipe in fullWidth mode.
+                    physics: ref.watch(settingsProvider).mushafFullWidth
+                        ? const NeverScrollableScrollPhysics()
+                        : const PageScrollPhysics(),
+
                     itemCount: 604,
 
                     onPageChanged: _onPageChanged,
@@ -2212,7 +2222,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 }
                               }
 
-                              return SizedBox(
+                              // Fix #3: In fullWidth mode, the page is taller than the screen.
+                              // Wrap in SingleChildScrollView so the user can scroll vertically.
+                              final sizedChild = SizedBox(
                                 width: pageW,
                                 height: pageH,
                                 child: Container(
@@ -2244,6 +2256,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                   ),
                                 ),
                               );
+                              if (fullWidth) {
+                                return SingleChildScrollView(
+                                  physics: const ClampingScrollPhysics(),
+                                  child: sizedChild,
+                                );
+                              }
+                              return sizedChild;
                             },
                           ),
 

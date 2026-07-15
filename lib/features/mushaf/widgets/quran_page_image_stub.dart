@@ -23,8 +23,8 @@ function _buildCss(sel, play) {
     '.ayahPolygon{fill:#000!important;fill-opacity:0!important;cursor:pointer!important;pointer-events:auto!important;transition:fill .2s,fill-opacity .2s}',
     'svg *:not(.ayahPolygon){pointer-events:none!important}',
     'svg path:not(.ayahPolygon){fill:#000!important}',
-    sel != null ? '#verse-'+sel+'{fill:#E9C176!important;fill-opacity:0.25!important}' : '',
-    play != null ? '#verse-'+play+'{fill:#95D1D1!important;fill-opacity:0.30!important}' : '',
+    sel != null ? '#verse-'+sel+',#verse-'+sel+' .ayahPolygon{fill:#E9C176!important;fill-opacity:0.25!important}' : '',
+    play != null ? '#verse-'+play+',#verse-'+play+' .ayahPolygon{fill:#95D1D1!important;fill-opacity:0.30!important}' : '',
   ].join('');
 }
 

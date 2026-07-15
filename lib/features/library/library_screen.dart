@@ -64,6 +64,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   final List<_DownloadItem> _mushaf = [];
   final List<_DownloadItem> _audio = [];
 
+  // Fix #1: Search
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
   // Storage stats
   int _mushafBytes = 0;
   int _audioBytes = 0;
@@ -78,6 +82,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _buildItems();
     _loadManifest();
     _loadStorageStats();
+    _searchCtrl.addListener(() {
+      setState(() => _searchQuery = _searchCtrl.text.trim().toLowerCase());
+    });
   }
 
   @override
@@ -85,6 +92,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     for (final sub in _subs.values) {
       sub.cancel();
     }
+    _searchCtrl.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -92,44 +100,45 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   // ── Build static item lists ───────────────────────────────────────────────
 
   void _buildItems() {
-    // Translations (key popular ones first)
-    const priorityTranslations = ['id.kemenag', 'en.sahih', 'en.yusufali', 'en.pickthall'];
-    for (final id in priorityTranslations) {
+    // Fix #1: Load ALL translations from QuranSources, sorted by language then name.
+    // Prioritise Indonesian and English entries at the top.
+    const priority = ['id.kemenag', 'en.sahih', 'en.yusufali', 'en.pickthall'];
+    final remaining = QuranSources.translations.keys
+        .where((k) => !priority.contains(k))
+        .toList()
+      ..sort();
+    for (final id in [...priority, ...remaining]) {
       final src = QuranSources.translations[id];
-      if (src != null) {
-        _translations.add(_DownloadItem(
-          sourceType: 'translation',
-          sourceId: id,
-          label: src.name,
-          subtitle: '6,236 ayahs · ${src.language}',
-          icon: Icons.translate_rounded,
-        ));
-      }
+      if (src == null) continue;
+      _translations.add(_DownloadItem(
+        sourceType: 'translation',
+        sourceId: id,
+        label: src.name,
+        subtitle: '6,236 ayahs · ${src.language}',
+        icon: Icons.translate_rounded,
+      ));
     }
 
-    // Tafsirs
-    final tafsirEntries = [
-      ('id.tafsir_jalalayn', 'Tafsir Jalalayn (ID)', 'Indonesian'),
-      ('id.tafsir_ibnu_katsir', 'Tafsir Ibnu Katsir (ID)', 'Indonesian'),
-      ('en.tafsir_ibn_kathir', 'Tafsir Ibn Kathir (EN)', 'English'),
-    ];
-    for (final (id, name, lang) in tafsirEntries) {
+    // Fix #1: Load ALL tafsirs from QuranSources.
+    for (final entry in QuranSources.tafsirs.entries) {
       _tafsirs.add(_DownloadItem(
         sourceType: 'tafsir',
-        sourceId: id,
-        label: name,
-        subtitle: '6,236 ayahs · $lang',
+        sourceId: entry.key,
+        label: entry.value.name,
+        subtitle: '6,236 ayahs · ${entry.value.language}',
         icon: Icons.menu_book_rounded,
       ));
     }
-    // Asbabun Nuzul
-    _tafsirs.add(_DownloadItem(
-      sourceType: 'nuzul',
-      sourceId: 'asbabun_nuzul',
-      label: 'Asbabun Nuzul',
-      subtitle: 'Causes of Revelation · Indonesian',
-      icon: Icons.history_edu_rounded,
-    ));
+    // Fix #1: Load ALL asbabun nuzul from QuranSources.
+    for (final entry in QuranSources.asbabunNuzul.entries) {
+      _tafsirs.add(_DownloadItem(
+        sourceType: 'nuzul',
+        sourceId: entry.key,
+        label: entry.value.name,
+        subtitle: '6,236 entries · ${entry.value.language}',
+        icon: Icons.history_edu_rounded,
+      ));
+    }
 
     // Mushaf Pages
     _mushaf.add(_DownloadItem(
@@ -140,12 +149,45 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       icon: Icons.auto_stories_rounded,
     ));
 
-    // Audio — use reciters from QuranSources
-    for (final entry in QuranSources.reciters.entries.take(10)) {
+    // Fix #1: Deduplicate reciters — for reciters with the same display-name base,
+    // keep only the highest bitrate entry.
+    // Strategy: parse kbps from the key (e.g., 'Alafasy_128kbps' → 128),
+    // group by the normalised display name (strip bitrate from label),
+    // and emit only the one with the highest kbps.
+    final Map<String, MapEntry<String, int>> best = {}; // normKey → (id, kbps)
+    final _kbpsRe = RegExp(r'(\d+)kbps', caseSensitive: false);
+    for (final entry in QuranSources.reciters.entries) {
+      final key = entry.key;
+      final label = entry.value;
+      // Parse kbps from key
+      final kbpsMatch = _kbpsRe.firstMatch(key);
+      final kbps = kbpsMatch != null ? int.tryParse(kbpsMatch.group(1)!) ?? 0 : 0;
+      // Normalise display name: remove '(NNkbps)' and trailing source sites
+      final normLabel = label
+          .replaceAll(_kbpsRe, '')
+          .replaceAll(RegExp(r'\(\s*\)', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\(\w+\.\w+\)', caseSensitive: false), '')
+          .replaceAll(RegExp(r',\s*'), ' ')
+          .trim()
+          .toLowerCase();
+      final existing = best[normLabel];
+      if (existing == null || kbps > existing.value) {
+        best[normLabel] = MapEntry(key, kbps);
+      }
+    }
+    // Sort deduped reciters alphabetically by label
+    final dedupedIds = best.values.map((e) => e.key).toList()
+      ..sort((a, b) {
+        final la = QuranSources.reciters[a] ?? a;
+        final lb = QuranSources.reciters[b] ?? b;
+        return la.compareTo(lb);
+      });
+    for (final id in dedupedIds) {
+      final label = QuranSources.reciters[id] ?? id;
       _audio.add(_DownloadItem(
         sourceType: 'audio',
-        sourceId: entry.key,
-        label: entry.value, // reciters is Map<String, String>
+        sourceId: id,
+        label: label,
         subtitle: '114 surahs · MP3',
         icon: Icons.headphones_rounded,
       ));
@@ -351,7 +393,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             automaticallyImplyLeading: false,
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(84),
+              preferredSize: const Size.fromHeight(116),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -372,6 +414,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  // Fix #1: Search bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search…',
+                        hintStyle: TextStyle(color: AppTheme.outline, fontSize: 13),
+                        prefixIcon: Icon(Icons.search_rounded, color: AppTheme.outline, size: 18),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear_rounded, size: 16, color: AppTheme.outline),
+                                onPressed: () => _searchCtrl.clear(),
+                              )
+                            : null,
+                        isDense: true,
+                        filled: true,
+                        fillColor: AppTheme.surfaceContainerHigh,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
                   ),
                   const Divider(height: 1, thickness: 0.5),
@@ -409,15 +478,42 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     );
   }
 
+  // Fix #1: Filter list by search query when not empty.
   Widget _buildList(List<_DownloadItem> items) {
+    final filtered = _searchQuery.isEmpty
+        ? items
+        : items
+            .where((e) =>
+                e.label.toLowerCase().contains(_searchQuery) ||
+                e.subtitle.toLowerCase().contains(_searchQuery) ||
+                e.sourceId.toLowerCase().contains(_searchQuery))
+            .toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.search_off_rounded, size: 48, color: AppTheme.outline),
+              const SizedBox(height: 12),
+              Text('No results for "$_searchQuery"',
+                  style: TextStyle(color: AppTheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: items.length,
+      itemCount: filtered.length,
       itemBuilder: (ctx, i) => _DownloadCard(
-        item: items[i],
-        onDownload: () => _startDownload(items[i]),
-        onResume: () => _startDownload(items[i], resume: true),
-        onDelete: () => _deleteItem(items[i]),
+        item: filtered[i],
+        onDownload: () => _startDownload(filtered[i]),
+        onResume: () => _startDownload(filtered[i], resume: true),
+        onDelete: () => _deleteItem(filtered[i]),
       ),
     );
   }
@@ -671,34 +767,3 @@ class _DownloadCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Storage Pill (header stat chip)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StoragePill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _StoragePill({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-}

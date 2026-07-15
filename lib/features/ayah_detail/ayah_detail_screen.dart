@@ -867,12 +867,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     if (_verse == null) return;
     final arabic = (_verse!['text_ar'] as String?) ?? '';
     final verseKey = (_verse!['verse_key'] as String?) ?? '';
-    final base = Uri.base;
-    final origin = base.host.isNotEmpty
-        ? "${base.scheme}://${base.host}${base.port != 80 && base.port != 443 && base.port != 0 ? ':${base.port}' : ''}"
-        : 'https://tafseer.id';
-    final link = '$origin/#/surahs/${widget.surahId}/ayahs/${widget.ayahNumber}';
-    Clipboard.setData(ClipboardData(text: '$arabic\n\nÃ¢Â€Â” Quran $verseKey\n\n$link'));
+    // Fix #5: Link matches web hash routing.
+    const webBase = 'https://tafseer.id';
+    final link = '$webBase/#sura/${widget.surahId}/verse/${widget.ayahNumber}';
+    Clipboard.setData(ClipboardData(text: '$arabic\n\n— Quran $verseKey\n\n$link'));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(_currentLang == 'en' ? 'Ayah + link copied!' : 'Ayat & tautan berhasil disalin!'),

@@ -33,13 +33,13 @@ String _buildPageCss(int? selectedId, int? playingId) {
       fill: #000000 !important;
     }
     ${selectedId != null ? '''
-    #verse-$selectedId {
+    #verse-$selectedId, #verse-$selectedId .ayahPolygon {
       fill: #E9C176 !important;
       fill-opacity: 0.25 !important;
     }
     ''' : ''}
     ${playingId != null ? '''
-    #verse-$playingId {
+    #verse-$playingId, #verse-$playingId .ayahPolygon {
       fill: #95D1D1 !important;
       fill-opacity: 0.3 !important;
     }

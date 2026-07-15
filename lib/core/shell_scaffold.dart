@@ -88,8 +88,17 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.read(navigationHistoryProvider.notifier).push(location);
+        // Fix #7: Always ensure nav bar is visible when NOT on the Mushaf screen.
+        // Mushaf manages its own hide/show; other pages should always show the nav bar.
+        if (!location.startsWith('/mushaf')) {
+          final isHidden = ref.read(hideNavBarProvider);
+          if (isHidden) {
+            ref.read(hideNavBarProvider.notifier).state = false;
+          }
+        }
       }
     });
+
 
     return PopScope(
       canPop: false,

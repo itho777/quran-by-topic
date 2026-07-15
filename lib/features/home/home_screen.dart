@@ -500,18 +500,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           color: AppTheme.primaryContainer,
                         ),
                       ),
-                      if (_homeHeroSubtitle.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          _homeHeroSubtitle,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppTheme.outline,
-                            fontSize: 11,
-                            fontStyle: FontStyle.italic,
-                          ),
+                      const SizedBox(height: 6),
+                      Text(
+                        // Fix #8: Show the right translation based on app language.
+                        // Indonesian default; fall back to CMS subtitle or English.
+                        _currentLang == 'id'
+                            ? 'Dengan nama Allah Yang Maha Pengasih, Maha Penyayang'
+                            : (_homeHeroSubtitle.isNotEmpty
+                                ? _homeHeroSubtitle
+                                : 'In the name of Allah, the Most Gracious, the Most Merciful'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppTheme.outline,
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
@@ -680,7 +684,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         crossAxisCount: 2,
                         crossAxisSpacing: 14,
                         mainAxisSpacing: 14,
-                        childAspectRatio: 1.25,
+                        // Fix #9: Increased ratio so tall text (Indonesian) never clips.
+                        childAspectRatio: 1.45,
                         children: [
                           _QuickCard(
                             icon: Icons.menu_book,
@@ -907,7 +912,7 @@ class _QuickCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -928,10 +933,13 @@ class _QuickCard extends StatelessWidget {
                 const Spacer(),
                 Text(
                   title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    // Fix #9: slightly smaller font so Indonesian text fits.
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 4),

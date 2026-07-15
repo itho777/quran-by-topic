@@ -1314,10 +1314,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final ayahNum = current['ayah_number'];
 
-    // Fix #5: Link format matches the full-web version's hash routing scheme.
-    // Web uses: tafseer.id/#sura/{surahId}/verse/{ayahNum}
+    // Fix #5: Link uses clean path-based permalink so tafseer.id/surahs/{id}/ayahs/{num} works.
+    // Web: tafseer.id/surahs/{surahId}/ayahs/{ayahNum}
     const webBase = 'https://tafseer.id';
-    final link = '$webBase/#sura/$surahId/verse/$ayahNum';
+    final link = '$webBase/surahs/$surahId/ayahs/$ayahNum';
 
     final text = "${current['text_ar']}\n\n${_translations[_selectedVerseId] ?? ''}\n(${current['verse_key']})\n\n$link";
 

@@ -867,9 +867,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     if (_verse == null) return;
     final arabic = (_verse!['text_ar'] as String?) ?? '';
     final verseKey = (_verse!['verse_key'] as String?) ?? '';
-    // Fix #5: Link matches web hash routing.
+    // Fix #5: Link uses clean path-based permalink so tafseer.id/surahs/{id}/ayahs/{num} works.
     const webBase = 'https://tafseer.id';
-    final link = '$webBase/#sura/${widget.surahId}/verse/${widget.ayahNumber}';
+    final link = '$webBase/surahs/${widget.surahId}/ayahs/${widget.ayahNumber}';
     Clipboard.setData(ClipboardData(text: '$arabic\n\n— Quran $verseKey\n\n$link'));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

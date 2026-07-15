@@ -42,7 +42,7 @@ jobs:
         # If the secret is not set, fall back to debug signing gracefully.
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode --ignore-garbage > android/app/upload-keystore.jks
             echo "Keystore decoded from secret."
           else
             echo "KEYSTORE_BASE64 secret not set — will use debug signing."

@@ -37,6 +37,13 @@ jobs:
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT"  >> android/local.properties
 
+      - name: Create key.properties (CI release signing)
+        run: |
+          echo "storePassword=tafseeridpass" > android/key.properties
+          echo "keyPassword=tafseeridpass" >> android/key.properties
+          echo "keyAlias=upload" >> android/key.properties
+          echo "storeFile=upload-keystore.jks" >> android/key.properties
+
       - name: Install dependencies
         run: flutter pub get
 

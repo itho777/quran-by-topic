@@ -478,25 +478,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     );
   }
 
-  // Fix #1: Filter list by search query when not empty.
   Widget _buildList(List<_DownloadItem> items) {
-    final filtered = _searchQuery.isEmpty
-        ? items
-        : items
-            .where((e) =>
-                e.label.toLowerCase().contains(_searchQuery) ||
-                e.subtitle.toLowerCase().contains(_searchQuery) ||
-                e.sourceId.toLowerCase().contains(_searchQuery))
-            .toList();
+    final filtered = items.where((item) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      final matchesName = item.label.toLowerCase().contains(q);
+      final matchesId = item.sourceId.toLowerCase().contains(q);
+      final matchesSub = item.subtitle.toLowerCase().contains(q);
+      return matchesName || matchesId || matchesSub;
+    }).toList();
 
     if (filtered.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.search_off_rounded, size: 48, color: AppTheme.outline),
+              Icon(Icons.search_off, size: 48, color: AppTheme.onSurfaceVariant.withOpacity(0.5)),
               const SizedBox(height: 12),
               Text('No results for "$_searchQuery"',
                   style: TextStyle(color: AppTheme.onSurfaceVariant)),

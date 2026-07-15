@@ -79,5 +79,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Tafseer.id memerlukan lokasi Anda untuk menghitung waktu shalat dan arah kiblat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Tafseer.id memerlukan akses kamera untuk tampilan AR Ka'bah.</string>
 </dict>
 </plist>

@@ -18,6 +18,8 @@ import '../features/library/library_screen.dart';
 import '../features/admin/admin_dashboard_screen.dart';
 import '../features/admin/admin_screens.dart';
 import '../features/admin/admin_cms_screen.dart';
+import '../features/qibla/qibla_screen.dart';
+import '../features/qibla/qibla_ar_screen.dart';
 import 'auth_provider.dart';
 import 'shell_scaffold.dart';
 
@@ -148,9 +150,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ProfileScreen()),
           ),
+          GoRoute(
+            path: '/qibla',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: QiblaScreen()),
+          ),
         ],
       ),
 
+      // ── AR Ka'bah Qibla View (full screen) ─────────────────────────────────
+      GoRoute(
+        path: '/qibla/ar',
+        builder: (context, state) => const QiblaArScreen(),
+      ),
+ 
       // ── Auth (no bottom nav) ───────────────────────────────────────────────
       GoRoute(
         path: '/login',

@@ -50,9 +50,8 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
     if (location.startsWith('/surahs')) return 1;
     if (location.startsWith('/mushaf')) return 2;
     if (location.startsWith('/topics')) return 3;
-    if (location.startsWith('/bookmarks')) return 4;
-    if (location.startsWith('/library')) return 5;
-    if (location.startsWith('/profile')) return 6;
+    if (location.startsWith('/qibla')) return 4;
+    if (location.startsWith('/settings')) return 5;
     return 0;
   }
 
@@ -71,9 +70,8 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
         });
         break;
       case 3: context.go('/topics'); break;
-      case 4: context.go('/bookmarks'); break;
-      case 5: context.go('/library'); break;
-      case 6: context.go('/profile'); break;
+      case 4: context.go('/qibla'); break;
+      case 5: context.go('/settings'); break;
     }
   }
 
@@ -171,21 +169,14 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
                       label: 'Topics',
                     ),
                     const BottomNavigationBarItem(
-                      icon: Icon(Icons.bookmark_border_outlined),
-                      activeIcon: Icon(Icons.bookmark),
-                      label: 'Saved',
+                      icon: Icon(Icons.explore_outlined),
+                      activeIcon: Icon(Icons.explore),
+                      label: 'Qibla',
                     ),
                     const BottomNavigationBarItem(
-                      icon: Icon(Icons.download_for_offline_outlined),
-                      activeIcon: Icon(Icons.download_for_offline_rounded),
-                      label: 'Library',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: user != null
-                          ? Icon(Icons.account_circle)
-                          : Icon(Icons.account_circle_outlined),
-                      activeIcon: Icon(Icons.account_circle),
-                      label: user != null ? 'Profile' : 'Sign In',
+                      icon: Icon(Icons.more_horiz_outlined),
+                      activeIcon: Icon(Icons.more_horiz),
+                      label: 'More',
                     ),
                   ],
                 ),

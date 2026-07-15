@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
+import '../../core/auth_provider.dart';
 
 void _showCreditsPopup(BuildContext context) {
   showDialog(
@@ -147,6 +148,91 @@ class MoreScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // ── Fitur & Personal ────────────────────────────────────────────────
+          _SectionLabel(settings.appLanguage == 'en' ? 'Personal & Features' : 'Fitur & Personal'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              children: [
+                // Profile & Account
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.account_circle_outlined, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Profile & Account' : 'Profil & Akun',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    ref.watch(currentUserProvider) != null
+                        ? (ref.watch(currentUserProvider)!.email ?? '')
+                        : (settings.appLanguage == 'en' ? 'Sign in to sync your bookmarks' : 'Masuk untuk sinkronisasi bookmark'),
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                  onTap: () => context.go('/profile'),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Saved Verses (Bookmarks)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.bookmark_outline, color: AppTheme.secondary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Saved Verses' : 'Ayat Tersimpan (Bookmark)',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.appLanguage == 'en' ? 'View and manage your bookmarked verses' : 'Lihat dan kelola ayat yang Anda simpan',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                  onTap: () => context.go('/bookmarks'),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Library / Downloads
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bronzeMute.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.download_for_offline_outlined, color: AppTheme.bronzeMute, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Offline Library' : 'Perpustakaan Offline (Unduhan)',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.appLanguage == 'en' ? 'Manage offline mushaf pages and audio files' : 'Kelola halaman mushaf dan file audio offline',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                  onTap: () => context.go('/library'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
           // ── Display ───────────────────────────────────────────────────────
           _SectionLabel('Display & Content Settings'),
           const SizedBox(height: 8),

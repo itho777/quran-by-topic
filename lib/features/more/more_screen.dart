@@ -511,7 +511,7 @@ class MoreScreen extends ConsumerWidget {
             future: PackageInfo.fromPlatform(),
             builder: (context, snapshot) {
               final version = snapshot.hasData ? snapshot.data!.version : '3.0.0-beta';
-              final buildNum = snapshot.hasData ? snapshot.data!.buildNumber : '7';
+              final buildNum = snapshot.hasData ? snapshot.data!.buildNumber : '9';
               final packageName = snapshot.hasData ? snapshot.data!.packageName : 'id.tafseer.app';
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),

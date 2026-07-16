@@ -126,10 +126,10 @@ class AlarmService {
       presentBadge: false,
     );
     await _notificationsPlugin.show(
-      9999,
-      '🕌 Adzan Preview',
-      info['label'],
-      NotificationDetails(android: androidDetails, iOS: iosDetails),
+      id: 9999,
+      title: '🕌 Adzan Preview',
+      body: info['label'],
+      notificationDetails: NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
   }
 

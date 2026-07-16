@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,15 +23,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   bool _loading = false;
   bool _obscure = true;
   String? _error;
+  StreamSubscription<AuthState>? _authSub;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Listen for Google OAuth redirect completing — navigate home on sign-in
+    _authSub = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn && mounted) {
+        ref.read(settingsProvider.notifier).loadFromCloud().then((_) {
+          if (mounted) context.go('/');
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _tabController.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
@@ -71,13 +83,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     setState(() { _loading = true; _error = null; });
     try {
       final svc = ref.read(authServiceProvider);
+      // Build a clean redirect URL without port number for web
       final redirectUrl = kIsWeb
-          ? '${Uri.base.scheme}://${Uri.base.host}:${Uri.base.port}/'
+          ? '${Uri.base.scheme}://${Uri.base.host}/'
           : 'io.supabase.tafseerid://login-callback';
       await svc.signInWithGoogle(
         redirectTo: redirectUrl,
       );
-      // OAuth redirect will reload the page — no further action needed here
+      // OAuth redirect will reload the page — auth listener above handles navigation
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {

@@ -1129,7 +1129,7 @@ class _VerseCard extends ConsumerWidget {
                   tooltip: 'Copy', padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: () {
-                    final link = 'https://tafseer.id/surahs/$surahId/ayahs/$ayahNum';
+                    final link = 'https://tafseer.id/#sura/$surahId/verse/$ayahNum';
                     Clipboard.setData(ClipboardData(
                       text: '$arabic\n${translation ?? ''}\n— Quran $verseKey\n\n$link'));
                     

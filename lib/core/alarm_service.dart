@@ -116,22 +116,19 @@ class AlarmService {
         // Skip past times
         if (time.isBefore(now)) continue;
 
-        // Determine title / body / sound per prayer
+        // Determine title / body per prayer
         bool   isEnabled = false;
         String title     = '';
         String body      = '';
-        String soundFile = 'adhan_standard';
 
         if (key == 'first_adzan' && settings.enableFirstAdzan) {
           isEnabled = true;
           title     = 'Adzan Awal (Tahajjud)';
           body      = 'Waktu Adzan Awal / Tahajjud telah masuk.';
-          soundFile = 'adhan_fajr'; // Uses Fajr adhan sound per user requirement
         } else if (key == 'fajr') {
           isEnabled = true;
           title     = 'Subuh (Fajr)';
           body      = 'Waktu shalat Subuh telah masuk.';
-          soundFile = 'adhan_fajr';
         } else if (key == 'dhuhr') {
           isEnabled = true;
           title     = 'Dzuhur (Dhuhr)';
@@ -155,10 +152,38 @@ class AlarmService {
         // Build notification details
         final scheduledTzTime = tz.TZDateTime.from(time, tz.local);
 
+        // Determine sound file based on user preferences
+        // enableAdzanSound=false → silent (no sound)
+        // adzanSoundType='fajr'     → fajr adhan for Fajr/Tahajjud, standard for others (default)
+        // adzanSoundType='standard' → standard adhan for ALL prayers
         final isFajrOrTahajjud = (key == 'fajr' || key == 'first_adzan');
-        final channelId = isFajrOrTahajjud ? 'prayer_alarms_fajr' : 'prayer_alarms_standard';
-        final channelName = isFajrOrTahajjud ? 'Fajr & Tahajjud Alarms' : 'Daily Prayer Alarms';
-        final channelDesc = isFajrOrTahajjud ? 'Notifications with Fajr Adhan Sound' : 'Notifications with Standard Adhan Sound';
+        String soundFile;
+        if (!settings.enableAdzanSound) {
+          soundFile = ''; // silent
+        } else if (settings.adzanSoundType == 'standard') {
+          soundFile = 'adhan_standard';
+        } else {
+          // 'fajr' type (default): fajr recitation for Fajr/Tahajjud, standard for others
+          soundFile = isFajrOrTahajjud ? 'adhan_fajr' : 'adhan_standard';
+        }
+
+        // Pick channel accordingly
+        final String channelId;
+        final String channelName;
+        final String channelDesc;
+        if (!settings.enableAdzanSound) {
+          channelId   = 'prayer_alarms_silent';
+          channelName = 'Prayer Alarms (Silent)';
+          channelDesc = 'Silent prayer time notifications';
+        } else if (isFajrOrTahajjud && settings.adzanSoundType == 'fajr') {
+          channelId   = 'prayer_alarms_fajr';
+          channelName = 'Fajr & Tahajjud Alarms';
+          channelDesc = 'Notifications with Fajr Adhan Sound';
+        } else {
+          channelId   = 'prayer_alarms_standard';
+          channelName = 'Daily Prayer Alarms';
+          channelDesc = 'Notifications with Standard Adhan Sound';
+        }
 
         final androidDetails = AndroidNotificationDetails(
           channelId,
@@ -166,15 +191,15 @@ class AlarmService {
           channelDescription: channelDesc,
           importance: Importance.max,
           priority: Priority.high,
-          sound: RawResourceAndroidNotificationSound(soundFile),
-          playSound: true,
+          sound: soundFile.isNotEmpty ? RawResourceAndroidNotificationSound(soundFile) : null,
+          playSound: soundFile.isNotEmpty,
         );
 
         final iosDetails = DarwinNotificationDetails(
-          sound: '$soundFile.mp3',
+          sound: soundFile.isNotEmpty ? '$soundFile.mp3' : null,
           presentAlert: true,
           presentBadge: true,
-          presentSound: true,
+          presentSound: soundFile.isNotEmpty,
         );
 
         final notificationDetails = NotificationDetails(

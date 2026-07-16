@@ -19,6 +19,8 @@ class SettingsState {
   final int ishaOffset;
   final bool enableFirstAdzan;
   final int firstAdzanOffset; // in minutes before Fajr
+  final bool enableAdzanSound;  // play adzan audio in notifications
+  final String adzanSoundType;  // 'standard' | 'fajr' (fajr=fajr adzan for fajr/tahajjud)
 
   SettingsState({
     required this.arabicFontSize,
@@ -37,6 +39,8 @@ class SettingsState {
     this.ishaOffset = 0,
     this.enableFirstAdzan = false,
     this.firstAdzanOffset = 60,
+    this.enableAdzanSound = true,
+    this.adzanSoundType = 'fajr',
   });
 
   SettingsState copyWith({
@@ -56,6 +60,8 @@ class SettingsState {
     int? ishaOffset,
     bool? enableFirstAdzan,
     int? firstAdzanOffset,
+    bool? enableAdzanSound,
+    String? adzanSoundType,
   }) {
     return SettingsState(
       arabicFontSize: arabicFontSize ?? this.arabicFontSize,
@@ -74,6 +80,8 @@ class SettingsState {
       ishaOffset: ishaOffset ?? this.ishaOffset,
       enableFirstAdzan: enableFirstAdzan ?? this.enableFirstAdzan,
       firstAdzanOffset: firstAdzanOffset ?? this.firstAdzanOffset,
+      enableAdzanSound: enableAdzanSound ?? this.enableAdzanSound,
+      adzanSoundType: adzanSoundType ?? this.adzanSoundType,
     );
   }
 }
@@ -111,6 +119,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final iOffset = prefs.getInt('isha_offset') ?? 0;
       final showFirstAdzan = prefs.getBool('enable_first_adzan') ?? false;
       final fAdzanOffset = prefs.getInt('first_adzan_offset') ?? 60;
+      final adzanSound = prefs.getBool('enable_adzan_sound') ?? true;
+      final adzanType = prefs.getString('adzan_sound_type') ?? 'fajr';
 
       // mushafFullWidth is intentionally NOT loaded from storage.
       // It always defaults to true on each app launch.
@@ -131,6 +141,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         ishaOffset: iOffset,
         enableFirstAdzan: showFirstAdzan,
         firstAdzanOffset: fAdzanOffset,
+        enableAdzanSound: adzanSound,
+        adzanSoundType: adzanType,
       );
     } catch (_) {}
   }
@@ -228,6 +240,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(firstAdzanOffset: offset);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('first_adzan_offset', offset);
+  }
+
+  Future<void> setEnableAdzanSound(bool val) async {
+    state = state.copyWith(enableAdzanSound: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_adzan_sound', val);
+  }
+
+  Future<void> setAdzanSoundType(String type) async {
+    state = state.copyWith(adzanSoundType: type);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('adzan_sound_type', type);
   }
 
   /// Reset ALL settings to factory defaults and clear persisted preferences.

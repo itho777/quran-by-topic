@@ -544,6 +544,107 @@ class MoreScreen extends ConsumerWidget {
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
 
+                // Adzan Sound Toggle
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.volume_up_outlined, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Adzan Sound' : 'Suara Adzan',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.appLanguage == 'en'
+                        ? 'Play adzan audio with prayer notifications'
+                        : 'Putar suara adzan saat notifikasi shalat',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Switch(
+                    value: settings.enableAdzanSound,
+                    activeThumbColor: AppTheme.primary,
+                    onChanged: (val) {
+                      ref.read(settingsProvider.notifier).setEnableAdzanSound(val);
+                    },
+                  ),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Adzan Sound Type
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.music_note_outlined, color: AppTheme.secondary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Adzan Audio Style' : 'Gaya Audio Adzan',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.adzanSoundType == 'standard'
+                        ? (settings.appLanguage == 'en' ? 'Standard (all prayers)' : 'Standard (semua shalat)')
+                        : (settings.appLanguage == 'en' ? 'Fajr recitation for Fajr & Tahajjud' : 'Bacaan Subuh untuk Subuh & Tahajjud'),
+                    style: TextStyle(
+                      color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
+                      fontSize: 11,
+                    ),
+                  ),
+                  enabled: settings.enableAdzanSound,
+                  trailing: PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.expand_more,
+                      color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
+                      size: 20,
+                    ),
+                    color: AppTheme.surfaceContainerHigh,
+                    enabled: settings.enableAdzanSound,
+                    onSelected: (newVal) {
+                      ref.read(settingsProvider.notifier).setAdzanSoundType(newVal);
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'fajr',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(settings.appLanguage == 'en' ? 'Fajr Style' : 'Gaya Subuh'),
+                            Text(
+                              settings.appLanguage == 'en'
+                                  ? 'Fajr recitation for Fajr & Tahajjud, Standard for others'
+                                  : 'Bacaan Subuh untuk Subuh & Tahajjud, Standard untuk lainnya',
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'standard',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(settings.appLanguage == 'en' ? 'Standard Style' : 'Gaya Standard'),
+                            Text(
+                              settings.appLanguage == 'en'
+                                  ? 'Same adzan sound for all prayers'
+                                  : 'Suara adzan sama untuk semua shalat',
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
                 // Arabic Font Size Slider
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

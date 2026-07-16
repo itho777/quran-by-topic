@@ -688,7 +688,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         childAspectRatio: 1.3,
                         children: [
                           _QuickCard(
-                            icon: Icons.menu_book,
+                            icon: AppTheme.getMushafIcon(color: AppTheme.secondary, size: 20),
                             title: isEn ? 'Mushaf Page' : 'Halaman Mushaf',
                             subtitle: isEn
                                 ? 'Experience the traditional manuscript layout.'
@@ -705,7 +705,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             },
                           ),
                           _QuickCard(
-                            icon: Icons.list_alt,
+                            icon: Icon(Icons.list_alt, color: AppTheme.primary, size: 20),
                             title: isEn ? 'Surah List' : 'Daftar Surah',
                             subtitle: isEn
                                 ? 'Browse the 114 Surahs of the Holy Quran.'
@@ -881,7 +881,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _QuickCard extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String title;
   final String subtitle;
   final Color color;
@@ -926,7 +926,7 @@ class _QuickCard extends StatelessWidget {
                         color: iconBg,
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(icon, color: color, size: 20),
+                      child: icon,
                     ),
                     Icon(Icons.arrow_forward, color: AppTheme.outline, size: 16),
                   ],

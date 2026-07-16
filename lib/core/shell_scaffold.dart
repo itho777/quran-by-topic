@@ -158,9 +158,9 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
                       activeIcon: Icon(Icons.list_alt_sharp),
                       label: 'Surahs',
                     ),
-                    const BottomNavigationBarItem(
-                      icon: Icon(Icons.menu_book_outlined),
-                      activeIcon: Icon(Icons.menu_book),
+                    BottomNavigationBarItem(
+                      icon: AppTheme.getMushafIcon(),
+                      activeIcon: AppTheme.getMushafIcon(),
                       label: 'Mushaf',
                     ),
                     const BottomNavigationBarItem(

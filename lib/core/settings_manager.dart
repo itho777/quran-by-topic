@@ -28,7 +28,7 @@ class SettingsState {
     required this.appLanguage,
     required this.selectedReciter,
     this.mushafFullWidth = true,
-    this.prayerCalculationMethod = 'singapore',
+    this.prayerCalculationMethod = 'kemenag',
     this.fajrOffset = 0,
     this.sunriseOffset = 0,
     this.dhuhrOffset = 0,
@@ -88,7 +88,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           appLanguage: 'id', // Default to Indonesian
           selectedReciter: 'Alafasy_128kbps',
           mushafFullWidth: true,
-          prayerCalculationMethod: 'singapore',
+          prayerCalculationMethod: 'kemenag',
         )) {
     _loadSettings();
   }
@@ -102,7 +102,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final defaultSource = prefs.getString('default_translation_source') ?? 'id.kemenag';
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
-      final calcMethod = prefs.getString('prayer_calculation_method') ?? 'singapore';
+      final calcMethod = prefs.getString('prayer_calculation_method') ?? 'kemenag';
       final fOffset = prefs.getInt('fajr_offset') ?? 0;
       final sOffset = prefs.getInt('sunrise_offset') ?? 0;
       final dOffset = prefs.getInt('dhuhr_offset') ?? 0;

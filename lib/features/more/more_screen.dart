@@ -462,28 +462,22 @@ class MoreScreen extends ConsumerWidget {
                     settings.defaultTranslationSource == 'id.kemenag' ? 'Kemenag RI (Indonesian)' : 'Sahih International (English)',
                     style: TextStyle(color: AppTheme.outline, fontSize: 11),
                   ),
-                  trailing: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: settings.defaultTranslationSource,
-                      dropdownColor: AppTheme.surfaceContainer,
-                      icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
-                      style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
-                      onChanged: (newVal) {
-                        if (newVal != null) {
-                          ref.read(settingsProvider.notifier).setDefaultTranslationSource(newVal);
-                        }
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'id.kemenag',
-                          child: Text('INDONESIAN'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'en.sahih',
-                          child: Text('ENGLISH'),
-                        ),
-                      ],
-                    ),
+                  trailing: PopupMenuButton<String>(
+                    icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 20),
+                    color: AppTheme.surfaceContainerHigh,
+                    onSelected: (newVal) {
+                      ref.read(settingsProvider.notifier).setDefaultTranslationSource(newVal);
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: 'id.kemenag',
+                        child: Text('INDONESIAN'),
+                      ),
+                      PopupMenuItem(
+                        value: 'en.sahih',
+                        child: Text('ENGLISH'),
+                      ),
+                    ],
                   ),
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
@@ -506,29 +500,23 @@ class MoreScreen extends ConsumerWidget {
                     settings.prayerCalculationMethod.toUpperCase(),
                     style: TextStyle(color: AppTheme.outline, fontSize: 11),
                   ),
-                  trailing: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: settings.prayerCalculationMethod,
-                      dropdownColor: AppTheme.surfaceContainer,
-                      icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 16),
-                      style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold),
-                      onChanged: (newVal) {
-                        if (newVal != null) {
-                          ref.read(settingsProvider.notifier).setPrayerCalculationMethod(newVal);
-                        }
-                      },
-                      items: const [
-                        DropdownMenuItem(value: 'singapore', child: Text('MUIS (Singapore)')),
-                        DropdownMenuItem(value: 'kemenag', child: Text('Kemenag (Indonesia) / MUI')),
-                        DropdownMenuItem(value: 'makkah', child: Text('MAKKAH (UMM AL-QURA)')),
-                        DropdownMenuItem(value: 'karachi', child: Text('KARACHI (UIS)')),
-                        DropdownMenuItem(value: 'isna', child: Text('NORTH AMERICA (ISNA)')),
-                        DropdownMenuItem(value: 'mwl', child: Text('WORLD LEAGUE (MWL)')),
-                        DropdownMenuItem(value: 'egyptian', child: Text('EGYPTIAN SURVEY')),
-                        DropdownMenuItem(value: 'turkey', child: Text('TURKEY (DIYANET)')),
-                        DropdownMenuItem(value: 'tehran', child: Text('TEHRAN (UNIVERSITY)')),
-                      ],
-                    ),
+                  trailing: PopupMenuButton<String>(
+                    icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 20),
+                    color: AppTheme.surfaceContainerHigh,
+                    onSelected: (newVal) {
+                      ref.read(settingsProvider.notifier).setPrayerCalculationMethod(newVal);
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'singapore', child: Text('MUIS (Singapore)')),
+                      PopupMenuItem(value: 'kemenag', child: Text('Kemenag (Indonesia) / MUI')),
+                      PopupMenuItem(value: 'makkah', child: Text('MAKKAH (UMM AL-QURA)')),
+                      PopupMenuItem(value: 'karachi', child: Text('KARACHI (UIS)')),
+                      PopupMenuItem(value: 'isna', child: Text('NORTH AMERICA (ISNA)')),
+                      PopupMenuItem(value: 'mwl', child: Text('WORLD LEAGUE (MWL)')),
+                      PopupMenuItem(value: 'egyptian', child: Text('EGYPTIAN SURVEY')),
+                      PopupMenuItem(value: 'turkey', child: Text('TURKEY (DIYANET)')),
+                      PopupMenuItem(value: 'tehran', child: Text('TEHRAN (UNIVERSITY)')),
+                    ],
                   ),
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
@@ -641,18 +629,25 @@ class MoreScreen extends ConsumerWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Translation Font Size', style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    settings.appLanguage == 'en' ? 'Translation Font Size' : 'Ukuran Font Terjemahan',
+                                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                                  ),
                                   Text('${settings.translationFontSize.toInt()} px', style: TextStyle(color: AppTheme.outline, fontSize: 11)),
                                 ],
                               ),
                             ],
                           ),
-                          // Translation preview
-                          Text(
-                            'In the name of Allah',
-                            style: TextStyle(fontSize: settings.translationFontSize, color: AppTheme.onSurfaceVariant),
-                          ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          settings.appLanguage == 'en' ? 'In the name of Allah' : 'Dengan nama Allah',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(fontSize: settings.translationFontSize, color: AppTheme.onSurfaceVariant),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       SliderTheme(
@@ -809,7 +804,7 @@ class MoreScreen extends ConsumerWidget {
                         color: AppTheme.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(Icons.menu_book_rounded, color: AppTheme.primary, size: 26),
+                      child: AppTheme.getMushafIcon(color: AppTheme.primary, size: 26),
                     ),
                     const SizedBox(width: 14),
                     Expanded(

@@ -8,7 +8,11 @@ import 'qibla_service.dart';
 /// Provider for streaming the current phone heading from the magnetometer.
 /// Emits values between 0.0 and 360.0 (degrees from North).
 final compassHeadingProvider = StreamProvider<double>((ref) {
-  return FlutterCompass.events!.map((event) {
+  final events = FlutterCompass.events;
+  if (events == null) {
+    return Stream.value(0.0);
+  }
+  return events.map((event) {
     // If heading is null, default to 0.0. Ensure we normalize it.
     final heading = event.heading ?? 0.0;
     return (heading + 360.0) % 360.0;

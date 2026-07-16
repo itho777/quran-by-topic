@@ -32,13 +32,18 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _startSensorCheck();
   }
 
   void _startSensorCheck() {
-    // Listen to compass events. If no event is received within 2 seconds,
-    // or if heading is null/invalid, show a SnackBar.
-    _sensorCheckSub = FlutterCompass.events?.listen(
+    if (_sensorCheckSub != null) return;
+
+    final events = FlutterCompass.events;
+    if (events == null) {
+      _showSensorWarning();
+      return;
+    }
+
+    _sensorCheckSub = events.listen(
       (event) {
         if (event.heading != null) {
           _hasSensorData = true;
@@ -152,6 +157,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
   }
 
   Widget _buildContent(BuildContext context, Position position, bool isEn) {
+    _startSensorCheck();
     final qiblaAsync = ref.watch(qiblaResultProvider);
     final prayerTimesAsync = ref.watch(prayerTimesProvider);
     final compassAsync = ref.watch(compassHeadingProvider);

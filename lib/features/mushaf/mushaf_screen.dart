@@ -1430,8 +1430,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 ),
                 title: Text(
                   _isBookmarked 
-                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Markah')
-                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Markah'),
+                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Bookmark')
+                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Bookmark'),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,
@@ -1445,7 +1445,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
               ListTile(
                 leading: Icon(Icons.bookmark_outline, color: AppTheme.secondary),
                 title: Text(
-                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Markah',
+                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Bookmark',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,

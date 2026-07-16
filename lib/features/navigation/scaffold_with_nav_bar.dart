@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/settings_manager.dart';
+import '../../core/theme.dart';
 
 class ScaffoldWithNavBar extends ConsumerWidget {
   const ScaffoldWithNavBar({
@@ -32,15 +33,15 @@ class ScaffoldWithNavBar extends ConsumerWidget {
                     selectedIndex: navigationShell.currentIndex,
                     onDestinationSelected: (index) => _onTap(context, index),
                     labelType: NavigationRailLabelType.all,
-                    destinations: const [
-                      NavigationRailDestination(
+                    destinations: [
+                      const NavigationRailDestination(
                         icon: Icon(Icons.home_outlined),
                         selectedIcon: Icon(Icons.home),
                         label: Text('Home'),
                       ),
                       NavigationRailDestination(
-                        icon: Icon(Icons.menu_book_outlined),
-                        selectedIcon: Icon(Icons.menu_book),
+                        icon: AppTheme.getMushafIcon(),
+                        selectedIcon: AppTheme.getMushafIcon(),
                         label: Text('Surah'),
                       ),
                       NavigationRailDestination(
@@ -77,15 +78,15 @@ class ScaffoldWithNavBar extends ConsumerWidget {
               onTap: (index) => _onTap(context, index),
               selectedItemColor: Theme.of(context).colorScheme.primary,
               unselectedItemColor: Colors.grey,
-              items: const [
-                BottomNavigationBarItem(
+              items: [
+                const BottomNavigationBarItem(
                   icon: Icon(Icons.home_outlined),
                   activeIcon: Icon(Icons.home),
                   label: 'Home',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.menu_book_outlined),
-                  activeIcon: Icon(Icons.menu_book),
+                  icon: AppTheme.getMushafIcon(),
+                  activeIcon: AppTheme.getMushafIcon(),
                   label: 'Surah',
                 ),
                 BottomNavigationBarItem(

@@ -40,6 +40,31 @@ class AlarmService {
       },
     );
 
+    // Explicitly create notification channels for Android to support different sounds
+    final androidPlugin = _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      // 1. Standard channel (Dhuhr, Asr, Maghrib, Isha) -> adhan_standard
+      await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
+        'prayer_alarms_standard',
+        'Daily Prayer Alarms',
+        description: 'Notifications with Standard Adhan Sound',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('adhan_standard'),
+      ));
+
+      // 2. Fajr channel (Fajr, Adzan Awal) -> adhan_fajr
+      await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
+        'prayer_alarms_fajr',
+        'Fajr & Tahajjud Alarms',
+        description: 'Notifications with Fajr Adhan Sound',
+        importance: Importance.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('adhan_fajr'),
+      ));
+    }
+
     _initialized = true;
   }
 
@@ -130,10 +155,15 @@ class AlarmService {
         // Build notification details
         final scheduledTzTime = tz.TZDateTime.from(time, tz.local);
 
+        final isFajrOrTahajjud = (key == 'fajr' || key == 'first_adzan');
+        final channelId = isFajrOrTahajjud ? 'prayer_alarms_fajr' : 'prayer_alarms_standard';
+        final channelName = isFajrOrTahajjud ? 'Fajr & Tahajjud Alarms' : 'Daily Prayer Alarms';
+        final channelDesc = isFajrOrTahajjud ? 'Notifications with Fajr Adhan Sound' : 'Notifications with Standard Adhan Sound';
+
         final androidDetails = AndroidNotificationDetails(
-          'prayer_alarms_channel',
-          'Prayer Alarms',
-          channelDescription: 'Notifications for Daily Muslim Prayers',
+          channelId,
+          channelName,
+          channelDescription: channelDesc,
           importance: Importance.max,
           priority: Priority.high,
           sound: RawResourceAndroidNotificationSound(soundFile),

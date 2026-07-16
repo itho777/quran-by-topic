@@ -612,9 +612,14 @@ class _DownloadCard extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(item.icon,
-                  color: isDone || isPartial ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
-                  size: 24),
+              child: item.icon == Icons.menu_book_rounded
+                  ? AppTheme.getMushafIcon(
+                      color: isDone || isPartial ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
+                      size: 24,
+                    )
+                  : Icon(item.icon,
+                      color: isDone || isPartial ? AppTheme.onPrimary : AppTheme.onSurfaceVariant,
+                      size: 24),
             ),
             title: Text(item.label,
                 style: TextStyle(

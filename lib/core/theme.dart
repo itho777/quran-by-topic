@@ -37,6 +37,14 @@ final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((r
 class AppTheme {
   static ThemeMode themeMode = ThemeMode.dark;
 
+  static Widget getMushafIcon({Color? color, double? size}) {
+    return ImageIcon(
+      const AssetImage('assets/images/quran_calligraphy.png'),
+      color: color,
+      size: size,
+    );
+  }
+
   static bool get isDark {
     if (themeMode == ThemeMode.system) {
       return WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;

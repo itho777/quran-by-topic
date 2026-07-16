@@ -945,8 +945,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 ),
                 title: Text(
                   _isBookmarked 
-                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Markah')
-                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Markah'),
+                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Bookmark')
+                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Bookmark'),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,
@@ -960,7 +960,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
               ListTile(
                 leading: Icon(Icons.bookmark_outline, color: AppTheme.secondary),
                 title: Text(
-                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Markah',
+                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Bookmark',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,
@@ -1093,7 +1093,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Read in Mushaf
           if (_verse != null && _verse!['page_number'] != null)
             IconButton(
-              icon: Icon(Icons.menu_book_outlined, color: AppTheme.primary),
+              icon: AppTheme.getMushafIcon(color: AppTheme.primary),
               tooltip: isEn ? 'Read in Mushaf' : 'Buka Mushaf',
               onPressed: () {
                 final pageNum = (_verse!['page_number'] as num).toInt();
@@ -1180,11 +1180,13 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                           ),
                         ),
                         Text(surahNameAr, style: AppTheme.arabicStyle(fontSize: 14, color: AppTheme.outline)),
-                        IconButton(
-                          icon: Icon(Icons.copy_outlined, color: AppTheme.outline, size: 18),
-                          onPressed: _copyActiveAyah,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                        Text(
+                          '${widget.ayahNumber} / $totalAyahs',
+                          style: TextStyle(
+                            color: AppTheme.outline,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -1230,9 +1232,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             enabled: hasPrev,
             onTap: () => context.go('/surahs/${widget.surahId}/ayahs/${widget.ayahNumber - 1}'),
           ),
-          Text(
-            '${widget.ayahNumber} / $totalAyahs',
-            style: TextStyle(color: AppTheme.outline, fontSize: 12, fontWeight: FontWeight.bold),
+          _NavButton(
+            label: isEn ? 'Back to Surah' : 'Kembali ke Surah',
+            enabled: true,
+            onTap: () => context.go('/surahs/${widget.surahId}'),
           ),
           _NavButton(
             label: isEn ? 'Next \u2192' : 'Berikut \u2192',
@@ -1319,7 +1322,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     final text = _getText(_tafsirTexts, currentSource, isEn ? 'Tafsir not available for this verse.' : 'Tafsir tidak tersedia untuk ayat ini.');
     return _buildToggleTab(
       title: 'Tafsir',
-      icon: Icons.menu_book,
+      icon: AppTheme.getMushafIcon(size: 15, color: AppTheme.primary),
       slots: _tafsirSlots,
       selectedIdx: _tafsirIdx,
       onToggle: (i) => setState(() => _tafsirIdx = i),
@@ -1513,7 +1516,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
 
   Widget _buildToggleTab({
     required String title,
-    required IconData icon,
+    required dynamic icon,
     required List<_ToggleSlot> slots,
     required int selectedIdx,
     required ValueChanged<int> onToggle,
@@ -1538,7 +1541,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           child: Row(
             children: [
               // Section icon only (title removed to save space)
-              Icon(icon, size: 15, color: AppTheme.primary),
+              icon is IconData
+                  ? Icon(icon, size: 15, color: AppTheme.primary)
+                  : (icon as Widget),
               // Admin edit button
               if (ref.watch(isAdminProvider) && onEdit != null) ...[
                 const SizedBox(width: 6),

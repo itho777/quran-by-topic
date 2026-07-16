@@ -413,8 +413,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 ),
                 title: Text(
                   isBookmarked 
-                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Markah')
-                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Markah'),
+                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Bookmark')
+                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Bookmark'),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,
@@ -428,7 +428,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               ListTile(
                 leading: Icon(Icons.bookmark_outline, color: AppTheme.secondary),
                 title: Text(
-                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Markah',
+                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Bookmark',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,
@@ -893,7 +893,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               ),
               if (_firstPageNumber != null)
                 IconButton(
-                  icon: Icon(Icons.menu_book_outlined, color: AppTheme.primary),
+                  icon: AppTheme.getMushafIcon(color: AppTheme.primary),
                   tooltip: 'Read in Mushaf',
                   onPressed: () => context.go('/mushaf?page=$_firstPageNumber'),
                 ),
@@ -1240,25 +1240,6 @@ class _VerseCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 IconButton(
-                  icon: Icon(Icons.copy, size: 16, color: AppTheme.outline),
-                  tooltip: 'Copy', padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    final link = 'https://tafseer.id/#sura/$surahId/verse/$ayahNum';
-                    Clipboard.setData(ClipboardData(
-                      text: '$arabic\n${translation ?? ''}\n— Quran $verseKey\n\n$link'));
-                    
-                    final lang = ref.read(settingsProvider).appLanguage;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(lang == 'en' ? 'Ayah + link copied!' : 'Ayat & tautan berhasil disalin!'),
-                      behavior: SnackBarBehavior.floating,
-                      showCloseIcon: true,
-                      duration: const Duration(seconds: 5),
-                    ));
-                  },
-                ),
-                const SizedBox(width: 12),
-                IconButton(
                   icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border, size: 16, color: isBookmarked ? Colors.amber : AppTheme.outline),
                   tooltip: 'Bookmark', padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -1266,7 +1247,7 @@ class _VerseCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 IconButton(
-                  icon: Icon(Icons.menu_book_outlined, size: 16, color: AppTheme.primary),
+                  icon: AppTheme.getMushafIcon(size: 16, color: AppTheme.primary),
                   tooltip: 'Read in Mushaf', padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   onPressed: () => context.go('/mushaf?verse_key=$verseKey'),

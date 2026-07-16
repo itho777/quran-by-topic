@@ -19,8 +19,13 @@ class SettingsState {
   final int ishaOffset;
   final bool enableFirstAdzan;
   final int firstAdzanOffset; // in minutes before Fajr
-  final bool enableAdzanSound;  // play adzan audio in notifications
   final String adzanMuadzin;    // 'standard'|'fajr'|'makkah'|'madinah'|'afasi'|'qatami'
+  final bool soundFirstAdzan;
+  final bool soundFajr;
+  final bool soundDhuhr;
+  final bool soundAsr;
+  final bool soundMaghrib;
+  final bool soundIsha;
 
   SettingsState({
     required this.arabicFontSize,
@@ -39,8 +44,13 @@ class SettingsState {
     this.ishaOffset = 0,
     this.enableFirstAdzan = false,
     this.firstAdzanOffset = 60,
-    this.enableAdzanSound = true,
     this.adzanMuadzin = 'makkah',
+    this.soundFirstAdzan = true,
+    this.soundFajr = true,
+    this.soundDhuhr = true,
+    this.soundAsr = true,
+    this.soundMaghrib = true,
+    this.soundIsha = true,
   });
 
   SettingsState copyWith({
@@ -60,8 +70,13 @@ class SettingsState {
     int? ishaOffset,
     bool? enableFirstAdzan,
     int? firstAdzanOffset,
-    bool? enableAdzanSound,
     String? adzanMuadzin,
+    bool? soundFirstAdzan,
+    bool? soundFajr,
+    bool? soundDhuhr,
+    bool? soundAsr,
+    bool? soundMaghrib,
+    bool? soundIsha,
   }) {
     return SettingsState(
       arabicFontSize: arabicFontSize ?? this.arabicFontSize,
@@ -80,8 +95,13 @@ class SettingsState {
       ishaOffset: ishaOffset ?? this.ishaOffset,
       enableFirstAdzan: enableFirstAdzan ?? this.enableFirstAdzan,
       firstAdzanOffset: firstAdzanOffset ?? this.firstAdzanOffset,
-      enableAdzanSound: enableAdzanSound ?? this.enableAdzanSound,
       adzanMuadzin: adzanMuadzin ?? this.adzanMuadzin,
+      soundFirstAdzan: soundFirstAdzan ?? this.soundFirstAdzan,
+      soundFajr: soundFajr ?? this.soundFajr,
+      soundDhuhr: soundDhuhr ?? this.soundDhuhr,
+      soundAsr: soundAsr ?? this.soundAsr,
+      soundMaghrib: soundMaghrib ?? this.soundMaghrib,
+      soundIsha: soundIsha ?? this.soundIsha,
     );
   }
 }
@@ -119,8 +139,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final iOffset = prefs.getInt('isha_offset') ?? 0;
       final showFirstAdzan = prefs.getBool('enable_first_adzan') ?? false;
       final fAdzanOffset = prefs.getInt('first_adzan_offset') ?? 60;
-      final adzanSound = prefs.getBool('enable_adzan_sound') ?? true;
       final adzanMuadzin = prefs.getString('adzan_muadzin') ?? 'makkah';
+      final sFirst = prefs.getBool('sound_first_adzan') ?? true;
+      final sFajr = prefs.getBool('sound_fajr') ?? true;
+      final sDhuhr = prefs.getBool('sound_dhuhr') ?? true;
+      final sAsr = prefs.getBool('sound_asr') ?? true;
+      final sMaghrib = prefs.getBool('sound_maghrib') ?? true;
+      final sIsha = prefs.getBool('sound_isha') ?? true;
 
       // mushafFullWidth is intentionally NOT loaded from storage.
       // It always defaults to true on each app launch.
@@ -141,8 +166,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         ishaOffset: iOffset,
         enableFirstAdzan: showFirstAdzan,
         firstAdzanOffset: fAdzanOffset,
-        enableAdzanSound: adzanSound,
         adzanMuadzin: adzanMuadzin,
+        soundFirstAdzan: sFirst,
+        soundFajr: sFajr,
+        soundDhuhr: sDhuhr,
+        soundAsr: sAsr,
+        soundMaghrib: sMaghrib,
+        soundIsha: sIsha,
       );
     } catch (_) {}
   }
@@ -242,16 +272,46 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await prefs.setInt('first_adzan_offset', offset);
   }
 
-  Future<void> setEnableAdzanSound(bool val) async {
-    state = state.copyWith(enableAdzanSound: val);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('enable_adzan_sound', val);
-  }
-
   Future<void> setAdzanMuadzin(String muadzin) async {
     state = state.copyWith(adzanMuadzin: muadzin);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('adzan_muadzin', muadzin);
+  }
+
+  Future<void> setSoundFirstAdzan(bool val) async {
+    state = state.copyWith(soundFirstAdzan: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_first_adzan', val);
+  }
+
+  Future<void> setSoundFajr(bool val) async {
+    state = state.copyWith(soundFajr: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_fajr', val);
+  }
+
+  Future<void> setSoundDhuhr(bool val) async {
+    state = state.copyWith(soundDhuhr: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_dhuhr', val);
+  }
+
+  Future<void> setSoundAsr(bool val) async {
+    state = state.copyWith(soundAsr: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_asr', val);
+  }
+
+  Future<void> setSoundMaghrib(bool val) async {
+    state = state.copyWith(soundMaghrib: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_maghrib', val);
+  }
+
+  Future<void> setSoundIsha(bool val) async {
+    state = state.copyWith(soundIsha: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_isha', val);
   }
 
   /// Reset ALL settings to factory defaults and clear persisted preferences.
@@ -328,6 +388,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         ishaOffset: prefs.getInt('isha_offset') ?? state.ishaOffset,
         enableFirstAdzan: prefs.getBool('enable_first_adzan') ?? state.enableFirstAdzan,
         firstAdzanOffset: prefs.getInt('first_adzan_offset') ?? state.firstAdzanOffset,
+        adzanMuadzin: prefs.getString('adzan_muadzin') ?? state.adzanMuadzin,
+        soundFirstAdzan: prefs.getBool('sound_first_adzan') ?? state.soundFirstAdzan,
+        soundFajr: prefs.getBool('sound_fajr') ?? state.soundFajr,
+        soundDhuhr: prefs.getBool('sound_dhuhr') ?? state.soundDhuhr,
+        soundAsr: prefs.getBool('sound_asr') ?? state.soundAsr,
+        soundMaghrib: prefs.getBool('sound_maghrib') ?? state.soundMaghrib,
+        soundIsha: prefs.getBool('sound_isha') ?? state.soundIsha,
       );
       state = newState;
       await prefs.setDouble('arabic_font_size', newState.arabicFontSize);

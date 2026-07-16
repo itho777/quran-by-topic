@@ -1,12 +1,15 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:audioplayers/audioplayers.dart';
 import '../features/qibla/qibla_service.dart';
 import 'settings_manager.dart';
 
 class AlarmService {
   static final AlarmService instance = AlarmService._internal();
   AlarmService._internal();
+
+  static final AudioPlayer _previewPlayer = AudioPlayer();
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -104,33 +107,21 @@ class AlarmService {
 
   static List<String> get muadzinKeys => _muadzinChannels.keys.toList();
 
-  // ── Preview: play a short immediate notification so user can hear sound ─
+  // ── Preview: play the sound directly via AudioPlayer so user can hear it ─
   Future<void> playAdzanPreview(String muadzin) async {
-    await init();
     if (!_muadzinChannels.containsKey(muadzin)) return;
     final info = _muadzinChannels[muadzin]!;
-    final androidDetails = AndroidNotificationDetails(
-      info['channelId']!,
-      info['channelName']!,
-      channelDescription: 'Preview: ${info["label"]}',
-      importance: Importance.max,
-      priority: Priority.high,
-      sound: RawResourceAndroidNotificationSound(info['file']!),
-      playSound: true,
-      timeoutAfter: 30000, // auto-dismiss after 30 s
-    );
-    final iosDetails = DarwinNotificationDetails(
-      sound: '${info["file"]}.mp3',
-      presentAlert: true,
-      presentSound: true,
-      presentBadge: false,
-    );
-    await _notificationsPlugin.show(
-      id: 9999,
-      title: '🕌 Adzan Preview',
-      body: info['label'],
-      notificationDetails: NotificationDetails(android: androidDetails, iOS: iosDetails),
-    );
+    final file = info['file']!;
+    try {
+      await _previewPlayer.stop();
+      await _previewPlayer.play(AssetSource('audio/$file.mp3'));
+    } catch (_) {}
+  }
+
+  Future<void> stopAdzanPreview() async {
+    try {
+      await _previewPlayer.stop();
+    } catch (_) {}
   }
 
 
@@ -224,7 +215,23 @@ class AlarmService {
         final String channelName;
         final String channelDesc;
 
-        if (!settings.enableAdzanSound) {
+        // Check if sound is enabled for this specific prayer key
+        bool soundEnabled = true;
+        if (key == 'first_adzan') {
+          soundEnabled = settings.soundFirstAdzan;
+        } else if (key == 'fajr') {
+          soundEnabled = settings.soundFajr;
+        } else if (key == 'dhuhr') {
+          soundEnabled = settings.soundDhuhr;
+        } else if (key == 'asr') {
+          soundEnabled = settings.soundAsr;
+        } else if (key == 'maghrib') {
+          soundEnabled = settings.soundMaghrib;
+        } else if (key == 'isha') {
+          soundEnabled = settings.soundIsha;
+        }
+
+        if (!soundEnabled) {
           soundFile   = '';
           channelId   = 'prayer_alarms_silent';
           channelName = 'Prayer Alarms (Silent)';

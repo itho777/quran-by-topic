@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/auth_provider.dart';
+import '../../core/alarm_service.dart';
 
 void _showCreditsPopup(BuildContext context) {
   showDialog(
@@ -242,6 +243,28 @@ void _showPrayerAdjustmentDialog(BuildContext context, WidgetRef ref, SettingsSt
         },
       );
     },
+  );
+}
+
+PopupMenuItem<String> _muadzinMenuItem(
+    String value, String label, String subtitle, String selected) {
+  return PopupMenuItem<String>(
+    value: value,
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
+        ),
+        if (selected == value)
+          const Icon(Icons.check, size: 16, color: Colors.green),
+      ],
+    ),
   );
 }
 
@@ -574,7 +597,7 @@ class MoreScreen extends ConsumerWidget {
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
 
-                // Adzan Sound Type
+                // Muadzin Selector
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
@@ -582,63 +605,52 @@ class MoreScreen extends ConsumerWidget {
                       color: AppTheme.secondary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.music_note_outlined, color: AppTheme.secondary, size: 18),
+                    child: Icon(Icons.mic_none_outlined, color: AppTheme.secondary, size: 18),
                   ),
                   title: Text(
-                    settings.appLanguage == 'en' ? 'Adzan Audio Style' : 'Gaya Audio Adzan',
+                    settings.appLanguage == 'en' ? 'Muadzin (Adzan Voice)' : 'Pilihan Muadzin',
                     style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
-                    settings.adzanSoundType == 'standard'
-                        ? (settings.appLanguage == 'en' ? 'Standard (all prayers)' : 'Standard (semua shalat)')
-                        : (settings.appLanguage == 'en' ? 'Fajr recitation for Fajr & Tahajjud' : 'Bacaan Subuh untuk Subuh & Tahajjud'),
+                    AlarmService.muadzinLabel(settings.adzanMuadzin),
                     style: TextStyle(
-                      color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
+                      color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.4),
                       fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   enabled: settings.enableAdzanSound,
-                  trailing: PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.expand_more,
-                      color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
-                      size: 20,
-                    ),
-                    color: AppTheme.surfaceContainerHigh,
-                    enabled: settings.enableAdzanSound,
-                    onSelected: (newVal) {
-                      ref.read(settingsProvider.notifier).setAdzanSoundType(newVal);
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'fajr',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(settings.appLanguage == 'en' ? 'Fajr Style' : 'Gaya Subuh'),
-                            Text(
-                              settings.appLanguage == 'en'
-                                  ? 'Fajr recitation for Fajr & Tahajjud, Standard for others'
-                                  : 'Bacaan Subuh untuk Subuh & Tahajjud, Standard untuk lainnya',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 🔊 Listen preview button
+                      IconButton(
+                        icon: Icon(Icons.play_circle_outline,
+                            color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.3),
+                            size: 22),
+                        tooltip: settings.appLanguage == 'en' ? 'Preview adzan' : 'Dengarkan adzan',
+                        onPressed: settings.enableAdzanSound
+                            ? () => AlarmService.instance.playAdzanPreview(settings.adzanMuadzin)
+                            : null,
                       ),
-                      PopupMenuItem(
-                        value: 'standard',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(settings.appLanguage == 'en' ? 'Standard Style' : 'Gaya Standard'),
-                            Text(
-                              settings.appLanguage == 'en'
-                                  ? 'Same adzan sound for all prayers'
-                                  : 'Suara adzan sama untuk semua shalat',
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                      // Muadzin dropdown
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.expand_more,
+                            color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.4),
+                            size: 20),
+                        color: AppTheme.surfaceContainerHigh,
+                        enabled: settings.enableAdzanSound,
+                        onSelected: (newVal) {
+                          ref.read(settingsProvider.notifier).setAdzanMuadzin(newVal);
+                        },
+                        itemBuilder: (context) => [
+                          _muadzinMenuItem('makkah',  '🕌 Makkah', 'Masjid al-Haram', settings.adzanMuadzin),
+                          _muadzinMenuItem('madinah', '🕌 Madinah', 'Masjid Nabawi', settings.adzanMuadzin),
+                          _muadzinMenuItem('afasi',   '🎙 Mishary Al-Afasi', 'Most popular worldwide', settings.adzanMuadzin),
+                          _muadzinMenuItem('qatami',  '🎙 Nasser Al-Qatami', 'Beautiful recitation', settings.adzanMuadzin),
+                          _muadzinMenuItem('standard','🔔 Standard', 'Classic notification sound', settings.adzanMuadzin),
+                          _muadzinMenuItem('fajr',    '🌙 Fajr Style', 'Special Fajr adzan', settings.adzanMuadzin),
+                        ],
                       ),
                     ],
                   ),

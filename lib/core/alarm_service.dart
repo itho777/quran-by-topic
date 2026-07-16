@@ -40,33 +40,99 @@ class AlarmService {
       },
     );
 
-    // Explicitly create notification channels for Android to support different sounds
+    // Create one Android notification channel per muadzin so Android
+    // honours the correct sound even after the channel is created once.
     final androidPlugin = _notificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (androidPlugin != null) {
-      // 1. Standard channel (Dhuhr, Asr, Maghrib, Isha) -> adhan_standard
+      for (final entry in _muadzinChannels.entries) {
+        await androidPlugin.createNotificationChannel(AndroidNotificationChannel(
+          entry.value['channelId']!,
+          entry.value['channelName']!,
+          description: 'Prayer notification — ${entry.value["label"]}',
+          importance: Importance.max,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound(entry.value['file']!),
+        ));
+      }
+      // Silent channel for when adzan sound is disabled
       await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
-        'prayer_alarms_standard',
-        'Daily Prayer Alarms',
-        description: 'Notifications with Standard Adhan Sound',
+        'prayer_alarms_silent',
+        'Prayer Alarms (Silent)',
+        description: 'Silent prayer time reminders',
         importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('adhan_standard'),
-      ));
-
-      // 2. Fajr channel (Fajr, Adzan Awal) -> adhan_fajr
-      await androidPlugin.createNotificationChannel(const AndroidNotificationChannel(
-        'prayer_alarms_fajr',
-        'Fajr & Tahajjud Alarms',
-        description: 'Notifications with Fajr Adhan Sound',
-        importance: Importance.max,
-        playSound: true,
-        sound: RawResourceAndroidNotificationSound('adhan_fajr'),
+        playSound: false,
       ));
     }
 
     _initialized = true;
   }
+
+  // ── Muadzin catalogue ──────────────────────────────────────────────────
+  static const Map<String, Map<String, String>> _muadzinChannels = {
+    'standard': {
+      'file': 'adhan_standard', 'channelId': 'prayer_alarms_standard',
+      'channelName': 'Daily Prayer Alarms', 'label': 'Standard',
+    },
+    'fajr': {
+      'file': 'adhan_fajr', 'channelId': 'prayer_alarms_fajr',
+      'channelName': 'Fajr & Tahajjud Alarms', 'label': 'Fajr Adzan',
+    },
+    'makkah': {
+      'file': 'adhan_makkah', 'channelId': 'prayer_alarms_makkah',
+      'channelName': 'Makkah Adzan', 'label': 'Makkah (Masjid al-Haram)',
+    },
+    'madinah': {
+      'file': 'adhan_madinah', 'channelId': 'prayer_alarms_madinah',
+      'channelName': 'Madinah Adzan', 'label': 'Madinah (Masjid Nabawi)',
+    },
+    'afasi': {
+      'file': 'adhan_afasi', 'channelId': 'prayer_alarms_afasi',
+      'channelName': 'Mishary Al-Afasi Adzan', 'label': 'Mishary Al-Afasi',
+    },
+    'qatami': {
+      'file': 'adhan_qatami', 'channelId': 'prayer_alarms_qatami',
+      'channelName': 'Nasser Al-Qatami Adzan', 'label': 'Nasser Al-Qatami',
+    },
+  };
+
+  static String muadzinLabel(String key) =>
+      _muadzinChannels[key]?['label'] ?? key;
+
+  static String muadzinFile(String key) =>
+      _muadzinChannels[key]?['file'] ?? 'adhan_standard';
+
+  static List<String> get muadzinKeys => _muadzinChannels.keys.toList();
+
+  // ── Preview: play a short immediate notification so user can hear sound ─
+  Future<void> playAdzanPreview(String muadzin) async {
+    await init();
+    if (!_muadzinChannels.containsKey(muadzin)) return;
+    final info = _muadzinChannels[muadzin]!;
+    final androidDetails = AndroidNotificationDetails(
+      info['channelId']!,
+      info['channelName']!,
+      channelDescription: 'Preview: ${info["label"]}',
+      importance: Importance.max,
+      priority: Priority.high,
+      sound: RawResourceAndroidNotificationSound(info['file']!),
+      playSound: true,
+      timeoutAfter: 30000, // auto-dismiss after 30 s
+    );
+    final iosDetails = DarwinNotificationDetails(
+      sound: '${info["file"]}.mp3',
+      presentAlert: true,
+      presentSound: true,
+      presentBadge: false,
+    );
+    await _notificationsPlugin.show(
+      9999,
+      '🕌 Adzan Preview',
+      info['label'],
+      NotificationDetails(android: androidDetails, iOS: iosDetails),
+    );
+  }
+
 
   Future<void> schedulePrayerAlarms({
     required double latitude,
@@ -152,37 +218,23 @@ class AlarmService {
         // Build notification details
         final scheduledTzTime = tz.TZDateTime.from(time, tz.local);
 
-        // Determine sound file based on user preferences
-        // enableAdzanSound=false → silent (no sound)
-        // adzanSoundType='fajr'     → fajr adhan for Fajr/Tahajjud, standard for others (default)
-        // adzanSoundType='standard' → standard adhan for ALL prayers
-        final isFajrOrTahajjud = (key == 'fajr' || key == 'first_adzan');
-        String soundFile;
-        if (!settings.enableAdzanSound) {
-          soundFile = ''; // silent
-        } else if (settings.adzanSoundType == 'standard') {
-          soundFile = 'adhan_standard';
-        } else {
-          // 'fajr' type (default): fajr recitation for Fajr/Tahajjud, standard for others
-          soundFile = isFajrOrTahajjud ? 'adhan_fajr' : 'adhan_standard';
-        }
-
-        // Pick channel accordingly
+        // Determine sound & channel from muadzin setting
+        final String soundFile;
         final String channelId;
         final String channelName;
         final String channelDesc;
+
         if (!settings.enableAdzanSound) {
+          soundFile   = '';
           channelId   = 'prayer_alarms_silent';
           channelName = 'Prayer Alarms (Silent)';
-          channelDesc = 'Silent prayer time notifications';
-        } else if (isFajrOrTahajjud && settings.adzanSoundType == 'fajr') {
-          channelId   = 'prayer_alarms_fajr';
-          channelName = 'Fajr & Tahajjud Alarms';
-          channelDesc = 'Notifications with Fajr Adhan Sound';
+          channelDesc = 'Silent prayer time reminders';
         } else {
-          channelId   = 'prayer_alarms_standard';
-          channelName = 'Daily Prayer Alarms';
-          channelDesc = 'Notifications with Standard Adhan Sound';
+          final info  = _muadzinChannels[settings.adzanMuadzin] ?? _muadzinChannels['makkah']!;
+          soundFile   = info['file']!;
+          channelId   = info['channelId']!;
+          channelName = info['channelName']!;
+          channelDesc = 'Prayer notification \u2014 ${info["label"]}';
         }
 
         final androidDetails = AndroidNotificationDetails(

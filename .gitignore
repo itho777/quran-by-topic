@@ -11,3 +11,10 @@ download_*.ps1
 # Large tafsir files replaced by per-surah chunks
 data/tafsirs/en.katsir_pdf.json
 data/tafsirs/en.tabari.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example

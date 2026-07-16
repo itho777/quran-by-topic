@@ -128,6 +128,7 @@ class DownloadService {
     required String table,
     required String sourceId,
     required String label,
+    bool resume = false,
   }) async* {
     // ── initial progress ───────────────────────────────────────────────────
     DownloadProgress progress = DownloadProgress(
@@ -166,8 +167,8 @@ class DownloadService {
       }
 
       // ── 1b. fetch pages ──────────────────────────────────────────────────
-      int offset = 0;
-      int downloaded = 0;
+      int downloaded = resume ? await _db.countCached(table, sourceId) : 0;
+      int offset = downloaded;
 
       while (offset < total) {
         final int rangeEnd = offset + _textPageSize - 1;

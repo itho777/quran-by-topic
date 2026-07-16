@@ -169,8 +169,8 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
                       label: 'Topics',
                     ),
                     const BottomNavigationBarItem(
-                      icon: Icon(Icons.explore_outlined),
-                      activeIcon: Icon(Icons.explore),
+                      icon: Text('🕋', style: TextStyle(fontSize: 20)),
+                      activeIcon: Text('🕋', style: TextStyle(fontSize: 20)),
                       label: 'Qibla',
                     ),
                     const BottomNavigationBarItem(

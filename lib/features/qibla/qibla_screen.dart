@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_compass/flutter_compass.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
@@ -18,6 +21,9 @@ class QiblaScreen extends ConsumerStatefulWidget {
 class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProviderStateMixin {
   late AnimationController _compassAnimController;
   double _lastHeading = 0.0;
+  bool _hasSensorData = false;
+  bool _dialogShown = false;
+  StreamSubscription? _sensorCheckSub;
 
   @override
   void initState() {
@@ -26,10 +32,50 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _startSensorCheck();
+  }
+
+  void _startSensorCheck() {
+    // Listen to compass events. If no event is received within 2 seconds,
+    // or if heading is null/invalid, show a SnackBar.
+    _sensorCheckSub = FlutterCompass.events?.listen(
+      (event) {
+        if (event.heading != null) {
+          _hasSensorData = true;
+        }
+      },
+      onError: (_) {
+        _showSensorWarning();
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!_hasSensorData && mounted && !_dialogShown) {
+        _showSensorWarning();
+      }
+    });
+  }
+
+  void _showSensorWarning() {
+    if (!mounted) return;
+    _dialogShown = true;
+    final isEn = ref.read(settingsProvider).appLanguage == 'en';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isEn
+              ? 'To use this feature properly your device needs to have compass & gyroscope sensors'
+              : 'Untuk menggunakan fitur ini dengan baik, perangkat Anda harus memiliki sensor kompas & giroskop',
+        ),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _sensorCheckSub?.cancel();
     _compassAnimController.dispose();
     super.dispose();
   }
@@ -268,7 +314,7 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
                           onPressed: () {
                             context.push('/qibla/ar');
                           },
-                          icon: const Icon(Icons.camera_alt_outlined),
+                          icon: const Text('🕋', style: TextStyle(fontSize: 16)),
                           label: Text(
                             isEn ? 'Open AR Ka\'bah View' : 'Buka AR Tampilan Ka\'bah',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -328,8 +374,23 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
       }
     }
 
+    final settings = ref.watch(settingsProvider);
+
+    final hijri = HijriCalendar.now();
+    final hijriStr = isEn
+        ? '${hijri.hDay} ${hijri.getLongMonthName()} ${hijri.hYear} AH'
+        : '${hijri.hDay} ${hijri.getLongMonthName()} ${hijri.hYear} H';
+
     final pTimes = [
+      if (settings.enableFirstAdzan)
+        {
+          'name': isEn ? 'First Adzan' : 'Adzan Awal',
+          'time': pt.firstAdzan,
+          'key': 'firstadzan'
+        },
       {'name': 'Subuh (Fajr)', 'time': pt.fajr, 'key': 'fajr'},
+      {'name': 'Syuruq (Sunrise)', 'time': pt.sunrise, 'key': 'sunrise'},
+      {'name': 'Dhuha', 'time': pt.dhuha, 'key': 'dhuha'},
       {'name': 'Dzuhur (Dhuhr)', 'time': pt.dhuhr, 'key': 'dhuhr'},
       {'name': 'Ashar (Asr)', 'time': pt.asr, 'key': 'asr'},
       {'name': 'Maghrib', 'time': pt.maghrib, 'key': 'maghrib'},
@@ -359,7 +420,14 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Icon(Icons.access_time_rounded, color: AppTheme.primary, size: 20),
+              Text(
+                hijriStr,
+                style: TextStyle(
+                  color: AppTheme.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -379,7 +447,8 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
               final String key = item['key'] as String;
               final DateTime time = item['time'] as DateTime;
               final String name = item['name'] as String;
-              final isNext = pt.nextPrayerName.toLowerCase() == key;
+              final isNext = pt.nextPrayerName.toLowerCase() == key ||
+                  (key == 'sunrise' && pt.nextPrayerName == 'Syuruq');
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),

@@ -1401,6 +1401,69 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     }
   }
 
+  void _showBookmarkOptions(BuildContext context) {
+    final isEn = _currentLang == 'en';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 16),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: Icon(
+                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: AppTheme.primary,
+                ),
+                title: Text(
+                  _isBookmarked 
+                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Markah')
+                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Markah'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _toggleBookmarkActive();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.bookmark_outline, color: AppTheme.secondary),
+                title: Text(
+                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Markah',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/bookmarks');
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // Computed max ayahs for the currently selected jump-surah
 
   int get _jumpMaxAyas {
@@ -2510,7 +2573,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                   color: _isBookmarked ? Colors.amber : AppTheme.primary,
                                 ),
                                 tooltip: _currentLang == 'en' ? 'Bookmark' : 'Bookmark',
-                                onPressed: _toggleBookmarkActive,
+                                onPressed: () => _showBookmarkOptions(context),
                               ),
 
                               IconButton(

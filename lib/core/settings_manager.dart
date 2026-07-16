@@ -11,6 +11,14 @@ class SettingsState {
   final String selectedReciter;
   final bool mushafFullWidth;
   final String prayerCalculationMethod;
+  final int fajrOffset;
+  final int sunriseOffset;
+  final int dhuhrOffset;
+  final int asrOffset;
+  final int maghribOffset;
+  final int ishaOffset;
+  final bool enableFirstAdzan;
+  final int firstAdzanOffset; // in minutes before Fajr
 
   SettingsState({
     required this.arabicFontSize,
@@ -21,6 +29,14 @@ class SettingsState {
     required this.selectedReciter,
     this.mushafFullWidth = true,
     this.prayerCalculationMethod = 'singapore',
+    this.fajrOffset = 0,
+    this.sunriseOffset = 0,
+    this.dhuhrOffset = 0,
+    this.asrOffset = 0,
+    this.maghribOffset = 0,
+    this.ishaOffset = 0,
+    this.enableFirstAdzan = false,
+    this.firstAdzanOffset = 60,
   });
 
   SettingsState copyWith({
@@ -32,6 +48,14 @@ class SettingsState {
     String? selectedReciter,
     bool? mushafFullWidth,
     String? prayerCalculationMethod,
+    int? fajrOffset,
+    int? sunriseOffset,
+    int? dhuhrOffset,
+    int? asrOffset,
+    int? maghribOffset,
+    int? ishaOffset,
+    bool? enableFirstAdzan,
+    int? firstAdzanOffset,
   }) {
     return SettingsState(
       arabicFontSize: arabicFontSize ?? this.arabicFontSize,
@@ -42,6 +66,14 @@ class SettingsState {
       selectedReciter: selectedReciter ?? this.selectedReciter,
       mushafFullWidth: mushafFullWidth ?? this.mushafFullWidth,
       prayerCalculationMethod: prayerCalculationMethod ?? this.prayerCalculationMethod,
+      fajrOffset: fajrOffset ?? this.fajrOffset,
+      sunriseOffset: sunriseOffset ?? this.sunriseOffset,
+      dhuhrOffset: dhuhrOffset ?? this.dhuhrOffset,
+      asrOffset: asrOffset ?? this.asrOffset,
+      maghribOffset: maghribOffset ?? this.maghribOffset,
+      ishaOffset: ishaOffset ?? this.ishaOffset,
+      enableFirstAdzan: enableFirstAdzan ?? this.enableFirstAdzan,
+      firstAdzanOffset: firstAdzanOffset ?? this.firstAdzanOffset,
     );
   }
 }
@@ -71,6 +103,14 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final lang = prefs.getString('app_language') ?? 'id';
       final reciter = prefs.getString('selected_reciter') ?? 'Alafasy_128kbps';
       final calcMethod = prefs.getString('prayer_calculation_method') ?? 'singapore';
+      final fOffset = prefs.getInt('fajr_offset') ?? 0;
+      final sOffset = prefs.getInt('sunrise_offset') ?? 0;
+      final dOffset = prefs.getInt('dhuhr_offset') ?? 0;
+      final aOffset = prefs.getInt('asr_offset') ?? 0;
+      final mOffset = prefs.getInt('maghrib_offset') ?? 0;
+      final iOffset = prefs.getInt('isha_offset') ?? 0;
+      final showFirstAdzan = prefs.getBool('enable_first_adzan') ?? false;
+      final fAdzanOffset = prefs.getInt('first_adzan_offset') ?? 60;
 
       // mushafFullWidth is intentionally NOT loaded from storage.
       // It always defaults to true on each app launch.
@@ -83,6 +123,14 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         selectedReciter: reciter,
         mushafFullWidth: true,
         prayerCalculationMethod: calcMethod,
+        fajrOffset: fOffset,
+        sunriseOffset: sOffset,
+        dhuhrOffset: dOffset,
+        asrOffset: aOffset,
+        maghribOffset: mOffset,
+        ishaOffset: iOffset,
+        enableFirstAdzan: showFirstAdzan,
+        firstAdzanOffset: fAdzanOffset,
       );
     } catch (_) {}
   }
@@ -138,6 +186,48 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(prayerCalculationMethod: method);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('prayer_calculation_method', method);
+  }
+
+  Future<void> setPrayerOffset(String prayer, int offset) async {
+    final prefs = await SharedPreferences.getInstance();
+    switch (prayer) {
+      case 'fajr':
+        state = state.copyWith(fajrOffset: offset);
+        await prefs.setInt('fajr_offset', offset);
+        break;
+      case 'sunrise':
+        state = state.copyWith(sunriseOffset: offset);
+        await prefs.setInt('sunrise_offset', offset);
+        break;
+      case 'dhuhr':
+        state = state.copyWith(dhuhrOffset: offset);
+        await prefs.setInt('dhuhr_offset', offset);
+        break;
+      case 'asr':
+        state = state.copyWith(asrOffset: offset);
+        await prefs.setInt('asr_offset', offset);
+        break;
+      case 'maghrib':
+        state = state.copyWith(maghribOffset: offset);
+        await prefs.setInt('maghrib_offset', offset);
+        break;
+      case 'isha':
+        state = state.copyWith(ishaOffset: offset);
+        await prefs.setInt('isha_offset', offset);
+        break;
+    }
+  }
+
+  Future<void> setEnableFirstAdzan(bool val) async {
+    state = state.copyWith(enableFirstAdzan: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_first_adzan', val);
+  }
+
+  Future<void> setFirstAdzanOffset(int offset) async {
+    state = state.copyWith(firstAdzanOffset: offset);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('first_adzan_offset', offset);
   }
 
   /// Reset ALL settings to factory defaults and clear persisted preferences.
@@ -206,6 +296,14 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         selectedReciter: (data['selected_reciter'] as String?) ?? state.selectedReciter,
         mushafFullWidth: true,
         prayerCalculationMethod: prefs.getString('prayer_calculation_method') ?? state.prayerCalculationMethod,
+        fajrOffset: prefs.getInt('fajr_offset') ?? state.fajrOffset,
+        sunriseOffset: prefs.getInt('sunrise_offset') ?? state.sunriseOffset,
+        dhuhrOffset: prefs.getInt('dhuhr_offset') ?? state.dhuhrOffset,
+        asrOffset: prefs.getInt('asr_offset') ?? state.asrOffset,
+        maghribOffset: prefs.getInt('maghrib_offset') ?? state.maghribOffset,
+        ishaOffset: prefs.getInt('isha_offset') ?? state.ishaOffset,
+        enableFirstAdzan: prefs.getBool('enable_first_adzan') ?? state.enableFirstAdzan,
+        firstAdzanOffset: prefs.getInt('first_adzan_offset') ?? state.firstAdzanOffset,
       );
       state = newState;
       await prefs.setDouble('arabic_font_size', newState.arabicFontSize);

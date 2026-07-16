@@ -270,6 +270,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           table: 'translations',
           sourceId: item.sourceId,
           label: item.label,
+          resume: resume,
         );
       case 'tafsir':
         stream = svc.downloadTextSource(
@@ -277,6 +278,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           table: 'tafsirs',
           sourceId: item.sourceId,
           label: item.label,
+          resume: resume,
         );
       case 'nuzul':
         stream = svc.downloadTextSource(
@@ -284,6 +286,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           table: 'asbabun_nuzul',
           sourceId: item.sourceId,
           label: item.label,
+          resume: resume,
         );
       case 'mushaf':
         stream = svc.downloadMushafPages(resume: resume);
@@ -321,6 +324,28 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           });
         }
       },
+    );
+  }
+
+  void _pauseDownload(_DownloadItem item) async {
+    final key = '${item.sourceType}::${item.sourceId}';
+    await _subs[key]?.cancel();
+    _subs.remove(key);
+
+    if (mounted) {
+      setState(() {
+        item.status = 'paused';
+      });
+    }
+
+    final db = LocalDatabase.instance;
+    await db.upsertManifest(
+      sourceType: item.sourceType,
+      sourceId: item.sourceId,
+      label: item.label,
+      status: 'paused',
+      totalItems: item.total,
+      downloadedItems: item.downloaded,
     );
   }
 
@@ -512,6 +537,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         item: filtered[i],
         onDownload: () => _startDownload(filtered[i]),
         onResume: () => _startDownload(filtered[i], resume: true),
+        onPause: () => _pauseDownload(filtered[i]),
         onDelete: () => _deleteItem(filtered[i]),
       ),
     );
@@ -526,12 +552,14 @@ class _DownloadCard extends StatelessWidget {
   final _DownloadItem item;
   final VoidCallback onDownload;
   final VoidCallback onResume;
+  final VoidCallback onPause;
   final VoidCallback onDelete;
 
   const _DownloadCard({
     required this.item,
     required this.onDownload,
     required this.onResume,
+    required this.onPause,
     required this.onDelete,
   });
 
@@ -648,10 +676,21 @@ class _DownloadCard extends StatelessWidget {
       return SizedBox(
         width: 36,
         height: 36,
-        child: CircularProgressIndicator(
-          value: item.progress > 0 ? item.progress : null,
-          color: AppTheme.primary,
-          strokeWidth: 3,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            CircularProgressIndicator(
+              value: item.progress > 0 ? item.progress : null,
+              color: AppTheme.primary,
+              strokeWidth: 3,
+            ),
+            IconButton(
+              icon: Icon(Icons.pause, size: 16, color: AppTheme.primary),
+              onPressed: onPause,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ),
       );
     }

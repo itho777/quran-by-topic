@@ -52,6 +52,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   int _selectedSurahId = 1;
   final _ayahController = TextEditingController(text: '1');
   List<Map<String, dynamic>> _dropdownSurahs = [];
+  Set<String> _bookmarkedKeys = {};
   String? _lastLang;
 
   String get _currentLang => ref.watch(settingsProvider).appLanguage;
@@ -202,10 +203,17 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       versesList = await db.getVerses(widget.surahId);
     }
 
+    Set<String> bookmarkedKeys = {};
+    try {
+      final bookmarksList = await BookmarksManager.getBookmarks();
+      bookmarkedKeys = bookmarksList.map((b) => b['verseKey'] as String).toSet();
+    } catch (_) {}
+
     setState(() {
       _surah = surahRes;
       _verses = versesList;
       _firstPageNumber = firstPage;
+      _bookmarkedKeys = bookmarkedKeys;
       _loading = false;
     });
     await _loadTranslations();
@@ -336,6 +344,107 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       _transliterations = translitMap;
       _loadingTrans = false;
     });
+  }
+
+  Future<void> _toggleBookmarkForVerse(Map<String, dynamic> verse) async {
+    final verseKey = (verse['verse_key'] as String?) ?? '';
+    final arabicText = (verse['text_ar'] as String?) ?? '';
+    final surahNameEn = _surah != null ? (_surah!['name_en'] as String? ?? '') : 'Surah ${widget.surahId}';
+    final translation = _translations[verse['id']] ?? '';
+
+    final added = await BookmarksManager.toggleBookmark(
+      surahId: widget.surahId,
+      ayahNumber: verse['ayah_number'] as int? ?? 1,
+      surahName: surahNameEn,
+      verseKey: verseKey,
+      textAr: arabicText,
+      translation: translation,
+    );
+
+    setState(() {
+      if (added) {
+        _bookmarkedKeys.add(verseKey);
+      } else {
+        _bookmarkedKeys.remove(verseKey);
+      }
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(added ? 'Added to Bookmarks' : 'Removed from Bookmarks'),
+          backgroundColor: AppTheme.primary,
+          duration: const Duration(seconds: 2),
+          showCloseIcon: true,
+        ),
+      );
+    }
+  }
+
+  void _showBookmarkOptionsForVerse(BuildContext context, Map<String, dynamic> verse) {
+    final isEn = _currentLang == 'en';
+    final verseKey = (verse['verse_key'] as String?) ?? '';
+    final isBookmarked = _bookmarkedKeys.contains(verseKey);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 16),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: Icon(
+                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: AppTheme.primary,
+                ),
+                title: Text(
+                  isBookmarked 
+                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Markah')
+                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Markah'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _toggleBookmarkForVerse(verse);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.bookmark_outline, color: AppTheme.secondary),
+                title: Text(
+                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Markah',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/bookmarks');
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   String _getAudioUrl(int ayahNum, {bool useMirror = true}) {
@@ -977,6 +1086,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       showTranslit: _showTranslit,
                       showTranslation: _showTranslation,
                       isPlaying: _playingAyahNum == aNum && _isPlaying,
+                      isBookmarked: _bookmarkedKeys.contains(v['verse_key'] as String? ?? ''),
                       onPlayTapped: () {
                         if (_playingAyahNum == aNum && _isPlaying) {
                           _toggleAudio();
@@ -984,6 +1094,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                           _playAudioForVerse(aNum);
                         }
                       },
+                      onBookmarkTapped: () => _showBookmarkOptionsForVerse(context, v),
                     ),
                   );
                 },
@@ -1043,7 +1154,9 @@ class _VerseCard extends ConsumerWidget {
   final bool showTranslit;
   final bool showTranslation;
   final bool isPlaying;
+  final bool isBookmarked;
   final VoidCallback onPlayTapped;
+  final VoidCallback onBookmarkTapped;
 
   const _VerseCard({
     required this.surahId,
@@ -1054,7 +1167,9 @@ class _VerseCard extends ConsumerWidget {
     required this.showTranslit,
     required this.showTranslation,
     required this.isPlaying,
+    required this.isBookmarked,
     required this.onPlayTapped,
+    required this.onBookmarkTapped,
   });
 
   @override
@@ -1141,6 +1256,13 @@ class _VerseCard extends ConsumerWidget {
                       duration: const Duration(seconds: 5),
                     ));
                   },
+                ),
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border, size: 16, color: isBookmarked ? Colors.amber : AppTheme.outline),
+                  tooltip: 'Bookmark', padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: onBookmarkTapped,
                 ),
                 const SizedBox(width: 12),
                 IconButton(

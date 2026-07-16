@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/settings_manager.dart';
+import '../../core/alarm_service.dart';
 import 'qibla_service.dart';
 
 /// Provider for streaming the current phone heading from the magnetometer.
@@ -29,9 +30,25 @@ final qiblaResultProvider = FutureProvider<QiblaResult>((ref) async {
 final prayerTimesProvider = FutureProvider<PrayerTimesResult>((ref) async {
   final position = await ref.watch(currentLocationProvider.future);
   final settings = ref.watch(settingsProvider);
-  return QiblaService.getPrayerTimes(
+  final pt = QiblaService.getPrayerTimes(
     position.latitude,
     position.longitude,
     settings.prayerCalculationMethod,
+    fajrOffset: settings.fajrOffset,
+    sunriseOffset: settings.sunriseOffset,
+    dhuhrOffset: settings.dhuhrOffset,
+    asrOffset: settings.asrOffset,
+    maghribOffset: settings.maghribOffset,
+    ishaOffset: settings.ishaOffset,
+    firstAdzanOffset: settings.firstAdzanOffset,
   );
+
+  // Schedule local notification alarms asynchronously
+  AlarmService.instance.schedulePrayerAlarms(
+    latitude: position.latitude,
+    longitude: position.longitude,
+    settings: settings,
+  );
+
+  return pt;
 });

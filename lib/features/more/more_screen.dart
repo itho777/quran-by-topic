@@ -120,6 +120,131 @@ void _showCreditsPopup(BuildContext context) {
   );
 }
 
+void _showPrayerAdjustmentDialog(BuildContext context, WidgetRef ref, SettingsState settings, bool isEn) {
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          Widget buildAdjustmentRow(String label, String key, int currentValue) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: () async {
+                          final newVal = currentValue - 1;
+                          if (key == 'first_adzan') {
+                            if (newVal >= 10) {
+                              await ref.read(settingsProvider.notifier).setFirstAdzanOffset(newVal);
+                              setDialogState(() {});
+                            }
+                          } else {
+                            if (newVal >= -120) {
+                              await ref.read(settingsProvider.notifier).setPrayerOffset(key, newVal);
+                              setDialogState(() {});
+                            }
+                          }
+                        },
+                      ),
+                      Container(
+                        width: 60,
+                        alignment: Alignment.center,
+                        child: Text(
+                          key == 'first_adzan' ? '$currentValue m' : (currentValue >= 0 ? '+$currentValue m' : '$currentValue m'),
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: () async {
+                          final newVal = currentValue + 1;
+                          if (key == 'first_adzan') {
+                            if (newVal <= 180) {
+                              await ref.read(settingsProvider.notifier).setFirstAdzanOffset(newVal);
+                              setDialogState(() {});
+                            }
+                          } else {
+                            if (newVal <= 120) {
+                              await ref.read(settingsProvider.notifier).setPrayerOffset(key, newVal);
+                              setDialogState(() {});
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Get current fresh settings
+          final freshSettings = ref.watch(settingsProvider);
+
+          return AlertDialog(
+            backgroundColor: AppTheme.surfaceContainerHigh,
+            title: Text(
+              isEn ? 'Manual Time Adjustments' : 'Penyesuaian Waktu Manual',
+              style: TextStyle(color: AppTheme.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  buildAdjustmentRow(isEn ? 'Fajr (Subuh)' : 'Subuh', 'fajr', freshSettings.fajrOffset),
+                  buildAdjustmentRow(isEn ? 'Syuruq (Sunrise)' : 'Syuruq', 'sunrise', freshSettings.sunriseOffset),
+                  buildAdjustmentRow(isEn ? 'Dhuhr (Dzuhur)' : 'Dzuhur', 'dhuhr', freshSettings.dhuhrOffset),
+                  buildAdjustmentRow(isEn ? 'Asr (Ashar)' : 'Ashar', 'asr', freshSettings.asrOffset),
+                  buildAdjustmentRow(isEn ? 'Maghrib' : 'Maghrib', 'maghrib', freshSettings.maghribOffset),
+                  buildAdjustmentRow(isEn ? 'Isha (Isya)' : 'Isya', 'isha', freshSettings.ishaOffset),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEn ? 'First Adzan (Tahajjud)' : 'Adzan Awal (Tahajjud)',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Switch(
+                        value: freshSettings.enableFirstAdzan,
+                        onChanged: (val) async {
+                          await ref.read(settingsProvider.notifier).setEnableFirstAdzan(val);
+                          setDialogState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  if (freshSettings.enableFirstAdzan)
+                    buildAdjustmentRow(
+                      isEn ? 'Minutes before Fajr' : 'Menit sebelum Subuh',
+                      'first_adzan',
+                      freshSettings.firstAdzanOffset,
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(isEn ? 'Close' : 'Tutup', style: TextStyle(color: AppTheme.primary)),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
@@ -393,7 +518,8 @@ class MoreScreen extends ConsumerWidget {
                         }
                       },
                       items: const [
-                        DropdownMenuItem(value: 'singapore', child: Text('SINGAPORE (MUI)')),
+                        DropdownMenuItem(value: 'singapore', child: Text('MUIS (Singapore)')),
+                        DropdownMenuItem(value: 'kemenag', child: Text('Kemenag (Indonesia) / MUI')),
                         DropdownMenuItem(value: 'makkah', child: Text('MAKKAH (UMM AL-QURA)')),
                         DropdownMenuItem(value: 'karachi', child: Text('KARACHI (UIS)')),
                         DropdownMenuItem(value: 'isna', child: Text('NORTH AMERICA (ISNA)')),
@@ -404,6 +530,29 @@ class MoreScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Manual Time Adjustments
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.edit_calendar_outlined, color: AppTheme.secondary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Manual Time Adjustments' : 'Penyesuaian Waktu Manual',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.appLanguage == 'en' ? 'Fine-tune prayer times in minutes' : 'Sesuaikan waktu shalat dalam menit',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 20),
+                  onTap: () => _showPrayerAdjustmentDialog(context, ref, settings, settings.appLanguage == 'en'),
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
 

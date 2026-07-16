@@ -6,20 +6,26 @@ import 'package:geolocator/geolocator.dart';
 
 class PrayerTimesResult {
   final DateTime fajr;
+  final DateTime sunrise;
+  final DateTime dhuha;
   final DateTime dhuhr;
   final DateTime asr;
   final DateTime maghrib;
   final DateTime isha;
+  final DateTime firstAdzan;
   final Prayer nextPrayer;
   final Duration timeUntilNext;
   final String nextPrayerName;
 
   const PrayerTimesResult({
     required this.fajr,
+    required this.sunrise,
+    required this.dhuha,
     required this.dhuhr,
     required this.asr,
     required this.maghrib,
     required this.isha,
+    required this.firstAdzan,
     required this.nextPrayer,
     required this.timeUntilNext,
     required this.nextPrayerName,
@@ -28,7 +34,7 @@ class PrayerTimesResult {
   static String prayerName(Prayer p) {
     switch (p) {
       case Prayer.fajr: return 'Fajr';
-      case Prayer.sunrise: return 'Sunrise';
+      case Prayer.sunrise: return 'Syuruq';
       case Prayer.dhuhr: return 'Dhuhr';
       case Prayer.asr: return 'Asr';
       case Prayer.maghrib: return 'Maghrib';
@@ -86,46 +92,123 @@ class QiblaService {
 
   // ── Prayer Times ─────────────────────────────────────────────────────────────
 
-  static CalculationMethod _parseMethod(String method) {
+  static CalculationParameters _getParams(String method) {
+    CalculationParameters params;
     switch (method) {
-      case 'karachi': return CalculationMethod.karachi;
-      case 'isna': return CalculationMethod.north_america;
-      case 'mwl': return CalculationMethod.muslim_world_league;
-      case 'egyptian': return CalculationMethod.egyptian;
-      case 'makkah': return CalculationMethod.umm_al_qura;
-      case 'dubai': return CalculationMethod.dubai;
-      case 'kuwait': return CalculationMethod.kuwait;
-      case 'qatar': return CalculationMethod.qatar;
-      case 'tehran': return CalculationMethod.tehran;
-      case 'turkey': return CalculationMethod.turkey;
+      case 'kemenag':
+        params = CalculationParameters(fajrAngle: 20.0, ishaAngle: 18.0);
+        break;
       case 'singapore':
+        params = CalculationMethod.singapore.getParameters();
+        break;
+      case 'karachi':
+        params = CalculationMethod.karachi.getParameters();
+        break;
+      case 'isna':
+        params = CalculationMethod.north_america.getParameters();
+        break;
+      case 'mwl':
+        params = CalculationMethod.muslim_world_league.getParameters();
+        break;
+      case 'egyptian':
+        params = CalculationMethod.egyptian.getParameters();
+        break;
+      case 'makkah':
+        params = CalculationMethod.umm_al_qura.getParameters();
+        break;
+      case 'turkey':
+        params = CalculationMethod.turkey.getParameters();
+        break;
+      case 'tehran':
+        params = CalculationMethod.tehran.getParameters();
+        break;
       default:
-        return CalculationMethod.singapore;
+        params = CalculationMethod.singapore.getParameters();
+        break;
     }
+    params.madhab = Madhab.shafi;
+    return params;
   }
 
   /// Calculates today's prayer times using the selected calculation method.
-  static PrayerTimesResult getPrayerTimes(double lat, double lng, String method) {
+  static PrayerTimesResult getPrayerTimes(
+    double lat,
+    double lng,
+    String method, {
+    DateTime? date,
+    int fajrOffset = 0,
+    int sunriseOffset = 0,
+    int dhuhrOffset = 0,
+    int asrOffset = 0,
+    int maghribOffset = 0,
+    int ishaOffset = 0,
+    int firstAdzanOffset = 60,
+  }) {
     final coords = Coordinates(lat, lng);
-    final params = _parseMethod(method).getParameters()
-      ..madhab = Madhab.shafi;
+    final params = _getParams(method);
 
-    final date = DateComponents.from(DateTime.now());
-    final pt = PrayerTimes(coords, date, params);
+    final targetDate = date ?? DateTime.now();
+    final dateComponents = DateComponents.from(targetDate);
+    final pt = PrayerTimes(coords, dateComponents, params);
     final now = DateTime.now();
 
-    final nextPrayer = pt.nextPrayer();
-    final nextTime = pt.timeForPrayer(nextPrayer) ?? pt.fajr;
+    // Apply manual adjustments (offsets in minutes)
+    final fajr = pt.fajr.add(Duration(minutes: fajrOffset));
+    final sunrise = pt.sunrise.add(Duration(minutes: sunriseOffset));
+    final dhuhr = pt.dhuhr.add(Duration(minutes: dhuhrOffset));
+    final asr = pt.asr.add(Duration(minutes: asrOffset));
+    final maghrib = pt.maghrib.add(Duration(minutes: maghribOffset));
+    final isha = pt.isha.add(Duration(minutes: ishaOffset));
+    
+    // Dhuha starts 20 mins after sunrise/syuruq
+    final dhuha = sunrise.add(const Duration(minutes: 20));
+
+    // First Adzan is firstAdzanOffset minutes before fajr
+    final firstAdzan = fajr.subtract(Duration(minutes: firstAdzanOffset));
+
+    // Determine the next prayer using adjusted times
+    Prayer nextPrayer = Prayer.none;
+    DateTime nextTime;
+
+    if (fajr.isAfter(now)) {
+      nextPrayer = Prayer.fajr;
+      nextTime = fajr;
+    } else if (sunrise.isAfter(now)) {
+      nextPrayer = Prayer.sunrise;
+      nextTime = sunrise;
+    } else if (dhuhr.isAfter(now)) {
+      nextPrayer = Prayer.dhuhr;
+      nextTime = dhuhr;
+    } else if (asr.isAfter(now)) {
+      nextPrayer = Prayer.asr;
+      nextTime = asr;
+    } else if (maghrib.isAfter(now)) {
+      nextPrayer = Prayer.maghrib;
+      nextTime = maghrib;
+    } else if (isha.isAfter(now)) {
+      nextPrayer = Prayer.isha;
+      nextTime = isha;
+    } else {
+      // Past Isha: next is tomorrow's Fajr
+      nextPrayer = Prayer.fajr;
+      final tomorrowDate = DateComponents.from(DateTime.now().add(const Duration(days: 1)));
+      final tomorrowPt = PrayerTimes(coords, tomorrowDate, params);
+      nextTime = tomorrowPt.fajr.add(Duration(minutes: fajrOffset));
+    }
+
     final until = nextTime.isAfter(now)
         ? nextTime.difference(now)
         : const Duration(hours: 0);
 
     return PrayerTimesResult(
-      fajr: pt.fajr,
-      dhuhr: pt.dhuhr,
-      asr: pt.asr,
-      maghrib: pt.maghrib,
-      isha: pt.isha,
+      fajr: fajr,
+      sunrise: sunrise,
+      dhuha: dhuha,
+      dhuhr: dhuhr,
+      asr: asr,
+      maghrib: maghrib,
+      isha: isha,
+      firstAdzan: firstAdzan,
       nextPrayer: nextPrayer,
       timeUntilNext: until,
       nextPrayerName: PrayerTimesResult.prayerName(nextPrayer),

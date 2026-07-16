@@ -10,7 +10,7 @@ Future<void> main() async {
 
   await Supabase.initialize(
     url: 'https://zgeygoclduqotqveperx.supabase.co',
-    anonKey: 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik',
+    publishableKey: 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik',
   );
 
   runApp(const ProviderScope(child: TafseerApp()));

@@ -916,6 +916,69 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
     }
   }
 
+  void _showBookmarkOptions(BuildContext context) {
+    final isEn = _currentLang == 'en';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 16),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: Icon(
+                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  color: AppTheme.primary,
+                ),
+                title: Text(
+                  _isBookmarked 
+                      ? (isEn ? 'Remove from Bookmarks' : 'Hapus dari Markah')
+                      : (isEn ? 'Add to Bookmarks' : 'Tambah ke Markah'),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _toggleBookmark();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.bookmark_outline, color: AppTheme.secondary),
+                title: Text(
+                  isEn ? 'Go to Bookmarks Page' : 'Buka Halaman Markah',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/bookmarks');
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     debugPrint('AyahDetailScreen build: _loading=$_loading, widget.initialTab=${widget.initialTab}, _tabController.index=${_tabController.index}');
@@ -1025,7 +1088,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Bookmark
           IconButton(
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: AppTheme.primary),
-            onPressed: _toggleBookmark,
+            onPressed: () => _showBookmarkOptions(context),
           ),
           // Read in Mushaf
           if (_verse != null && _verse!['page_number'] != null)

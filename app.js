@@ -3726,7 +3726,9 @@ async function initAuth() {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + window.location.pathname + '#login'
+        // Use origin only (no #login hash) — the hash router owns '#' so appending
+        // '#login' causes a double-hash that prevents Supabase from parsing the token.
+        redirectTo: window.location.origin + '/'
       }
     });
     if (error) {

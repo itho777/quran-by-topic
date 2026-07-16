@@ -327,44 +327,50 @@ class Database {
     onProgress(100, state.uiLang === 'id' ? i18n.id.ready : i18n.en.ready);
   }
 
-  // Load tags dataset from Supabase (with local fallback)
+  // Load tags dataset — verseTags always from local JSON (complete), tags list from Supabase or local
   async _loadTagsFromSupabase(lang) {
-    if (supabaseClient) {
-      try {
-        const [{ data: tagsData }, { data: mapData }] = await Promise.all([
-          supabaseClient.from('tags').select('id, name').eq('lang', lang || 'en'),
-          supabaseClient.from('verse_tags').select('verse_key, tag_id').eq('lang', lang || 'en')
-        ]);
-        // If Supabase returned real data (not empty due to RLS), use it
-        if (tagsData && tagsData.length > 0) {
-          this.tags = tagsData;
-          this.verseTags = {};
-          if (mapData) {
-            mapData.forEach(item => {
-              if (!this.verseTags[item.verse_key]) this.verseTags[item.verse_key] = [];
-              this.verseTags[item.verse_key].push(item.tag_id);
-            });
-          }
-          return;
-        }
-        console.warn('[DB] Tags Supabase returned empty (likely RLS), falling back to local files.');
-      } catch (e) {
-        console.warn('[DB] Tags Supabase load failed, trying local files:', e);
-      }
-    }
-    // Local fallback
+    const effectiveLang = lang || 'id';
+
+    // Always load verseTags from local JSON — the Supabase table has 110k+ rows
+    // and the default REST page size (1000) silently truncates the result,
+    // causing missing tag-to-verse mappings for most surahs.
     if (this.registry && this.registry.tags && this.registry.tags.length > 0) {
-      let tagInfo = this.registry.tags.find(t => t.id === (lang || state.activeTags));
+      let tagInfo = this.registry.tags.find(t => t.id === effectiveLang);
       if (!tagInfo) tagInfo = this.registry.tags[0];
-      const tagsRes = await fetch(tagInfo.file);
-      this.tags = await tagsRes.json();
       const mapRes = await fetch(tagInfo.verse_map);
       this.verseTags = await mapRes.json();
     } else {
-      this.tags = [];
       this.verseTags = {};
     }
+
+    // Try Supabase for the compact tags list (tag names only — small, ~few hundred rows)
+    if (supabaseClient) {
+      try {
+        const { data: tagsData } = await supabaseClient
+          .from('tags')
+          .select('id, name')
+          .eq('lang', effectiveLang);
+        if (tagsData && tagsData.length > 0) {
+          this.tags = tagsData;
+          return;
+        }
+        console.warn('[DB] Tags list from Supabase empty, falling back to local file.');
+      } catch (e) {
+        console.warn('[DB] Tags list Supabase load failed, using local file:', e);
+      }
+    }
+
+    // Local fallback for tags list
+    if (this.registry && this.registry.tags && this.registry.tags.length > 0) {
+      let tagInfo = this.registry.tags.find(t => t.id === effectiveLang);
+      if (!tagInfo) tagInfo = this.registry.tags[0];
+      const tagsRes = await fetch(tagInfo.file);
+      this.tags = await tagsRes.json();
+    } else {
+      this.tags = [];
+    }
   }
+
 
   // Derive table name and source_id from a registry file path
   _parseFilePath(file) {

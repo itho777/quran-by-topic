@@ -301,7 +301,7 @@ class _AdminTafsirsScreenState extends State<AdminTafsirsScreen> {
   String _searchQuery = '';
   String _filterSource = 'all';
 
-  static const _sources = ['all', 'id.jalalayn', 'en.katsir', 'id.kemenag'];
+  static const _sources = ['all', 'id.jalalayn', 'en.katsir_pdf', 'id.kemenag'];
 
   @override
   void initState() {

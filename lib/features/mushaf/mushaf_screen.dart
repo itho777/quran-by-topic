@@ -152,7 +152,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   String _translitSource = 'id.kemenag_translit'; // Kemenag official romanization
 
-  String _tafsirSource = 'en.katsir';              // Ibn Kathir EN (clean PDF)
+  String _tafsirSource = 'en.katsir_pdf';              // Ibn Kathir EN (clean PDF)
 
   String _nuzulSource = 'en.wahidi';               // Al-Wahidi EN
 
@@ -166,7 +166,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   final Map<String, String> _tafsirOptions = {
 
-    'en.katsir': 'Ibn Kathir (EN)',
+    'en.katsir_pdf': 'Ibn Kathir (EN)',
 
     'id.jalalayn': 'Jalalayn (ID)',
 
@@ -236,7 +236,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       _translitSource = 'en.transliteration';
 
-      _tafsirSource = 'en.katsir';
+      _tafsirSource = 'en.katsir_pdf';
 
       _nuzulSource = 'en.wahidi';
 
@@ -2529,7 +2529,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                   setState(() {
                                     _selectedSource = 'en.sahih';
                                     _translitSource = 'en.transliteration';
-                                    _tafsirSource   = 'en.katsir';
+                                    _tafsirSource   = 'en.katsir_pdf';
                                     _nuzulSource    = 'en.wahidi';
                                   });
                                   _loadPageTexts();

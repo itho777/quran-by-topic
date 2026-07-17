@@ -24,10 +24,15 @@ class SettingsState {
   final bool enableAdzanSound;
   final bool soundFirstAdzan;
   final bool soundFajr;
+  final bool soundSunrise;
+  final bool soundDhuha;
   final bool soundDhuhr;
   final bool soundAsr;
   final bool soundMaghrib;
   final bool soundIsha;
+  final bool playToneOnly;
+  final String? customSoundUri;
+  final String? customSoundTitle;
 
   SettingsState({
     required this.arabicFontSize,
@@ -51,10 +56,15 @@ class SettingsState {
     this.enableAdzanSound = true,
     this.soundFirstAdzan = true,
     this.soundFajr = true,
+    this.soundSunrise = true,
+    this.soundDhuha = true,
     this.soundDhuhr = true,
     this.soundAsr = true,
     this.soundMaghrib = true,
     this.soundIsha = true,
+    this.playToneOnly = false,
+    this.customSoundUri,
+    this.customSoundTitle,
   });
 
   SettingsState copyWith({
@@ -79,10 +89,15 @@ class SettingsState {
     bool? enableAdzanSound,
     bool? soundFirstAdzan,
     bool? soundFajr,
+    bool? soundSunrise,
+    bool? soundDhuha,
     bool? soundDhuhr,
     bool? soundAsr,
     bool? soundMaghrib,
     bool? soundIsha,
+    bool? playToneOnly,
+    String? customSoundUri,
+    String? customSoundTitle,
   }) {
     return SettingsState(
       arabicFontSize: arabicFontSize ?? this.arabicFontSize,
@@ -106,10 +121,15 @@ class SettingsState {
       enableAdzanSound: enableAdzanSound ?? this.enableAdzanSound,
       soundFirstAdzan: soundFirstAdzan ?? this.soundFirstAdzan,
       soundFajr: soundFajr ?? this.soundFajr,
+      soundSunrise: soundSunrise ?? this.soundSunrise,
+      soundDhuha: soundDhuha ?? this.soundDhuha,
       soundDhuhr: soundDhuhr ?? this.soundDhuhr,
       soundAsr: soundAsr ?? this.soundAsr,
       soundMaghrib: soundMaghrib ?? this.soundMaghrib,
       soundIsha: soundIsha ?? this.soundIsha,
+      playToneOnly: playToneOnly ?? this.playToneOnly,
+      customSoundUri: customSoundUri ?? this.customSoundUri,
+      customSoundTitle: customSoundTitle ?? this.customSoundTitle,
     );
   }
 }
@@ -153,10 +173,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final adzanSound = prefs.getBool('enable_adzan_sound') ?? true;
       final sFirst = prefs.getBool('sound_first_adzan') ?? true;
       final sFajr = prefs.getBool('sound_fajr') ?? true;
+      final sSunrise = prefs.getBool('sound_sunrise') ?? true;
+      final sDhuha = prefs.getBool('sound_dhuha') ?? true;
       final sDhuhr = prefs.getBool('sound_dhuhr') ?? true;
       final sAsr = prefs.getBool('sound_asr') ?? true;
       final sMaghrib = prefs.getBool('sound_maghrib') ?? true;
       final sIsha = prefs.getBool('sound_isha') ?? true;
+      final playTone = prefs.getBool('play_tone_only') ?? false;
+      final customUri = prefs.getString('custom_sound_uri');
+      final customTitle = prefs.getString('custom_sound_title');
 
       // mushafFullWidth is persisted to storage.
       final mushafFW = prefs.getBool('mushaf_full_width') ?? true;
@@ -182,10 +207,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         enableAdzanSound: adzanSound,
         soundFirstAdzan: sFirst,
         soundFajr: sFajr,
+        soundSunrise: sSunrise,
+        soundDhuha: sDhuha,
         soundDhuhr: sDhuhr,
         soundAsr: sAsr,
         soundMaghrib: sMaghrib,
         soundIsha: sIsha,
+        playToneOnly: playTone,
+        customSoundUri: customUri,
+        customSoundTitle: customTitle,
       );
     } catch (_) {}
   }
@@ -317,6 +347,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await prefs.setBool('sound_fajr', val);
   }
 
+  Future<void> setSoundSunrise(bool val) async {
+    state = state.copyWith(soundSunrise: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_sunrise', val);
+  }
+
+  Future<void> setSoundDhuha(bool val) async {
+    state = state.copyWith(soundDhuha: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sound_dhuha', val);
+  }
+
   Future<void> setSoundDhuhr(bool val) async {
     state = state.copyWith(soundDhuhr: val);
     final prefs = await SharedPreferences.getInstance();
@@ -339,6 +381,19 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(soundIsha: val);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('sound_isha', val);
+  }
+
+  Future<void> setPlayToneOnly(bool val) async {
+    state = state.copyWith(playToneOnly: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('play_tone_only', val);
+  }
+
+  Future<void> setCustomSound(String uri, String title) async {
+    state = state.copyWith(customSoundUri: uri, customSoundTitle: title);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('custom_sound_uri', uri);
+    await prefs.setString('custom_sound_title', title);
   }
 
   /// Reset ALL settings to factory defaults and clear persisted preferences.
@@ -417,10 +472,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         adzanMuadzinFajr: prefs.getString('adzan_muadzin_fajr') ?? state.adzanMuadzinFajr,
         soundFirstAdzan: prefs.getBool('sound_first_adzan') ?? state.soundFirstAdzan,
         soundFajr: prefs.getBool('sound_fajr') ?? state.soundFajr,
+        soundSunrise: prefs.getBool('sound_sunrise') ?? state.soundSunrise,
+        soundDhuha: prefs.getBool('sound_dhuha') ?? state.soundDhuha,
         soundDhuhr: prefs.getBool('sound_dhuhr') ?? state.soundDhuhr,
         soundAsr: prefs.getBool('sound_asr') ?? state.soundAsr,
         soundMaghrib: prefs.getBool('sound_maghrib') ?? state.soundMaghrib,
         soundIsha: prefs.getBool('sound_isha') ?? state.soundIsha,
+        playToneOnly: prefs.getBool('play_tone_only') ?? state.playToneOnly,
+        customSoundUri: prefs.getString('custom_sound_uri') ?? state.customSoundUri,
+        customSoundTitle: prefs.getString('custom_sound_title') ?? state.customSoundTitle,
       );
       state = newState;
       await prefs.setDouble('arabic_font_size', newState.arabicFontSize);

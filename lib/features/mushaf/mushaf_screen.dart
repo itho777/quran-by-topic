@@ -2315,8 +2315,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                     ],
                                   ),
                                   child: InteractiveViewer(
+                                    // A unique key resets the pan/zoom transformation whenever the
+                                    // page, fullWidth mode, or menu visibility changes, preventing
+                                    // the mushaf image from drifting off-screen randomly.
+                                    key: ValueKey('iv_${pageNum}_${fullWidth}_$_menusVisible'),
                                     maxScale: 3.0,
-                                    boundaryMargin: const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0),
+                                    boundaryMargin: fullWidth
+                                        ? const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0)
+                                        : EdgeInsets.zero,
                                     constrained: !fullWidth,
                                     child: buildQuranPageImage(
                                       context,
@@ -2559,7 +2565,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                     _menuCollapseTimer?.cancel();
                                     _studyMenuCollapseTimer?.cancel();
                                     ref.read(hideNavBarProvider.notifier).state = false;
-                                    await context.push('/surahs/$sId/ayahs/$aNum');
+                                    final tabIdx = _studyContentTab == 'tafsir' ? 1
+                                        : _studyContentTab == 'nuzul' ? 2 : 0;
+                                    await context.push('/surahs/$sId/ayahs/$aNum?tab=$tabIdx');
                                     if (mounted) {
                                       ref.read(hideNavBarProvider.notifier).state = true;
                                     }
@@ -3006,7 +3014,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                                     _studyMenuCollapseTimer?.cancel();
                                                     ref.read(hideNavBarProvider.notifier).state = false;
 
-                                                    await context.push('/surahs/$sId/ayahs/$aNum');
+                                                    final tabIdx = _studyContentTab == 'tafsir' ? 1
+                                                        : _studyContentTab == 'nuzul' ? 2 : 0;
+                                                    await context.push('/surahs/$sId/ayahs/$aNum?tab=$tabIdx');
 
                                                     if (mounted) {
 

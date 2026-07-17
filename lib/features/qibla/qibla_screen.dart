@@ -426,13 +426,13 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
           'time': pt.firstAdzan,
           'key': 'firstadzan'
         },
-      {'name': 'Subuh (Fajr)', 'time': pt.fajr, 'key': 'fajr'},
-      {'name': 'Syuruq (Sunrise)', 'time': pt.sunrise, 'key': 'sunrise'},
+      {'name': isEn ? 'Fajr' : 'Subuh', 'time': pt.fajr, 'key': 'fajr'},
+      {'name': isEn ? 'Shuruk' : 'Syuruq', 'time': pt.sunrise, 'key': 'sunrise'},
       {'name': 'Dhuha', 'time': pt.dhuha, 'key': 'dhuha'},
-      {'name': 'Dzuhur (Dhuhr)', 'time': pt.dhuhr, 'key': 'dhuhr'},
-      {'name': 'Ashar (Asr)', 'time': pt.asr, 'key': 'asr'},
+      {'name': isEn ? 'Zuhr' : 'Zhuhur', 'time': pt.dhuhr, 'key': 'dhuhr'},
+      {'name': isEn ? 'Asr' : 'Ashar', 'time': pt.asr, 'key': 'asr'},
       {'name': 'Maghrib', 'time': pt.maghrib, 'key': 'maghrib'},
-      {'name': 'Isya (Isha)', 'time': pt.isha, 'key': 'isha'},
+      {'name': isEn ? 'Isha' : 'Isya', 'time': pt.isha, 'key': 'isha'},
     ];
 
     return Container(
@@ -485,8 +485,12 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
               final String key = item['key'] as String;
               final DateTime time = item['time'] as DateTime;
               final String name = item['name'] as String;
-              final isNext = pt.nextPrayerName.toLowerCase() == key ||
-                  (key == 'sunrise' && pt.nextPrayerName == 'Syuruq');
+              final isNext = (key == 'fajr' && pt.nextPrayerName == 'Fajr') ||
+                  (key == 'sunrise' && pt.nextPrayerName == 'Syuruq') ||
+                  (key == 'dhuhr' && pt.nextPrayerName == 'Dhuhr') ||
+                  (key == 'asr' && pt.nextPrayerName == 'Asr') ||
+                  (key == 'maghrib' && pt.nextPrayerName == 'Maghrib') ||
+                  (key == 'isha' && pt.nextPrayerName == 'Isha');
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
@@ -503,23 +507,13 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          isNext ? Icons.notifications_active : Icons.notifications_none,
-                          color: isNext ? AppTheme.primary : AppTheme.outline,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          name,
-                          style: TextStyle(
-                            color: isNext ? AppTheme.primary : AppTheme.onSurface,
-                            fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      name,
+                      style: TextStyle(
+                        color: isNext ? AppTheme.primary : AppTheme.onSurface,
+                        fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
                     ),
                     Row(
                       children: [
@@ -531,10 +525,8 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
                             fontSize: 14,
                           ),
                         ),
-                        if (key != 'sunrise' && key != 'dhuha') ...[
-                          const SizedBox(width: 12),
-                          _buildNotificationBell(key, settings),
-                        ],
+                        const SizedBox(width: 12),
+                        _buildNotificationBell(key, settings),
                       ],
                     ),
                   ],
@@ -552,6 +544,8 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
     switch (key) {
       case 'firstadzan': isActive = settings.soundFirstAdzan; break;
       case 'fajr': isActive = settings.soundFajr; break;
+      case 'sunrise': isActive = settings.soundSunrise; break;
+      case 'dhuha': isActive = settings.soundDhuha; break;
       case 'dhuhr': isActive = settings.soundDhuhr; break;
       case 'asr': isActive = settings.soundAsr; break;
       case 'maghrib': isActive = settings.soundMaghrib; break;
@@ -565,6 +559,8 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
         switch (key) {
           case 'firstadzan': await notifier.setSoundFirstAdzan(!settings.soundFirstAdzan); break;
           case 'fajr': await notifier.setSoundFajr(!settings.soundFajr); break;
+          case 'sunrise': await notifier.setSoundSunrise(!settings.soundSunrise); break;
+          case 'dhuha': await notifier.setSoundDhuha(!settings.soundDhuha); break;
           case 'dhuhr': await notifier.setSoundDhuhr(!settings.soundDhuhr); break;
           case 'asr': await notifier.setSoundAsr(!settings.soundAsr); break;
           case 'maghrib': await notifier.setSoundMaghrib(!settings.soundMaghrib); break;

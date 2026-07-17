@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -107,6 +108,8 @@ class AlarmService {
 
   static List<String> get muadzinKeys => _muadzinChannels.keys.toList();
 
+  final ValueNotifier<String?> previewNotifier = ValueNotifier<String?>(null);
+
   // ── Preview: play the sound directly via AudioPlayer so user can hear it ─
   Future<void> playAdzanPreview(String muadzin) async {
     if (!_muadzinChannels.containsKey(muadzin)) return;
@@ -114,13 +117,25 @@ class AlarmService {
     final file = info['file']!;
     try {
       await _previewPlayer.stop();
+      previewNotifier.value = muadzin;
+      
+      // Auto-clear active preview on completion
+      _previewPlayer.onPlayerComplete.first.then((_) {
+        if (previewNotifier.value == muadzin) {
+          previewNotifier.value = null;
+        }
+      });
+
       await _previewPlayer.play(AssetSource('audio/$file.mp3'));
-    } catch (_) {}
+    } catch (_) {
+      previewNotifier.value = null;
+    }
   }
 
   Future<void> stopAdzanPreview() async {
     try {
       await _previewPlayer.stop();
+      previewNotifier.value = null;
     } catch (_) {}
   }
 
@@ -160,6 +175,8 @@ class AlarmService {
       final Map<String, DateTime> times = {
         'first_adzan': pt.firstAdzan,
         'fajr':        pt.fajr,
+        'sunrise':     pt.sunrise,
+        'dhuha':       pt.dhuha,
         'dhuhr':       pt.dhuhr,
         'asr':         pt.asr,
         'maghrib':     pt.maghrib,
@@ -178,30 +195,40 @@ class AlarmService {
         String title     = '';
         String body      = '';
 
+        final bool isEn = settings.appLanguage == 'en';
+
         if (key == 'first_adzan' && settings.enableFirstAdzan) {
           isEnabled = true;
-          title     = 'Adzan Awal (Tahajjud)';
-          body      = 'Waktu Adzan Awal / Tahajjud telah masuk.';
+          title     = isEn ? 'First Adzan (Tahajjud)' : 'Adzan Awal (Tahajjud)';
+          body      = isEn ? 'First Adzan / Tahajjud time has entered.' : 'Waktu Adzan Awal / Tahajjud telah masuk.';
         } else if (key == 'fajr') {
           isEnabled = true;
-          title     = 'Subuh (Fajr)';
-          body      = 'Waktu shalat Subuh telah masuk.';
+          title     = isEn ? 'Fajr' : 'Subuh (Fajr)';
+          body      = isEn ? 'Fajr prayer time has entered.' : 'Waktu shalat Subuh telah masuk.';
+        } else if (key == 'sunrise') {
+          isEnabled = true;
+          title     = isEn ? 'Shuruk (Sunrise)' : 'Syuruq';
+          body      = isEn ? 'Sunrise time has entered.' : 'Waktu Syuruq (Matahari terbit) telah masuk.';
+        } else if (key == 'dhuha') {
+          isEnabled = true;
+          title     = 'Dhuha';
+          body      = isEn ? 'Dhuha prayer time has entered.' : 'Waktu shalat Dhuha telah masuk.';
         } else if (key == 'dhuhr') {
           isEnabled = true;
-          title     = 'Dzuhur (Dhuhr)';
-          body      = 'Waktu shalat Dzuhur telah masuk.';
+          title     = isEn ? 'Zuhr' : 'Dzuhur (Dhuhr)';
+          body      = isEn ? 'Zuhr prayer time has entered.' : 'Waktu shalat Dzuhur telah masuk.';
         } else if (key == 'asr') {
           isEnabled = true;
-          title     = 'Ashar (Asr)';
-          body      = 'Waktu shalat Ashar telah masuk.';
+          title     = isEn ? 'Asr' : 'Ashar (Asr)';
+          body      = isEn ? 'Asr prayer time has entered.' : 'Waktu shalat Ashar telah masuk.';
         } else if (key == 'maghrib') {
           isEnabled = true;
           title     = 'Maghrib';
-          body      = 'Waktu shalat Maghrib telah masuk.';
+          body      = isEn ? 'Maghrib prayer time has entered.' : 'Waktu shalat Maghrib telah masuk.';
         } else if (key == 'isha') {
           isEnabled = true;
-          title     = 'Isya (Isha)';
-          body      = 'Waktu shalat Isya telah masuk.';
+          title     = isEn ? 'Isha' : 'Isya (Isha)';
+          body      = isEn ? 'Isha prayer time has entered.' : 'Waktu shalat Isya telah masuk.';
         }
 
         if (!isEnabled) continue;
@@ -209,11 +236,11 @@ class AlarmService {
         // Build notification details
         final scheduledTzTime = tz.TZDateTime.from(time, tz.local);
 
-        // Determine sound & channel from muadzin setting
-        final String soundFile;
-        final String channelId;
-        final String channelName;
-        final String channelDesc;
+        // Determine sound & channel
+        String soundFile = '';
+        String channelId = 'prayer_alarms_silent';
+        String channelName = 'Prayer Alarms (Silent)';
+        String channelDesc = 'Silent prayer time reminders';
 
         // Check if sound is enabled for this specific prayer key
         bool soundEnabled = settings.enableAdzanSound;
@@ -222,6 +249,10 @@ class AlarmService {
             soundEnabled = settings.soundFirstAdzan;
           } else if (key == 'fajr') {
             soundEnabled = settings.soundFajr;
+          } else if (key == 'sunrise') {
+            soundEnabled = settings.soundSunrise;
+          } else if (key == 'dhuha') {
+            soundEnabled = settings.soundDhuha;
           } else if (key == 'dhuhr') {
             soundEnabled = settings.soundDhuhr;
           } else if (key == 'asr') {
@@ -233,23 +264,62 @@ class AlarmService {
           }
         }
 
-        if (!soundEnabled) {
-          soundFile   = '';
-          channelId   = 'prayer_alarms_silent';
-          channelName = 'Prayer Alarms (Silent)';
-          channelDesc = 'Silent prayer time reminders';
-        } else {
-          // Subuh & First Adzan use the dedicated Fajr muadzin voice;
-          // other prayers use the regular muadzin voice.
-          final bool isFajrPrayer = key == 'first_adzan' || key == 'fajr';
-          final String muadzinKey = isFajrPrayer
-              ? settings.adzanMuadzinFajr
-              : settings.adzanMuadzin;
-          final info  = _muadzinChannels[muadzinKey] ?? _muadzinChannels['makkah']!;
-          soundFile   = info['file']!;
-          channelId   = info['channelId']!;
-          channelName = info['channelName']!;
-          channelDesc = 'Prayer notification — ${info["label"]}';
+        final bool isToneOnlyPrayer = key == 'sunrise' || key == 'dhuha';
+
+        if (soundEnabled) {
+          if (settings.playToneOnly || isToneOnlyPrayer) {
+            final uri = settings.customSoundUri;
+            if (uri != null && uri.isNotEmpty) {
+              channelId = 'prayer_alarms_tone_${uri.hashCode}';
+              channelName = 'Prayer Alarms (Custom Tone)';
+              channelDesc = 'Custom prayer time tone';
+              soundFile = uri;
+              
+              // Register custom tone channel dynamically if Android
+              final androidPlugin = _notificationsPlugin
+                  .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+              if (androidPlugin != null) {
+                await androidPlugin.createNotificationChannel(AndroidNotificationChannel(
+                  channelId,
+                  channelName,
+                  description: channelDesc,
+                  importance: Importance.max,
+                  playSound: true,
+                  sound: UriAndroidNotificationSound(uri),
+                ));
+              }
+            } else {
+              channelId = 'prayer_alarms_tone_default';
+              channelName = 'Prayer Alarms (System Default)';
+              channelDesc = 'Default system prayer tone';
+              soundFile = 'system_default';
+
+              // Register default tone channel dynamically if Android
+              final androidPlugin = _notificationsPlugin
+                  .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+              if (androidPlugin != null) {
+                await androidPlugin.createNotificationChannel(AndroidNotificationChannel(
+                  channelId,
+                  channelName,
+                  description: channelDesc,
+                  importance: Importance.max,
+                  playSound: true,
+                ));
+              }
+            }
+          } else {
+            // Subuh & First Adzan use the dedicated Fajr muadzin voice;
+            // other prayers use the regular muadzin voice.
+            final bool isFajrPrayer = key == 'first_adzan' || key == 'fajr';
+            final String muadzinKey = isFajrPrayer
+                ? settings.adzanMuadzinFajr
+                : settings.adzanMuadzin;
+            final info  = _muadzinChannels[muadzinKey] ?? _muadzinChannels['makkah']!;
+            soundFile   = info['file']!;
+            channelId   = info['channelId']!;
+            channelName = info['channelName']!;
+            channelDesc = 'Prayer notification — ${info["label"]}';
+          }
         }
 
         final androidDetails = AndroidNotificationDetails(
@@ -258,12 +328,24 @@ class AlarmService {
           channelDescription: channelDesc,
           importance: Importance.max,
           priority: Priority.high,
-          sound: soundFile.isNotEmpty ? RawResourceAndroidNotificationSound(soundFile) : null,
+          sound: soundFile.isEmpty
+              ? null
+              : (soundFile == 'system_default'
+                  ? null
+                  : ((settings.playToneOnly || isToneOnlyPrayer)
+                      ? UriAndroidNotificationSound(soundFile)
+                      : RawResourceAndroidNotificationSound(soundFile))),
           playSound: soundFile.isNotEmpty,
         );
 
         final iosDetails = DarwinNotificationDetails(
-          sound: soundFile.isNotEmpty ? '$soundFile.mp3' : null,
+          sound: soundFile.isEmpty
+              ? null
+              : (soundFile == 'system_default'
+                  ? null
+                  : ((settings.playToneOnly || isToneOnlyPrayer)
+                      ? null // default iOS sound
+                      : '$soundFile.mp3')),
           presentAlert: true,
           presentBadge: true,
           presentSound: soundFile.isNotEmpty,

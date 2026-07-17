@@ -2199,7 +2199,20 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     }[_studyContentTab]!;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        // If there is a page on GoRouter's stack, pop it normally.
+        // Otherwise go back to the surahs list rather than exiting the app.
+        final router = GoRouter.of(context);
+        if (router.canPop()) {
+          router.pop();
+        } else {
+          context.go('/surahs');
+        }
+      },
+      child: Scaffold(
 
       backgroundColor: AppTheme.background,
 
@@ -2465,91 +2478,84 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       ),
 
-                      // Controls
-                      Expanded(
-                        flex: 2,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Ã¢â€â‚¬Ã¢â€â‚¬ Language Toggle Pill Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-                              Container(
-                                margin: const EdgeInsets.only(right: 4),
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.surfaceContainerHigh,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: ['en', 'id'].map((lang) {
-                                    final active = _currentLang == lang;
-                                    return GestureDetector(
-                                      onTap: () {
-                                        ref.read(settingsProvider.notifier).setAppLanguage(lang);
-                                        setState(() {
-                                          if (lang == 'en') {
-                                            _selectedSource = 'en.sahih';
-                                            _translitSource = 'en.transliteration';
-                                            _tafsirSource = 'en.katsir';
-                                            _nuzulSource = 'en.wahidi';
-                                          } else {
-                                            _selectedSource = 'id.kemenag';
-                                            _translitSource = 'id.kemenag_translit';
-                                            _tafsirSource = 'id.jalalayn';
-                                            _nuzulSource = 'id.kemenag_nuzul';
-                                          }
-                                        });
-                                        _loadPageTexts();
-                                      },
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-                                        ),
-                                        child: Text(
-                                          lang.toUpperCase(),
-                                          style: TextStyle(
-                                            color: active ? AppTheme.primary : AppTheme.outline,
-                                            fontSize: 11,
-                                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
+                      // ── Compact controls: 3 primary + overflow ───────────
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 1. Play / Pause
+                          IconButton(
+                            icon: Icon(
+                              _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                              color: AppTheme.primary,
+                              size: 28,
+                            ),
+                            onPressed: _toggleAudio,
+                          ),
 
-                              IconButton(
-                                icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),
-                                onPressed: _toggleAudio,
-                              ),
+                          // 2. Bookmark
+                          IconButton(
+                            icon: Icon(
+                              _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                              color: _isBookmarked ? Colors.amber : AppTheme.primary,
+                            ),
+                            tooltip: _currentLang == 'en' ? 'Bookmark' : 'Bookmark',
+                            onPressed: () => _showBookmarkOptions(context),
+                          ),
 
-                              // Reciter selector
-                              IconButton(
-                                icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
-                                tooltip: _currentLang == 'en' ? 'Select Reciter' : 'Pilih Qori',
-                                onPressed: _showReciterPicker,
-                              ),
+                          // 3. Study panel toggle
+                          IconButton(
+                            icon: Icon(
+                              _studyPanelOpen
+                                  ? Icons.chrome_reader_mode
+                                  : Icons.chrome_reader_mode_outlined,
+                              color: _studyPanelOpen ? AppTheme.primary : AppTheme.outline,
+                            ),
+                            tooltip: _studyPanelOpen ? 'Close panel' : 'Open study panel',
+                            onPressed: () => setState(() => _studyPanelOpen = !_studyPanelOpen),
+                          ),
 
-                              IconButton(
-                                icon: Icon(Icons.info_outline, color: AppTheme.primary),
-                                onPressed: () async {
+                          // 4. Overflow — secondary actions
+                          PopupMenuButton<String>(
+                            icon: Icon(Icons.more_vert, color: AppTheme.primary),
+                            tooltip: _currentLang == 'en' ? 'More' : 'Lainnya',
+                            color: AppTheme.surfaceContainerHigh,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onSelected: (value) async {
+                              switch (value) {
+                                case 'lang_en':
+                                  ref.read(settingsProvider.notifier).setAppLanguage('en');
+                                  setState(() {
+                                    _selectedSource = 'en.sahih';
+                                    _translitSource = 'en.transliteration';
+                                    _tafsirSource   = 'en.katsir';
+                                    _nuzulSource    = 'en.wahidi';
+                                  });
+                                  _loadPageTexts();
+                                  break;
+                                case 'lang_id':
+                                  ref.read(settingsProvider.notifier).setAppLanguage('id');
+                                  setState(() {
+                                    _selectedSource = 'id.kemenag';
+                                    _translitSource = 'id.kemenag_translit';
+                                    _tafsirSource   = 'id.jalalayn';
+                                    _nuzulSource    = 'id.kemenag_nuzul';
+                                  });
+                                  _loadPageTexts();
+                                  break;
+                                case 'reciter':
+                                  _showReciterPicker();
+                                  break;
+                                case 'info':
                                   if (_selectedVerseId != null && _pageVerses.isNotEmpty) {
                                     final current = _pageVerses.firstWhere(
                                       (v) => v['id'] == _selectedVerseId,
                                       orElse: () => _pageVerses.first,
                                     );
-                                    final sId = current['sura_id'];
+                                    final sId  = current['sura_id'];
                                     final aNum = current['ayah_number'];
                                     if (sId == null || aNum == null) return;
-                                    // Cancel timers so they don't re-hide nav bar
                                     _menuCollapseTimer?.cancel();
                                     _studyMenuCollapseTimer?.cancel();
                                     ref.read(hideNavBarProvider.notifier).state = false;
@@ -2558,48 +2564,116 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                       ref.read(hideNavBarProvider.notifier).state = true;
                                     }
                                   }
-                                },
-                              ),
-
-                              IconButton(
-                                icon: Icon(Icons.explore_outlined, color: AppTheme.primary),
-                                onPressed: _showJumpDialog,
-                              ),
-
-                              // Bookmark button
-                              IconButton(
-                                icon: Icon(
-                                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                  color: _isBookmarked ? Colors.amber : AppTheme.primary,
+                                  break;
+                                case 'jump':
+                                  _showJumpDialog();
+                                  break;
+                                case 'share':
+                                  _copyActiveAyah();
+                                  break;
+                                case 'settings':
+                                  context.push('/settings');
+                                  break;
+                              }
+                            },
+                            itemBuilder: (ctx) {
+                              final isEn = _currentLang == 'en';
+                              return [
+                                // Language header
+                                PopupMenuItem<String>(
+                                  enabled: false,
+                                  height: 28,
+                                  child: Text(
+                                    isEn ? 'LANGUAGE' : 'BAHASA',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppTheme.outline,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
                                 ),
-                                tooltip: _currentLang == 'en' ? 'Bookmark' : 'Bookmark',
-                                onPressed: () => _showBookmarkOptions(context),
-                              ),
-
-                              IconButton(
-                                icon: Icon(Icons.share, color: AppTheme.primary),
-                                tooltip: _currentLang == 'en' ? 'Copy & Share' : 'Salin & Bagikan',
-                                onPressed: _copyActiveAyah,
-                              ),
-
-                              // Panel toggle icon Ã¢â‚¬â€ small, compact
-                              IconButton(
-                                icon: Icon(
-                                  _studyPanelOpen ? Icons.expand_more : Icons.chrome_reader_mode_outlined,
-                                  color: _studyPanelOpen ? AppTheme.outline : AppTheme.primary,
+                                PopupMenuItem<String>(
+                                  value: 'lang_en',
+                                  child: Row(children: [
+                                    Icon(Icons.language, size: 18,
+                                        color: _currentLang == 'en' ? AppTheme.primary : AppTheme.outline),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Text('English', style: TextStyle(
+                                      fontSize: 13,
+                                      color: _currentLang == 'en' ? AppTheme.primary : AppTheme.onSurface,
+                                      fontWeight: _currentLang == 'en' ? FontWeight.bold : FontWeight.normal,
+                                    ))),
+                                    if (_currentLang == 'en')
+                                      Icon(Icons.check, size: 14, color: AppTheme.primary),
+                                  ]),
                                 ),
-                                tooltip: _studyPanelOpen ? 'Close panel' : 'Open study panel',
-                                onPressed: () => setState(() => _studyPanelOpen = !_studyPanelOpen),
-                              ),
-
-                              IconButton(
-                                icon: Icon(Icons.settings_outlined, color: AppTheme.outline, size: 20),
-                                tooltip: _currentLang == 'en' ? 'Settings' : 'Pengaturan',
-                                onPressed: () => context.push('/settings'),
-                              ),
-                            ],
+                                PopupMenuItem<String>(
+                                  value: 'lang_id',
+                                  child: Row(children: [
+                                    Icon(Icons.language, size: 18,
+                                        color: _currentLang == 'id' ? AppTheme.primary : AppTheme.outline),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Text('Indonesia', style: TextStyle(
+                                      fontSize: 13,
+                                      color: _currentLang == 'id' ? AppTheme.primary : AppTheme.onSurface,
+                                      fontWeight: _currentLang == 'id' ? FontWeight.bold : FontWeight.normal,
+                                    ))),
+                                    if (_currentLang == 'id')
+                                      Icon(Icons.check, size: 14, color: AppTheme.primary),
+                                  ]),
+                                ),
+                                const PopupMenuDivider(),
+                                PopupMenuItem<String>(
+                                  value: 'reciter',
+                                  child: Row(children: [
+                                    Icon(Icons.record_voice_over, size: 18, color: AppTheme.primary),
+                                    const SizedBox(width: 10),
+                                    Text(isEn ? 'Select Reciter' : 'Pilih Qori',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ]),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'info',
+                                  child: Row(children: [
+                                    Icon(Icons.info_outline, size: 18, color: AppTheme.primary),
+                                    const SizedBox(width: 10),
+                                    Text(isEn ? 'Ayah Detail' : 'Detail Ayat',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ]),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'jump',
+                                  child: Row(children: [
+                                    Icon(Icons.explore_outlined, size: 18, color: AppTheme.primary),
+                                    const SizedBox(width: 10),
+                                    Text(isEn ? 'Jump to Page / Surah' : 'Loncat ke Halaman / Surah',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ]),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'share',
+                                  child: Row(children: [
+                                    Icon(Icons.share, size: 18, color: AppTheme.primary),
+                                    const SizedBox(width: 10),
+                                    Text(isEn ? 'Copy & Share' : 'Salin & Bagikan',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ]),
+                                ),
+                                const PopupMenuDivider(),
+                                PopupMenuItem<String>(
+                                  value: 'settings',
+                                  child: Row(children: [
+                                    Icon(Icons.settings_outlined, size: 18, color: AppTheme.outline),
+                                    const SizedBox(width: 10),
+                                    Text(isEn ? 'Settings' : 'Pengaturan',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ]),
+                                ),
+                              ];
+                            },
                           ),
-                        ),
+                        ],
                       ),
 
                     ],
@@ -3123,7 +3197,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       ),
 
-    );
+    ), // Scaffold
+    ); // PopScope
 
   }
 

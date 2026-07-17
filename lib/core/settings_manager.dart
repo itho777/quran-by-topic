@@ -158,8 +158,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final sMaghrib = prefs.getBool('sound_maghrib') ?? true;
       final sIsha = prefs.getBool('sound_isha') ?? true;
 
-      // mushafFullWidth is intentionally NOT loaded from storage.
-      // It always defaults to true on each app launch.
+      // mushafFullWidth is persisted to storage.
+      final mushafFW = prefs.getBool('mushaf_full_width') ?? true;
       state = SettingsState(
         arabicFontSize: arabicSize,
         translationFontSize: transSize,
@@ -167,7 +167,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         defaultTranslationSource: defaultSource,
         appLanguage: lang,
         selectedReciter: reciter,
-        mushafFullWidth: true,
+        mushafFullWidth: mushafFW,
         prayerCalculationMethod: calcMethod,
         fajrOffset: fOffset,
         sunriseOffset: sOffset,
@@ -232,9 +232,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await _cloudSync();
   }
 
-  // mushafFullWidth is session-only — not persisted to disk or cloud.
-  void setMushafFullWidth(bool val) {
+  // mushafFullWidth is persisted to storage.
+  Future<void> setMushafFullWidth(bool val) async {
     state = state.copyWith(mushafFullWidth: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('mushaf_full_width', val);
   }
 
   Future<void> setPrayerCalculationMethod(String method) async {
@@ -390,12 +392,10 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           .eq('user_id', user.id)
           .maybeSingle();
       if (data == null) {
-        // No cloud record yet — push local settings to cloud
         await _cloudSync();
         return;
       }
       final prefs = await SharedPreferences.getInstance();
-      // mushafFullWidth is not pulled from cloud — it is always true on launch.
       final newState = SettingsState(
         arabicFontSize: (data['arabic_font_size'] as num?)?.toDouble() ?? state.arabicFontSize,
         translationFontSize: (data['translation_font_size'] as num?)?.toDouble() ?? state.translationFontSize,
@@ -403,7 +403,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         defaultTranslationSource: (data['default_translation_source'] as String?) ?? state.defaultTranslationSource,
         appLanguage: (data['app_language'] as String?) ?? state.appLanguage,
         selectedReciter: (data['selected_reciter'] as String?) ?? state.selectedReciter,
-        mushafFullWidth: true,
+        mushafFullWidth: prefs.getBool('mushaf_full_width') ?? true,
         prayerCalculationMethod: prefs.getString('prayer_calculation_method') ?? state.prayerCalculationMethod,
         fajrOffset: prefs.getInt('fajr_offset') ?? state.fajrOffset,
         sunriseOffset: prefs.getInt('sunrise_offset') ?? state.sunriseOffset,

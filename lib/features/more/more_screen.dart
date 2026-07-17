@@ -317,8 +317,8 @@ class MoreScreen extends ConsumerWidget {
                   trailing: Switch(
                     value: settings.mushafFullWidth,
                     activeThumbColor: AppTheme.primary,
-                    onChanged: (val) {
-                      ref.read(settingsProvider.notifier).setMushafFullWidth(val);
+                    onChanged: (val) async {
+                      await ref.read(settingsProvider.notifier).setMushafFullWidth(val);
                     },
                   ),
                 ),

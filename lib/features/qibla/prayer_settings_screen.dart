@@ -163,7 +163,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                 ),
                 Divider(height: 1, indent: 16, endIndent: 16),
 
-                // Muadzin Voice Selector
+                // ── Muadzin Voice: Other Prayers (Dhuhr / Asr / Maghrib / Isha)
                 ListTile(
                   enabled: settings.enableAdzanSound,
                   leading: Container(
@@ -181,7 +181,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                     ),
                   ),
                   title: Text(
-                    isEn ? 'Muadzin (Adzan Voice)' : 'Pilihan Suadzan / Muadzin',
+                    isEn ? 'Muadzin — Other Prayers' : 'Muadzin — Shalat Lainnya',
                     style: TextStyle(
                       color: settings.enableAdzanSound ? AppTheme.onSurface : AppTheme.outline,
                       fontSize: 14,
@@ -199,7 +199,6 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Play Preview button
                       IconButton(
                         icon: Icon(
                           Icons.play_circle_outline,
@@ -211,7 +210,6 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                             ? () => AlarmService.instance.playAdzanPreview(settings.adzanMuadzin)
                             : null,
                       ),
-                      // Stop Preview button
                       IconButton(
                         icon: Icon(
                           Icons.stop_circle_outlined,
@@ -223,7 +221,6 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                             ? () => AlarmService.instance.stopAdzanPreview()
                             : null,
                       ),
-                      // Muadzin list
                       PopupMenuButton<String>(
                         icon: Icon(
                           Icons.expand_more,
@@ -243,6 +240,101 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                           _muadzinMenuItem('qatami',  '🎙 Nasser Al-Qatami', 'Beautiful recitation', settings.adzanMuadzin),
                           _muadzinMenuItem('standard','🔔 Standard', 'Classic notification sound', settings.adzanMuadzin),
                           _muadzinMenuItem('fajr',    '🌙 Fajr Style', 'Special Fajr adzan', settings.adzanMuadzin),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // ── Muadzin Voice: Subuh & First Adzan
+                ListTile(
+                  enabled: settings.enableAdzanSound,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: settings.enableAdzanSound
+                          ? AppTheme.primary.withValues(alpha: 0.10)
+                          : AppTheme.outline.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.nights_stay_outlined,
+                      color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline,
+                      size: 18,
+                    ),
+                  ),
+                  title: Text(
+                    isEn ? 'Muadzin — Subuh & First Adzan' : 'Muadzin — Subuh & Adzan Awal',
+                    style: TextStyle(
+                      color: settings.enableAdzanSound ? AppTheme.onSurface : AppTheme.outline,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    () {
+                      final key = settings.adzanMuadzinFajr;
+                      final label = AlarmService.muadzinLabel(key);
+                      // If Makkah/Madinah selected, note that fajr-style will play
+                      if (key == 'makkah' || key == 'madinah') {
+                        return '$label (${isEn ? 'plays Fajr-style adzan' : 'putar adzan Subuh'})';
+                      }
+                      return label;
+                    }(),
+                    style: TextStyle(
+                      color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.play_circle_outline,
+                          color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.3),
+                          size: 22,
+                        ),
+                        tooltip: isEn ? 'Preview Subuh adzan' : 'Dengarkan adzan Subuh',
+                        onPressed: settings.enableAdzanSound
+                            ? () => AlarmService.instance.playAdzanPreview(
+                                settings.adzanMuadzinFajr,
+                                isFajr: true,
+                              )
+                            : null,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.stop_circle_outlined,
+                          color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.3),
+                          size: 22,
+                        ),
+                        tooltip: isEn ? 'Stop preview' : 'Hentikan adzan',
+                        onPressed: settings.enableAdzanSound
+                            ? () => AlarmService.instance.stopAdzanPreview()
+                            : null,
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.expand_more,
+                          color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.3),
+                          size: 20,
+                        ),
+                        color: AppTheme.surfaceContainerHigh,
+                        enabled: settings.enableAdzanSound,
+                        onSelected: (newVal) async {
+                          ref.read(settingsProvider.notifier).setAdzanMuadzinFajr(newVal);
+                          await _rescheduleAlarms();
+                        },
+                        itemBuilder: (context) => [
+                          _muadzinMenuItem('fajr',    '🌙 Fajr Style', isEn ? 'Classic Fajr adzan' : 'Adzan Subuh klasik', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('makkah',  '🕌 Makkah (Fajr)', isEn ? 'Uses Fajr-style adzan at Fajr time' : 'Putar adzan Subuh gaya Makkah', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('madinah', '🕌 Madinah (Fajr)', isEn ? 'Uses Fajr-style adzan at Fajr time' : 'Putar adzan Subuh gaya Madinah', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('afasi',   '🎙 Mishary Al-Afasi', 'Most popular worldwide', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('qatami',  '🎙 Nasser Al-Qatami', 'Beautiful recitation', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('standard','🔔 Standard', 'Classic notification sound', settings.adzanMuadzinFajr),
                         ],
                       ),
                     ],

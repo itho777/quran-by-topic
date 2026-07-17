@@ -350,6 +350,16 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         _loading = false;
       });
 
+      // Jump to the requested tab after the frame renders (tab widgets must
+      // be attached to the controller before we can change the index).
+      if (widget.initialTab != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _tabController.index != widget.initialTab!) {
+            _tabController.animateTo(widget.initialTab!);
+          }
+        });
+      }
+
       for (final slot in _transSlots) {
         unawaited(_ensureTranslationLoaded(slot.sourceId));
       }
@@ -394,6 +404,15 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           _isBookmarked = isBookmarked;
           _loading = false;
         });
+
+        // Jump to the requested tab after the frame renders.
+        if (widget.initialTab != null && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _tabController.index != widget.initialTab!) {
+              _tabController.animateTo(widget.initialTab!);
+            }
+          });
+        }
 
         for (final slot in _transSlots) {
           unawaited(_ensureTranslationLoaded(slot.sourceId));

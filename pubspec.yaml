@@ -100,6 +100,7 @@ flutter:
     - assets/images/kaabah_overlay.jpg
     - assets/audio/
     - assets/images/quran_calligraphy.png
+    - assets/data/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

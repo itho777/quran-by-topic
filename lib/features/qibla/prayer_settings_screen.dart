@@ -273,15 +273,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                     ),
                   ),
                   subtitle: Text(
-                    () {
-                      final key = settings.adzanMuadzinFajr;
-                      final label = AlarmService.muadzinLabel(key);
-                      // If Makkah/Madinah selected, note that fajr-style will play
-                      if (key == 'makkah' || key == 'madinah') {
-                        return '$label (${isEn ? 'plays Fajr-style adzan' : 'putar adzan Subuh'})';
-                      }
-                      return label;
-                    }(),
+                    AlarmService.muadzinLabel(settings.adzanMuadzinFajr),
                     style: TextStyle(
                       color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.6),
                       fontSize: 11,
@@ -299,10 +291,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                         ),
                         tooltip: isEn ? 'Preview Subuh adzan' : 'Dengarkan adzan Subuh',
                         onPressed: settings.enableAdzanSound
-                            ? () => AlarmService.instance.playAdzanPreview(
-                                settings.adzanMuadzinFajr,
-                                isFajr: true,
-                              )
+                            ? () => AlarmService.instance.playAdzanPreview(settings.adzanMuadzinFajr)
                             : null,
                       ),
                       IconButton(
@@ -329,9 +318,9 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                           await _rescheduleAlarms();
                         },
                         itemBuilder: (context) => [
-                          _muadzinMenuItem('fajr',    '🌙 Fajr Style', isEn ? 'Classic Fajr adzan' : 'Adzan Subuh klasik', settings.adzanMuadzinFajr),
-                          _muadzinMenuItem('makkah',  '🕌 Makkah (Fajr)', isEn ? 'Uses Fajr-style adzan at Fajr time' : 'Putar adzan Subuh gaya Makkah', settings.adzanMuadzinFajr),
-                          _muadzinMenuItem('madinah', '🕌 Madinah (Fajr)', isEn ? 'Uses Fajr-style adzan at Fajr time' : 'Putar adzan Subuh gaya Madinah', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('makkah',  '🕌 Makkah', 'Masjid al-Haram', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('madinah', '🕌 Madinah', 'Masjid Nabawi', settings.adzanMuadzinFajr),
+                          _muadzinMenuItem('fajr',    '🌙 Fajr Style', 'Special Fajr adzan', settings.adzanMuadzinFajr),
                           _muadzinMenuItem('afasi',   '🎙 Mishary Al-Afasi', 'Most popular worldwide', settings.adzanMuadzinFajr),
                           _muadzinMenuItem('qatami',  '🎙 Nasser Al-Qatami', 'Beautiful recitation', settings.adzanMuadzinFajr),
                           _muadzinMenuItem('standard','🔔 Standard', 'Classic notification sound', settings.adzanMuadzinFajr),

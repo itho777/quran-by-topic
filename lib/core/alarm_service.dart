@@ -108,17 +108,9 @@ class AlarmService {
   static List<String> get muadzinKeys => _muadzinChannels.keys.toList();
 
   // ── Preview: play the sound directly via AudioPlayer so user can hear it ─
-  /// If [isFajr] is true, previews the Subuh/First Adzan voice.
-  /// For Makkah or Madinah with isFajr=true, the special 'fajr' style asset
-  /// is played instead (matching the scheduled alarm behaviour).
-  Future<void> playAdzanPreview(String muadzin, {bool isFajr = false}) async {
-    String resolvedKey = muadzin;
-    if (isFajr && (muadzin == 'makkah' || muadzin == 'madinah')) {
-      // Makkah/Madinah use the fajr adzan style for Subuh & First Adzan
-      resolvedKey = 'fajr';
-    }
-    if (!_muadzinChannels.containsKey(resolvedKey)) return;
-    final info = _muadzinChannels[resolvedKey]!;
+  Future<void> playAdzanPreview(String muadzin) async {
+    if (!_muadzinChannels.containsKey(muadzin)) return;
+    final info = _muadzinChannels[muadzin]!;
     final file = info['file']!;
     try {
       await _previewPlayer.stop();
@@ -247,23 +239,17 @@ class AlarmService {
           channelName = 'Prayer Alarms (Silent)';
           channelDesc = 'Silent prayer time reminders';
         } else {
-          // Subuh & First Adzan use the dedicated Fajr muadzin voice.
-          // For Makkah/Madinah, real mosques use a special Fajr adzan
-          // (with extra "Ash-shalatu khayrun minan nawm") so we map
-          // those to the 'fajr' audio asset for first_adzan and fajr.
+          // Subuh & First Adzan use the dedicated Fajr muadzin voice;
+          // other prayers use the regular muadzin voice.
           final bool isFajrPrayer = key == 'first_adzan' || key == 'fajr';
-          String muadzinKey = isFajrPrayer
+          final String muadzinKey = isFajrPrayer
               ? settings.adzanMuadzinFajr
               : settings.adzanMuadzin;
-          if (isFajrPrayer &&
-              (muadzinKey == 'makkah' || muadzinKey == 'madinah')) {
-            muadzinKey = 'fajr';
-          }
-          final info  = _muadzinChannels[muadzinKey] ?? _muadzinChannels['fajr']!;
+          final info  = _muadzinChannels[muadzinKey] ?? _muadzinChannels['makkah']!;
           soundFile   = info['file']!;
           channelId   = info['channelId']!;
           channelName = info['channelName']!;
-          channelDesc = 'Prayer notification \u2014 ${info["label"]}';
+          channelDesc = 'Prayer notification — ${info["label"]}';
         }
 
         final androidDetails = AndroidNotificationDetails(

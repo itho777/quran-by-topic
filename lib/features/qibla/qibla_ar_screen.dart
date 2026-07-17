@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'qibla_providers.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
@@ -19,6 +21,9 @@ class _QiblaArScreenState extends ConsumerState<QiblaArScreen> {
   bool _isCameraInitialized = false;
   bool _permissionDenied = false;
   List<CameraDescription> _cameras = [];
+  bool _hasSensorData = false;
+  bool _dialogShown = false;
+  StreamSubscription? _sensorCheckSub;
 
   @override
   void initState() {
@@ -28,6 +33,7 @@ class _QiblaArScreenState extends ConsumerState<QiblaArScreen> {
       DeviceOrientation.portraitUp,
     ]);
     _initializeCamera();
+    _startSensorCheck();
   }
 
   Future<void> _initializeCamera() async {
@@ -71,6 +77,7 @@ class _QiblaArScreenState extends ConsumerState<QiblaArScreen> {
 
   @override
   void dispose() {
+    _sensorCheckSub?.cancel();
     // Restore orientation settings
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -80,6 +87,71 @@ class _QiblaArScreenState extends ConsumerState<QiblaArScreen> {
     ]);
     _cameraController?.dispose();
     super.dispose();
+  }
+
+  void _startSensorCheck() {
+    final events = FlutterCompass.events;
+    if (events == null) {
+      _showSensorWarning();
+      return;
+    }
+
+    _sensorCheckSub = events.listen(
+      (event) {
+        if (event.heading != null) {
+          _hasSensorData = true;
+        }
+      },
+      onError: (_) {
+        _showSensorWarning();
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!_hasSensorData && mounted && !_dialogShown) {
+        _showSensorWarning();
+      }
+    });
+  }
+
+  void _showSensorWarning() {
+    if (!mounted) return;
+    _dialogShown = true;
+    final isEn = ref.read(settingsProvider).appLanguage == 'en';
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surfaceContainerHigh,
+          title: Row(
+            children: [
+              Icon(Icons.sensors_off_outlined, color: AppTheme.primary),
+              const SizedBox(width: 10),
+              Text(
+                isEn ? 'Hardware Sensor Required' : 'Butuh Sensor Perangkat',
+                style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: Text(
+            isEn
+                ? 'This device does not have a compass/magnetometer or gyroscope sensor. The AR Qibla Finder will not work properly.'
+                : 'Perangkat ini tidak memiliki sensor kompas/magnetometer atau giroskop. Fitur AR Pencari Kiblat tidak akan berfungsi dengan baik.',
+            style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop(); // dismiss dialog
+                Navigator.of(context).pop(); // navigate back
+              },
+              child: Text(isEn ? 'OK' : 'Mengerti', style: TextStyle(color: AppTheme.primary)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

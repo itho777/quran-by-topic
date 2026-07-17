@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
+import '../../core/alarm_service.dart';
 import 'qibla_providers.dart';
 import 'qibla_service.dart';
 
@@ -65,16 +66,38 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
     if (!mounted) return;
     _dialogShown = true;
     final isEn = ref.read(settingsProvider).appLanguage == 'en';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEn
-              ? 'To use this feature properly your device needs to have compass & gyroscope sensors'
-              : 'Untuk menggunakan fitur ini dengan baik, perangkat Anda harus memiliki sensor kompas & giroskop',
-        ),
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surfaceContainerHigh,
+          title: Row(
+            children: [
+              Icon(Icons.sensors_off_outlined, color: AppTheme.primary),
+              const SizedBox(width: 10),
+              Text(
+                isEn ? 'Hardware Sensor Required' : 'Butuh Sensor Perangkat',
+                style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          content: Text(
+            isEn
+                ? 'To use this feature properly, your device needs to have compass & gyroscope hardware sensors.'
+                : 'Untuk menggunakan fitur ini dengan baik, perangkat Anda harus memiliki sensor perangkat keras kompas & giroskop.',
+            style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: Text(isEn ? 'OK' : 'Mengerti', style: TextStyle(color: AppTheme.primary)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -98,6 +121,15 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
           isEn ? 'Qibla & Prayer Times' : 'Kiblat & Waktu Shalat',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: AppTheme.primary),
+            tooltip: isEn ? 'Prayer & Adzan Settings' : 'Pengaturan Shalat & Adzan',
+            onPressed: () {
+              context.push('/qibla/settings');
+            },
+          ),
+        ],
       ),
       body: locationAsync.when(
         data: (position) => _buildContent(context, position, isEn),
@@ -489,13 +521,21 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
                         ),
                       ],
                     ),
-                    Text(
-                      formatTime(time),
-                      style: TextStyle(
-                        color: isNext ? AppTheme.primary : AppTheme.onSurface,
-                        fontWeight: isNext ? FontWeight.bold : FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          formatTime(time),
+                          style: TextStyle(
+                            color: isNext ? AppTheme.primary : AppTheme.onSurface,
+                            fontWeight: isNext ? FontWeight.bold : FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (key != 'sunrise' && key != 'dhuha') ...[
+                          const SizedBox(width: 12),
+                          _buildNotificationBell(key, settings),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -503,6 +543,50 @@ class _QiblaScreenState extends ConsumerState<QiblaScreen> with SingleTickerProv
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationBell(String key, SettingsState settings) {
+    bool isActive = false;
+    switch (key) {
+      case 'firstadzan': isActive = settings.soundFirstAdzan; break;
+      case 'fajr': isActive = settings.soundFajr; break;
+      case 'dhuhr': isActive = settings.soundDhuhr; break;
+      case 'asr': isActive = settings.soundAsr; break;
+      case 'maghrib': isActive = settings.soundMaghrib; break;
+      case 'isha': isActive = settings.soundIsha; break;
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () async {
+        final notifier = ref.read(settingsProvider.notifier);
+        switch (key) {
+          case 'firstadzan': await notifier.setSoundFirstAdzan(!settings.soundFirstAdzan); break;
+          case 'fajr': await notifier.setSoundFajr(!settings.soundFajr); break;
+          case 'dhuhr': await notifier.setSoundDhuhr(!settings.soundDhuhr); break;
+          case 'asr': await notifier.setSoundAsr(!settings.soundAsr); break;
+          case 'maghrib': await notifier.setSoundMaghrib(!settings.soundMaghrib); break;
+          case 'isha': await notifier.setSoundIsha(!settings.soundIsha); break;
+        }
+        // Reschedule alarms
+        final location = ref.read(currentLocationProvider).value;
+        if (location != null) {
+          await AlarmService.instance.schedulePrayerAlarms(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            settings: ref.read(settingsProvider),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Icon(
+          isActive ? Icons.notifications_active_rounded : Icons.notifications_off_outlined,
+          color: isActive ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.5),
+          size: 20,
+        ),
       ),
     );
   }

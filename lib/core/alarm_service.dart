@@ -216,19 +216,21 @@ class AlarmService {
         final String channelDesc;
 
         // Check if sound is enabled for this specific prayer key
-        bool soundEnabled = true;
-        if (key == 'first_adzan') {
-          soundEnabled = settings.soundFirstAdzan;
-        } else if (key == 'fajr') {
-          soundEnabled = settings.soundFajr;
-        } else if (key == 'dhuhr') {
-          soundEnabled = settings.soundDhuhr;
-        } else if (key == 'asr') {
-          soundEnabled = settings.soundAsr;
-        } else if (key == 'maghrib') {
-          soundEnabled = settings.soundMaghrib;
-        } else if (key == 'isha') {
-          soundEnabled = settings.soundIsha;
+        bool soundEnabled = settings.enableAdzanSound;
+        if (soundEnabled) {
+          if (key == 'first_adzan') {
+            soundEnabled = settings.soundFirstAdzan;
+          } else if (key == 'fajr') {
+            soundEnabled = settings.soundFajr;
+          } else if (key == 'dhuhr') {
+            soundEnabled = settings.soundDhuhr;
+          } else if (key == 'asr') {
+            soundEnabled = settings.soundAsr;
+          } else if (key == 'maghrib') {
+            soundEnabled = settings.soundMaghrib;
+          } else if (key == 'isha') {
+            soundEnabled = settings.soundIsha;
+          }
         }
 
         if (!soundEnabled) {

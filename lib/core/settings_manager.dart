@@ -20,6 +20,7 @@ class SettingsState {
   final bool enableFirstAdzan;
   final int firstAdzanOffset; // in minutes before Fajr
   final String adzanMuadzin;    // 'standard'|'fajr'|'makkah'|'madinah'|'afasi'|'qatami'
+  final bool enableAdzanSound;
   final bool soundFirstAdzan;
   final bool soundFajr;
   final bool soundDhuhr;
@@ -45,6 +46,7 @@ class SettingsState {
     this.enableFirstAdzan = false,
     this.firstAdzanOffset = 60,
     this.adzanMuadzin = 'makkah',
+    this.enableAdzanSound = true,
     this.soundFirstAdzan = true,
     this.soundFajr = true,
     this.soundDhuhr = true,
@@ -71,6 +73,7 @@ class SettingsState {
     bool? enableFirstAdzan,
     int? firstAdzanOffset,
     String? adzanMuadzin,
+    bool? enableAdzanSound,
     bool? soundFirstAdzan,
     bool? soundFajr,
     bool? soundDhuhr,
@@ -96,6 +99,7 @@ class SettingsState {
       enableFirstAdzan: enableFirstAdzan ?? this.enableFirstAdzan,
       firstAdzanOffset: firstAdzanOffset ?? this.firstAdzanOffset,
       adzanMuadzin: adzanMuadzin ?? this.adzanMuadzin,
+      enableAdzanSound: enableAdzanSound ?? this.enableAdzanSound,
       soundFirstAdzan: soundFirstAdzan ?? this.soundFirstAdzan,
       soundFajr: soundFajr ?? this.soundFajr,
       soundDhuhr: soundDhuhr ?? this.soundDhuhr,
@@ -117,6 +121,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           selectedReciter: 'Alafasy_128kbps',
           mushafFullWidth: true,
           prayerCalculationMethod: 'kemenag',
+          enableAdzanSound: true,
         )) {
     _loadSettings();
   }
@@ -140,6 +145,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final showFirstAdzan = prefs.getBool('enable_first_adzan') ?? false;
       final fAdzanOffset = prefs.getInt('first_adzan_offset') ?? 60;
       final adzanMuadzin = prefs.getString('adzan_muadzin') ?? 'makkah';
+      final adzanSound = prefs.getBool('enable_adzan_sound') ?? true;
       final sFirst = prefs.getBool('sound_first_adzan') ?? true;
       final sFajr = prefs.getBool('sound_fajr') ?? true;
       final sDhuhr = prefs.getBool('sound_dhuhr') ?? true;
@@ -167,6 +173,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         enableFirstAdzan: showFirstAdzan,
         firstAdzanOffset: fAdzanOffset,
         adzanMuadzin: adzanMuadzin,
+        enableAdzanSound: adzanSound,
         soundFirstAdzan: sFirst,
         soundFajr: sFajr,
         soundDhuhr: sDhuhr,
@@ -276,6 +283,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(adzanMuadzin: muadzin);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('adzan_muadzin', muadzin);
+  }
+
+  Future<void> setEnableAdzanSound(bool val) async {
+    state = state.copyWith(enableAdzanSound: val);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_adzan_sound', val);
   }
 
   Future<void> setSoundFirstAdzan(bool val) async {

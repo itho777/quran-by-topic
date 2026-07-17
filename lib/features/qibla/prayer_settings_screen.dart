@@ -132,24 +132,66 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
             ),
             child: Column(
               children: [
-                // Muadzin Voice Selector
+                // Adzan Sound Toggle
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.secondary.withValues(alpha: 0.12),
+                      color: AppTheme.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.mic_none_outlined, color: AppTheme.secondary, size: 18),
+                    child: Icon(Icons.volume_up_outlined, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text(
+                    isEn ? 'Adzan Sound' : 'Suara Adzan',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    isEn
+                        ? 'Play adzan audio with prayer notifications'
+                        : 'Putar suara adzan saat notifikasi shalat',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Switch(
+                    value: settings.enableAdzanSound,
+                    activeThumbColor: AppTheme.primary,
+                    onChanged: (val) async {
+                      ref.read(settingsProvider.notifier).setEnableAdzanSound(val);
+                      await _rescheduleAlarms();
+                    },
+                  ),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Muadzin Voice Selector
+                ListTile(
+                  enabled: settings.enableAdzanSound,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: settings.enableAdzanSound
+                          ? AppTheme.secondary.withValues(alpha: 0.12)
+                          : AppTheme.outline.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.mic_none_outlined,
+                      color: settings.enableAdzanSound ? AppTheme.secondary : AppTheme.outline,
+                      size: 18,
+                    ),
                   ),
                   title: Text(
                     isEn ? 'Muadzin (Adzan Voice)' : 'Pilihan Suadzan / Muadzin',
-                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: settings.enableAdzanSound ? AppTheme.onSurface : AppTheme.outline,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   subtitle: Text(
                     AlarmService.muadzinLabel(settings.adzanMuadzin),
                     style: TextStyle(
-                      color: AppTheme.primary,
+                      color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.6),
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -159,20 +201,37 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                     children: [
                       // Play Preview button
                       IconButton(
-                        icon: Icon(Icons.play_circle_outline, color: AppTheme.primary, size: 22),
+                        icon: Icon(
+                          Icons.play_circle_outline,
+                          color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.3),
+                          size: 22,
+                        ),
                         tooltip: isEn ? 'Preview adzan' : 'Dengarkan adzan',
-                        onPressed: () => AlarmService.instance.playAdzanPreview(settings.adzanMuadzin),
+                        onPressed: settings.enableAdzanSound
+                            ? () => AlarmService.instance.playAdzanPreview(settings.adzanMuadzin)
+                            : null,
                       ),
                       // Stop Preview button
                       IconButton(
-                        icon: Icon(Icons.stop_circle_outlined, color: AppTheme.outline, size: 22),
+                        icon: Icon(
+                          Icons.stop_circle_outlined,
+                          color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.3),
+                          size: 22,
+                        ),
                         tooltip: isEn ? 'Stop preview' : 'Hentikan adzan',
-                        onPressed: () => AlarmService.instance.stopAdzanPreview(),
+                        onPressed: settings.enableAdzanSound
+                            ? () => AlarmService.instance.stopAdzanPreview()
+                            : null,
                       ),
                       // Muadzin list
                       PopupMenuButton<String>(
-                        icon: Icon(Icons.expand_more, color: AppTheme.outline, size: 20),
+                        icon: Icon(
+                          Icons.expand_more,
+                          color: settings.enableAdzanSound ? AppTheme.outline : AppTheme.outline.withValues(alpha: 0.3),
+                          size: 20,
+                        ),
                         color: AppTheme.surfaceContainerHigh,
+                        enabled: settings.enableAdzanSound,
                         onSelected: (newVal) async {
                           ref.read(settingsProvider.notifier).setAdzanMuadzin(newVal);
                           await _rescheduleAlarms();

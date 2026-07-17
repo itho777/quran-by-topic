@@ -20,6 +20,7 @@ import '../features/admin/admin_screens.dart';
 import '../features/admin/admin_cms_screen.dart';
 import '../features/qibla/qibla_screen.dart';
 import '../features/qibla/qibla_ar_screen.dart';
+import '../features/qibla/prayer_settings_screen.dart';
 import 'auth_provider.dart';
 import 'shell_scaffold.dart';
 
@@ -154,6 +155,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/qibla',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: QiblaScreen()),
+            routes: [
+              GoRoute(
+                path: 'settings',
+                builder: (context, state) => const PrayerSettingsScreen(),
+              ),
+            ],
           ),
         ],
       ),

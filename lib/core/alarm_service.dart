@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -100,8 +101,12 @@ class AlarmService {
     },
   };
 
-  static String muadzinLabel(String key) =>
-      _muadzinChannels[key]?['label'] ?? key;
+  static String muadzinLabel(String key, {bool isEn = false}) {
+    if (key == 'tone') {
+      return isEn ? 'Notification Tone' : 'Nada Notifikasi';
+    }
+    return _muadzinChannels[key]?['label'] ?? key;
+  }
 
   static String muadzinFile(String key) =>
       _muadzinChannels[key]?['file'] ?? 'adhan_standard';
@@ -110,8 +115,28 @@ class AlarmService {
 
   final ValueNotifier<String?> previewNotifier = ValueNotifier<String?>(null);
 
-  // ── Preview: play the sound directly via AudioPlayer so user can hear it ─
-  Future<void> playAdzanPreview(String muadzin) async {
+  // ── Preview: play the sound directly via AudioPlayer so user can hear it ──
+  Future<void> playAdzanPreview(String muadzin, {String? customSoundUri}) async {
+    if (muadzin == 'tone') {
+      try {
+        await _previewPlayer.stop();
+        previewNotifier.value = 'tone';
+        
+        const channel = MethodChannel('com.example.tafseer_id/ringtone_picker');
+        await channel.invokeMethod('playRingtone', {'uri': customSoundUri ?? ''});
+        
+        // Auto-stop preview after 4 seconds
+        Future.delayed(const Duration(seconds: 4), () {
+          if (previewNotifier.value == 'tone') {
+            stopAdzanPreview();
+          }
+        });
+      } catch (_) {
+        previewNotifier.value = null;
+      }
+      return;
+    }
+
     if (!_muadzinChannels.containsKey(muadzin)) return;
     final info = _muadzinChannels[muadzin]!;
     final file = info['file']!;
@@ -135,6 +160,10 @@ class AlarmService {
   Future<void> stopAdzanPreview() async {
     try {
       await _previewPlayer.stop();
+      if (previewNotifier.value == 'tone') {
+        const channel = MethodChannel('com.example.tafseer_id/ringtone_picker');
+        await channel.invokeMethod('stopRingtone');
+      }
       previewNotifier.value = null;
     } catch (_) {}
   }
@@ -265,9 +294,17 @@ class AlarmService {
         }
 
         final bool isToneOnlyPrayer = key == 'sunrise' || key == 'dhuha';
+        bool playTone = isToneOnlyPrayer || settings.playToneOnly;
+        if (!playTone) {
+          final bool isFajrGroup = key == 'first_adzan' || key == 'fajr';
+          final String muadzinKey = isFajrGroup ? settings.adzanMuadzinFajr : settings.adzanMuadzin;
+          if (muadzinKey == 'tone') {
+            playTone = true;
+          }
+        }
 
         if (soundEnabled) {
-          if (settings.playToneOnly || isToneOnlyPrayer) {
+          if (playTone) {
             final uri = settings.customSoundUri;
             if (uri != null && uri.isNotEmpty) {
               channelId = 'prayer_alarms_tone_${uri.hashCode}';
@@ -332,7 +369,7 @@ class AlarmService {
               ? null
               : (soundFile == 'system_default'
                   ? null
-                  : ((settings.playToneOnly || isToneOnlyPrayer)
+                  : (playTone
                       ? UriAndroidNotificationSound(soundFile)
                       : RawResourceAndroidNotificationSound(soundFile))),
           playSound: soundFile.isNotEmpty,
@@ -343,7 +380,7 @@ class AlarmService {
               ? null
               : (soundFile == 'system_default'
                   ? null
-                  : ((settings.playToneOnly || isToneOnlyPrayer)
+                  : (playTone
                       ? null // default iOS sound
                       : '$soundFile.mp3')),
           presentAlert: true,

@@ -237,12 +237,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                                 ? 'iOS manages notification sounds via system settings.'
                                 : 'iOS mengelola suara notifikasi lewat pengaturan sistem.'),
                           ));
-                        }
-                      },
-                    ),
-                    Divider(height: 1, indent: 16, endIndent: 16),
-                  ] else ...[
-                    // Muadzin Other Prayers
+                                  // Muadzin Other Prayers
                     ListTile(
                       enabled: settings.enableAdzanSound,
                       leading: Container(
@@ -268,7 +263,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        AlarmService.muadzinLabel(settings.adzanMuadzin),
+                        AlarmService.muadzinLabel(settings.adzanMuadzin, isEn: isEn),
                         style: TextStyle(
                           color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.6),
                           fontSize: 11,
@@ -296,7 +291,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                                         if (isPlayingThis) {
                                           AlarmService.instance.stopAdzanPreview();
                                         } else {
-                                          AlarmService.instance.playAdzanPreview(settings.adzanMuadzin);
+                                          AlarmService.instance.playAdzanPreview(settings.adzanMuadzin, customSoundUri: settings.customSoundUri);
                                         }
                                       }
                                     : null,
@@ -321,7 +316,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                               _muadzinMenuItem('afasi',   '🎙 Mishary Al-Afasi', 'Most popular worldwide', settings.adzanMuadzin),
                               _muadzinMenuItem('qatami',  '🎙 Nasser Al-Qatami', 'Beautiful recitation', settings.adzanMuadzin),
                               _muadzinMenuItem('standard','🔔 Standard', 'Classic notification sound', settings.adzanMuadzin),
-                              _muadzinMenuItem('fajr',    '🌙 Fajr Style', 'Special Fajr adzan', settings.adzanMuadzin),
+                              _muadzinMenuItem('tone',    isEn ? '🔔 Notification Tone' : '🔔 Nada Notifikasi', isEn ? 'System default or custom tone' : 'Bawaan sistem atau nada kustom', settings.adzanMuadzin),
                             ],
                           ),
                         ],
@@ -355,7 +350,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        AlarmService.muadzinLabel(settings.adzanMuadzinFajr),
+                        AlarmService.muadzinLabel(settings.adzanMuadzinFajr, isEn: isEn),
                         style: TextStyle(
                           color: settings.enableAdzanSound ? AppTheme.primary : AppTheme.outline.withValues(alpha: 0.6),
                           fontSize: 11,
@@ -383,7 +378,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                                         if (isPlayingThis) {
                                           AlarmService.instance.stopAdzanPreview();
                                         } else {
-                                          AlarmService.instance.playAdzanPreview(settings.adzanMuadzinFajr);
+                                          AlarmService.instance.playAdzanPreview(settings.adzanMuadzinFajr, customSoundUri: settings.customSoundUri);
                                         }
                                       }
                                     : null,
@@ -403,12 +398,13 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                               await _rescheduleAlarms();
                             },
                             itemBuilder: (context) => [
+                              _muadzinMenuItem('fajr',    '🌙 Fajr Style', 'Special Fajr adzan', settings.adzanMuadzinFajr),
                               _muadzinMenuItem('makkah',  '🕌 Makkah', 'Masjid al-Haram', settings.adzanMuadzinFajr),
                               _muadzinMenuItem('madinah', '🕌 Madinah', 'Masjid Nabawi', settings.adzanMuadzinFajr),
-                              _muadzinMenuItem('fajr',    '🌙 Fajr Style', 'Special Fajr adzan', settings.adzanMuadzinFajr),
                               _muadzinMenuItem('afasi',   '🎙 Mishary Al-Afasi', 'Most popular worldwide', settings.adzanMuadzinFajr),
                               _muadzinMenuItem('qatami',  '🎙 Nasser Al-Qatami', 'Beautiful recitation', settings.adzanMuadzinFajr),
                               _muadzinMenuItem('standard','🔔 Standard', 'Classic notification sound', settings.adzanMuadzinFajr),
+                              _muadzinMenuItem('tone',    isEn ? '🔔 Notification Tone' : '🔔 Nada Notifikasi', isEn ? 'System default or custom tone' : 'Bawaan sistem atau nada kustom', settings.adzanMuadzinFajr),
                             ],
                           ),
                         ],

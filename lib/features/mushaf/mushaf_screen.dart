@@ -2298,53 +2298,79 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 }
                               }
 
-                              // Fix #3: In fullWidth mode, the page is taller than the screen.
-                              // Wrap in SingleChildScrollView so the user can scroll vertically.
-                              final sizedChild = SizedBox(
+                              // Build the page image widget
+                              final pageImage = buildQuranPageImage(
+                                context,
+                                pageNum,
+                                onTap: _onUserInteraction,
+                                onTapWithPosition: _onImageTapped,
+                                onVerseTapped: _onVerseSelectedBySurahAyah,
+                                selectedVerseId: _selectedVerseId,
+                                playingVerseId: _playingVerseId,
+                                fullWidth: fullWidth,
+                                viewportWidth: pageW,
+                              );
+
+                              final pageDecorationBox = Container(
                                 width: pageW,
                                 height: pageH,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFBF9F1),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.08),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 4),
-                                      )
-                                    ],
-                                  ),
-                                  child: InteractiveViewer(
-                                    // A unique key resets the pan/zoom transformation whenever the
-                                    // page, fullWidth mode, or menu visibility changes, preventing
-                                    // the mushaf image from drifting off-screen randomly.
-                                    key: ValueKey('iv_${pageNum}_${fullWidth}_$_menusVisible'),
-                                    maxScale: 3.0,
-                                    boundaryMargin: fullWidth
-                                        ? const EdgeInsets.symmetric(vertical: 240.0, horizontal: 80.0)
-                                        : EdgeInsets.zero,
-                                    constrained: !fullWidth,
-                                    child: buildQuranPageImage(
-                                      context,
-                                      pageNum,
-                                      onTap: _onUserInteraction,
-                                      onTapWithPosition: _onImageTapped,
-                                      onVerseTapped: _onVerseSelectedBySurahAyah,
-                                      selectedVerseId: _selectedVerseId,
-                                      playingVerseId: _playingVerseId,
-                                      fullWidth: fullWidth,
-                                      viewportWidth: pageW,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFBF9F1),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.08),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ],
+                                ),
+                                child: pageImage,
+                              );
+
+                              // In normal (fit) mode: render directly without InteractiveViewer.
+                              // InteractiveViewer absorbs all pointer events even when pan/zoom
+                              // are disabled, causing diagonal swipe conflicts with the PageView.
+                              if (!fullWidth) {
+                                return SizedBox(
+                                  width: pageW,
+                                  height: pageH,
+                                  child: pageDecorationBox,
+                                );
+                              }
+
+                              // In fullWidth mode: wrap in InteractiveViewer for pan/zoom,
+                              // then in SingleChildScrollView because the page is taller than screen.
+                              return SingleChildScrollView(
+                                physics: const ClampingScrollPhysics(),
+                                child: SizedBox(
+                                  width: pageW,
+                                  height: pageH,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFBF9F1),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 4),
+                                        )
+                                      ],
+                                    ),
+                                    child: InteractiveViewer(
+                                      // Reset transform on page/mode/menu changes.
+                                      key: ValueKey('iv_${pageNum}_$_menusVisible'),
+                                      maxScale: 3.0,
+                                      minScale: 1.0,
+                                      panEnabled: true,
+                                      scaleEnabled: true,
+                                      boundaryMargin: const EdgeInsets.symmetric(
+                                          vertical: 240.0, horizontal: 80.0),
+                                      constrained: false,
+                                      child: pageImage,
                                     ),
                                   ),
                                 ),
                               );
-                              if (fullWidth) {
-                                return SingleChildScrollView(
-                                  physics: const ClampingScrollPhysics(),
-                                  child: sizedChild,
-                                );
-                              }
-                              return sizedChild;
                             },
                           ),
 
@@ -2565,9 +2591,20 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                     _menuCollapseTimer?.cancel();
                                     _studyMenuCollapseTimer?.cancel();
                                     ref.read(hideNavBarProvider.notifier).state = false;
-                                    final tabIdx = _studyContentTab == 'tafsir' ? 1
-                                        : _studyContentTab == 'nuzul' ? 2 : 0;
-                                    await context.push('/surahs/$sId/ayahs/$aNum?tab=$tabIdx');
+                                    // ── same URL-building script as search result cards ──
+                                    final base = '/surahs/$sId/ayahs/$aNum';
+                                    final p = <String, String>{};
+                                    if (_studyContentTab == 'tafsir') {
+                                      p['tab'] = '1';
+                                      if (_tafsirSource.isNotEmpty) p['tafsir'] = _tafsirSource;
+                                    } else if (_studyContentTab == 'nuzul') {
+                                      p['tab'] = '2';
+                                    } else {
+                                      p['tab'] = '0';
+                                    }
+                                    final url = p.isEmpty ? base
+                                        : '$base?${p.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
+                                    context.go(url);
                                     if (mounted) {
                                       ref.read(hideNavBarProvider.notifier).state = true;
                                     }
@@ -3014,14 +3051,23 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                                     _studyMenuCollapseTimer?.cancel();
                                                     ref.read(hideNavBarProvider.notifier).state = false;
 
-                                                    final tabIdx = _studyContentTab == 'tafsir' ? 1
-                                                        : _studyContentTab == 'nuzul' ? 2 : 0;
-                                                    await context.push('/surahs/$sId/ayahs/$aNum?tab=$tabIdx');
+                                                    // ── same URL-building script as search result cards ──
+                                                    final base = '/surahs/$sId/ayahs/$aNum';
+                                                    final p = <String, String>{};
+                                                    if (_studyContentTab == 'tafsir') {
+                                                      p['tab'] = '1';
+                                                      if (_tafsirSource.isNotEmpty) p['tafsir'] = _tafsirSource;
+                                                    } else if (_studyContentTab == 'nuzul') {
+                                                      p['tab'] = '2';
+                                                    } else {
+                                                      p['tab'] = '0';
+                                                    }
+                                                    final url = p.isEmpty ? base
+                                                        : '$base?${p.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&')}';
 
                                                     if (mounted) {
-
+                                                      context.go(url);
                                                       ref.read(hideNavBarProvider.notifier).state = true;
-
                                                     }
 
                                                   },

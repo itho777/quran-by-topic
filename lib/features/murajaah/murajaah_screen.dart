@@ -65,6 +65,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   bool _isPlaying = false;
   bool _isPaused = false;
   bool _loadingPlaylist = false;
+  bool _sessionActive = false; // true while a playback session is running
 
   int _currentPlaylistIndex = 0;  // index into _playlist
   int _currentAyahRepeat = 0;     // how many times current ayah has played so far
@@ -203,6 +204,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
     _currentAyahRepeat = 0;
     _currentPlaylistRepeat = 0;
     _isPaused = false;
+    _sessionActive = true;
     await _playCurrentAyah();
   }
 
@@ -217,7 +219,8 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   }
 
   void _onAyahComplete() {
-    if (!_isPlaying && !_isPaused) return;
+    // Guard: only advance if a session is actively running
+    if (!_sessionActive) return;
     if (!mounted) return;
 
     _currentAyahRepeat++;
@@ -241,7 +244,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
         _playCurrentAyah();
       } else {
         // Done
-        if (mounted) setState(() { _isPlaying = false; _isPaused = false; });
+        if (mounted) setState(() { _isPlaying = false; _isPaused = false; _sessionActive = false; });
       }
       return;
     }
@@ -267,6 +270,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
       setState(() {
         _isPlaying = false;
         _isPaused = false;
+        _sessionActive = false;
         _currentPlaylistIndex = 0;
         _currentAyahRepeat = 0;
         _currentPlaylistRepeat = 0;
@@ -467,6 +471,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
     required ValueChanged<int> onSurahChanged,
     required ValueChanged<int> onAyahChanged,
   }) {
+    final maxAyas = _ayasForSurah(surahId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -544,10 +549,8 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                           hintStyle: TextStyle(color: AppTheme.outline),
                         ),
                         onChanged: (v) {
-                          final parsed = int.tryParse(v);
-                          if (parsed != null) {
-                            onAyahChanged(parsed);
-                          }
+                          final parsed = int.tryParse(v) ?? 1;
+                          onAyahChanged(parsed.clamp(1, maxAyas));
                         },
                       ),
                     ),
@@ -828,8 +831,8 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
           : Column(
               children: [
                 // ── Config panel ─────────────────────────────────────────
-                Expanded(
-                  flex: hasPlaylist ? 0 : 1,
+                Flexible(
+                  fit: hasPlaylist ? FlexFit.loose : FlexFit.tight,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: Column(

@@ -21,6 +21,7 @@ import '../features/admin/admin_cms_screen.dart';
 import '../features/qibla/qibla_screen.dart';
 import '../features/qibla/qibla_ar_screen.dart';
 import '../features/qibla/prayer_settings_screen.dart';
+import '../features/murajaah/murajaah_screen.dart';
 import 'auth_provider.dart';
 import 'shell_scaffold.dart';
 
@@ -150,6 +151,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ProfileScreen()),
+          ),
+          GoRoute(
+            path: '/murajaah',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: MurajaahScreen()),
           ),
           GoRoute(
             path: '/qibla',

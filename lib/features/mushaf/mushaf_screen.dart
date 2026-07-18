@@ -2285,8 +2285,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                               const aspectRatio = 345.0 / 550.0;
                               double pageW, pageH;
                               if (fullWidth) {
-                                pageW = availW;
-                                pageH = availW / aspectRatio;
+                                pageW = availW > 650.0 ? 650.0 : availW;
+                                pageH = pageW / aspectRatio;
                               } else {
                                 // Fit within available space, maintaining aspect ratio
                                 if (availH.isFinite && availH * aspectRatio <= availW) {
@@ -2340,33 +2340,38 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                               // In fullWidth mode: wrap in InteractiveViewer for pan/zoom,
                               // then in SingleChildScrollView because the page is taller than screen.
-                              return SingleChildScrollView(
-                                physics: const ClampingScrollPhysics(),
+                              return Center(
                                 child: SizedBox(
                                   width: pageW,
-                                  height: pageH,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFBF9F1),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.08),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 4),
-                                        )
-                                      ],
-                                    ),
-                                    child: InteractiveViewer(
-                                      // Reset transform on page/mode/menu changes.
-                                      key: ValueKey('iv_${pageNum}_$_menusVisible'),
-                                      maxScale: 3.0,
-                                      minScale: 1.0,
-                                      panEnabled: true,
-                                      scaleEnabled: true,
-                                      boundaryMargin: const EdgeInsets.symmetric(
-                                          vertical: 240.0, horizontal: 80.0),
-                                      constrained: false,
-                                      child: pageImage,
+                                  child: SingleChildScrollView(
+                                    physics: const ClampingScrollPhysics(),
+                                    child: SizedBox(
+                                      width: pageW,
+                                      height: pageH,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFBF9F1),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.08),
+                                              blurRadius: 16,
+                                              offset: const Offset(0, 4),
+                                            )
+                                          ],
+                                        ),
+                                        child: InteractiveViewer(
+                                          // Reset transform on page/mode/menu changes.
+                                          key: ValueKey('iv_${pageNum}_$_menusVisible'),
+                                          maxScale: 3.0,
+                                          minScale: 1.0,
+                                          panEnabled: true,
+                                          scaleEnabled: true,
+                                          boundaryMargin: const EdgeInsets.symmetric(
+                                              vertical: 240.0, horizontal: 80.0),
+                                          constrained: false,
+                                          child: pageImage,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),

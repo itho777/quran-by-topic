@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/auth_provider.dart';
+import '../../core/static_index_service.dart';
 
 void _showCreditsPopup(BuildContext context) {
   showDialog(
@@ -84,27 +85,32 @@ void _showCreditsPopup(BuildContext context) {
                 buildCreditItem('• Tanzil.net (Quran text, translations, transliterations)', url: 'https://tanzil.net'),
                 buildCreditItem('• everyayah.com (Audio stream)', url: 'https://everyayah.com'),
                 buildCreditItem('• mp3quran.net (Alternative surah-level audio)', url: 'https://mp3quran.net'),
+                buildCreditItem('• Archive.org (Library resource host)', url: 'https://archive.org/'),
+                buildCreditItem('• Halal Quranic Audio Databases'),
                 buildCreditItem(
-                  '• AL SADIQIN Press & Ben Abrahamson (Tafsir Tabari, Baghawi, Qurtubi, Baidawi, Ibn Kathir, Jalalayn, Suyuti & Fath al-Qadir)',
+                  '• AL SADIQIN Press, Al Sadiqin Institute & Ben Abrahamson (Tafsir Tabari, Baghawi, Qurtubi, Baidawi, Ibn Kathir, Jalalayn, Suyuti & Fath al-Qadir)',
                   url: 'https://alsadiqin.org/tafsir/',
                 ),
-                buildCreditItem('• Royal Aal al-Bayt Institute (Asbab al-Nuzul by Al-Wahidi)'),
-                buildCreditItem('• Kemenag RI (Asbabun-Nuzul & Translation ID)'),
-                buildCreditItem('• H. Suhardi (Indeks Al-Qur’an)'),
-                buildCreditItem('• Abu Farhah (Indeks Quran)'),
+                buildCreditItem('• Royal Aal al-Bayt Institute for Islamic Thought, Amman, Jordan (Asbāb al-Nuzūl by Alī ibn Ahmad al-Wāhidī)'),
+                buildCreditItem('• Lajnah Pentashihan Mushaf Al-Qur’an, Badan Litbang dan Diklat Kementerian Agama RI (ASBÀBUN-NUZÙL, Muchlis M. Hanafi ed.)'),
+                buildCreditItem('• H. Suhardi (INDEKS AL-QUR’AN Cara Mudah Mencari Rujukan Ayat-Ayat al-Qur’an)'),
+                buildCreditItem('• Abu Farhah (Indeks Quran.xls)'),
                 buildCreditItem('• Kongsi Ebooks', url: 'https://kongsiebooks.blogspot.com/2010/04/islam-indeks-al-quran.html'),
                 buildCreditItem('• Quranku Quranmu', url: 'http://qurankuquranmu.blogspot.com/2012/12/indeks-al-quran-berdasarkan-klasifikasi.html'),
-                buildCreditItem('• Saadus Wordpres Indeks', url: 'https://saadus.wordpress.com/2011/02/05/indeks-al-quran-ms-excel-dan-ms-access/'),
+                buildCreditItem('• Saadus Wordpress', url: 'https://saadus.wordpress.com/2011/02/05/indeks-al-quran-ms-excel-dan-ms-access/'),
+                buildCreditItem('• Dr. Rashad Khalifa (Alphabetically organized index)', url: 'https://www.masjidtucson.org'),
                 const SizedBox(height: 16),
                 Text(
                   'Assets & Technology',
                   style: TextStyle(color: titleColor, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
-                buildCreditItem('• Quranpedia Hafs KFQC SVG (Mushaf SVG images)', url: 'https://github.com/quranpedia/quran-svg'),
+                buildCreditItem('• Quranpedia (Hafs KFQC SVG)', url: 'https://github.com/quranpedia/quran-svg'),
                 buildCreditItem('• Google (Alphabet Inc.)', url: 'https://google.com'),
                 buildCreditItem('• GitHub', url: 'https://github.com'),
                 buildCreditItem('• Cloudflare', url: 'https://cloudflare.com'),
+                buildCreditItem('• pub.dev (Flutter package ecosystem)', url: 'https://pub.dev'),
+                buildCreditItem('• The official Flutter/Dart port of Batoul Apps\' astronomical calculation algorithms'),
               ],
             ),
           ),
@@ -228,6 +234,31 @@ class MoreScreen extends ConsumerWidget {
                   ),
                   trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                   onTap: () => context.go('/library'),
+                ),
+                Divider(height: 1, indent: 16, endIndent: 16),
+
+                // Murajaah — Memorization Tool
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.headphones_rounded, color: Color(0xFF4CAF50), size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Murajaah (Memorization)' : 'Murājaah (Hafalan)',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.appLanguage == 'en'
+                        ? 'Audio playlist with verse & surah repeats'
+                        : 'Pemutar audio dengan pengulangan ayat & surah',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                  onTap: () => context.go('/murajaah'),
                 ),
               ],
             ),
@@ -493,6 +524,12 @@ class MoreScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
 
+          // ── Offline Search Index ──────────────────────────────────────────
+          _SectionLabel(settings.appLanguage == 'en' ? 'Offline Search' : 'Pencarian Offline'),
+          const SizedBox(height: 8),
+          _OfflineIndexTile(isEn: settings.appLanguage == 'en'),
+          const SizedBox(height: 20),
+
           // ── Reset ─────────────────────────────────────────────────────────
           _SectionLabel('Reset'),
           const SizedBox(height: 8),
@@ -721,6 +758,189 @@ class MoreScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Offline Search Index download tile
+// ─────────────────────────────────────────────────────────────────────────────
+class _OfflineIndexTile extends StatefulWidget {
+  final bool isEn;
+  const _OfflineIndexTile({required this.isEn});
+
+  @override
+  State<_OfflineIndexTile> createState() => _OfflineIndexTileState();
+}
+
+class _OfflineIndexTileState extends State<_OfflineIndexTile> {
+  bool _hasLocal = false;
+  int _localSize = 0;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLocal();
+    StaticIndexService.instance.addListener(_onServiceChange);
+  }
+
+  @override
+  void dispose() {
+    StaticIndexService.instance.removeListener(_onServiceChange);
+    super.dispose();
+  }
+
+  void _onServiceChange() {
+    if (mounted) _checkLocal();
+  }
+
+  Future<void> _checkLocal() async {
+    final hasIt = await StaticIndexService.instance.hasLocalIndex();
+    final size  = await StaticIndexService.instance.localIndexSizeBytes();
+    if (mounted) setState(() { _hasLocal = hasIt; _localSize = size; });
+  }
+
+  Future<void> _download() async {
+    setState(() => _error = null);
+    final err = await StaticIndexService.instance.downloadFromGitHub(
+      onProgress: (_, _) { if (mounted) setState(() {}); },
+    );
+    if (mounted) {
+      setState(() => _error = err);
+      if (err == null) _checkLocal();
+    }
+  }
+
+  Future<void> _delete() async {
+    await StaticIndexService.instance.deleteLocalIndex();
+    await _checkLocal();
+  }
+
+  String _fmt(int bytes) {
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final svc = StaticIndexService.instance;
+    final isDownloading = svc.isDownloading;
+    final progress = svc.downloadProgress;
+    final dlBytes = svc.downloadedBytes;
+    final totalBytes = svc.totalBytes;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.manage_search_rounded, color: AppTheme.primary, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.isEn ? 'Full Offline Search Index' : 'Indeks Pencarian Offline Lengkap',
+                        style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        _hasLocal
+                            ? (widget.isEn ? 'Downloaded · ${_fmt(_localSize)}' : 'Terunduh · ${_fmt(_localSize)}')
+                            : (widget.isEn ? 'Not downloaded · ~25–30 MB' : 'Belum diunduh · ~25–30 MB'),
+                        style: TextStyle(
+                          color: _hasLocal ? const Color(0xFF4CAF50) : AppTheme.outline,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_hasLocal && !isDownloading)
+                  IconButton(
+                    icon: Icon(Icons.delete_outline, color: AppTheme.error, size: 20),
+                    onPressed: _delete,
+                    tooltip: widget.isEn ? 'Delete local index' : 'Hapus indeks lokal',
+                  ),
+              ],
+            ),
+            if (isDownloading) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: totalBytes > 0 ? progress : null,
+                  backgroundColor: AppTheme.outlineVariant.withValues(alpha: 0.3),
+                  color: AppTheme.primary,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                totalBytes > 0
+                    ? '${_fmt(dlBytes)} / ${_fmt(totalBytes)} (${(progress * 100).toStringAsFixed(0)}%)'
+                    : (widget.isEn ? 'Downloading…' : 'Mengunduh…'),
+                style: TextStyle(color: AppTheme.outline, fontSize: 11),
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                '${widget.isEn ? 'Error' : 'Gagal'}: $_error',
+                style: TextStyle(color: AppTheme.error, fontSize: 11),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              widget.isEn
+                  ? 'Download the complete search index (~25–30 MB) for fast, fully offline keyword search. Stored on your device permanently until deleted.'
+                  : 'Unduh indeks pencarian lengkap (~25–30 MB) untuk pencarian kata kunci offline yang cepat. Tersimpan di perangkat Anda hingga dihapus.',
+              style: TextStyle(color: AppTheme.outline, fontSize: 11, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isDownloading ? null : _download,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _hasLocal ? AppTheme.secondary : AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                icon: isDownloading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Icon(_hasLocal ? Icons.refresh_rounded : Icons.download_rounded, size: 18),
+                label: Text(
+                  isDownloading
+                      ? (widget.isEn ? 'Downloading…' : 'Mengunduh…')
+                      : _hasLocal
+                          ? (widget.isEn ? 'Re-download Index' : 'Unduh Ulang Indeks')
+                          : (widget.isEn ? 'Download Search Index' : 'Unduh Indeks Pencarian'),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -788,7 +1008,7 @@ class _SettingsTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                ?trailing,
+                if (trailing != null) trailing!,
               ],
             ),
           ),

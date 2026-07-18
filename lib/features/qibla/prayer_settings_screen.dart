@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/alarm_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'qibla_providers.dart';
 
 class PrayerSettingsScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,29 @@ class PrayerSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
+  bool _notificationGranted = false;
+  bool _batteryOptimizationIgnored = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+
+  Future<void> _checkPermissions() async {
+    final notifGranted = await Permission.notification.isGranted;
+    bool batteryIgnored = true;
+    if (Platform.isAndroid) {
+      batteryIgnored = await Permission.ignoreBatteryOptimizations.isGranted;
+    }
+    if (mounted) {
+      setState(() {
+        _notificationGranted = notifGranted;
+        _batteryOptimizationIgnored = batteryIgnored;
+      });
+    }
+  }
+
   @override
   void dispose() {
     AlarmService.instance.stopAdzanPreview();
@@ -289,6 +313,153 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   ),
                 ],
               ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ─── SECTION 3: PERMISSIONS & OPTIMIZATIONS ───────────────────────
+          _SectionLabel(isEn ? 'Permissions & Background Running' : 'Izin & Berjalan di Latar Belakang'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              children: [
+                // Notification permission
+                ListTile(
+                  leading: _iconBox(
+                    Icons.notifications_active_outlined,
+                    _notificationGranted ? const Color(0xFF4CAF50) : AppTheme.error,
+                  ),
+                  title: Text(
+                    isEn ? 'Notification Alert Permission' : 'Izin Notifikasi Peringatan',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    _notificationGranted
+                        ? (isEn ? 'Granted — visual alerts will display' : 'Diizinkan — peringatan visual akan muncul')
+                        : (isEn ? 'Denied — notifications will not show' : 'Ditolak — notifikasi tidak akan muncul'),
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: _notificationGranted
+                      ? Icon(Icons.check_circle_outline, color: const Color(0xFF4CAF50))
+                      : ElevatedButton(
+                          onPressed: () async {
+                            final granted = await AlarmService.instance.requestNotificationPermissions();
+                            setState(() => _notificationGranted = granted);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            minimumSize: Size.zero,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(isEn ? 'Grant' : 'Izinkan', style: const TextStyle(fontSize: 12)),
+                        ),
+                ),
+
+                if (Platform.isAndroid) ...[
+                  Divider(height: 1, indent: 16, endIndent: 16),
+                  // Battery optimizations
+                  ListTile(
+                    leading: _iconBox(
+                      Icons.battery_saver_outlined,
+                      _batteryOptimizationIgnored ? const Color(0xFF4CAF50) : Colors.orange,
+                    ),
+                    title: Text(
+                      isEn ? 'Ignore Battery Optimization' : 'Abaikan Optimasi Baterai',
+                      style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      _batteryOptimizationIgnored
+                          ? (isEn ? 'Ignored — adzan triggers reliably' : 'Diabaikan — adzan berjalan lancar')
+                          : (isEn ? 'Optimizing — system might delay/silence adzan' : 'Mengoptimasi — sistem dapat menunda/membungkam adzan'),
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                    ),
+                    trailing: _batteryOptimizationIgnored
+                        ? Icon(Icons.check_circle_outline, color: const Color(0xFF4CAF50))
+                        : ElevatedButton(
+                            onPressed: () async {
+                              final ignored = await AlarmService.instance.requestIgnoreBatteryOptimizations();
+                              setState(() => _batteryOptimizationIgnored = ignored);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              minimumSize: Size.zero,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: Text(isEn ? 'Exempt' : 'Bebaskan', style: const TextStyle(fontSize: 12)),
+                          ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ─── SECTION 4: TEST NOTIFICATION ─────────────────────────────────
+          _SectionLabel(isEn ? 'Testing Tools' : 'Alat Pengujian'),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.25)),
+            ),
+            child: ListTile(
+              leading: _iconBox(Icons.timer_outlined, AppTheme.primary),
+              title: Text(
+                isEn ? 'Schedule 5-Second Test' : 'Jadwalkan Uji Coba (5 Detik)',
+                style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                isEn
+                    ? 'Trigger a test adzan notification in 5 seconds to verify'
+                    : 'Picu notifikasi uji coba adzan dalam 5 detik untuk memverifikasi',
+                style: TextStyle(color: AppTheme.outline, fontSize: 11),
+              ),
+              trailing: Icon(Icons.arrow_circle_right_outlined, color: AppTheme.primary),
+              onTap: () async {
+                if (!_notificationGranted) {
+                  // Prompt permission first
+                  final ok = await AlarmService.instance.requestNotificationPermissions();
+                  setState(() => _notificationGranted = ok);
+                  if (!ok) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(isEn
+                          ? 'Cannot schedule test without notification permission!'
+                          : 'Tidak dapat menjadwalkan uji coba tanpa izin notifikasi!'),
+                      backgroundColor: AppTheme.error,
+                    ));
+                    return;
+                  }
+                }
+
+                await AlarmService.instance.scheduleTestAlarm(
+                  settings: settings,
+                  secondsFromNow: 5,
+                );
+
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(isEn
+                      ? 'Test alarm scheduled in 5 seconds. Lock your phone/close the app to test!'
+                      : 'Notifikasi uji coba dijadwalkan dalam 5 detik. Kunci layar/tutup aplikasi untuk menguji!'),
+                  duration: const Duration(seconds: 4),
+                  action: SnackBarAction(
+                    label: 'OK',
+                    textColor: Colors.white,
+                    onPressed: () {},
+                  ),
+                ));
+              },
             ),
           ),
           const SizedBox(height: 32),

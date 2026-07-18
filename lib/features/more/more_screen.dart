@@ -959,14 +959,12 @@ class _SettingsTile extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String subtitle;
-  final Widget? trailing;
   final VoidCallback? onTap;
   const _SettingsTile({
     required this.icon,
     required this.iconColor,
     required this.title,
     required this.subtitle,
-    this.trailing,
     this.onTap,
   });
 
@@ -1008,7 +1006,6 @@ class _SettingsTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null) trailing!,
               ],
             ),
           ),

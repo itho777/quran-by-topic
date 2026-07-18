@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:audioplayers/audioplayers.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../features/qibla/qibla_service.dart';
 import 'settings_manager.dart';
 
@@ -404,5 +405,142 @@ class AlarmService {
         );
       }
     }
+  }
+
+  // ─── Permission & Background optimization helpers ───────────────────────
+
+  Future<bool> requestNotificationPermissions() async {
+    final status = await Permission.notification.request();
+    return status.isGranted;
+  }
+
+  Future<bool> requestIgnoreBatteryOptimizations() async {
+    final status = await Permission.ignoreBatteryOptimizations.request();
+    return status.isGranted;
+  }
+
+  Future<bool> isIgnoreBatteryOptimizationsActive() async {
+    return await Permission.ignoreBatteryOptimizations.isGranted;
+  }
+
+  // ─── Test Alarm Scheduling (triggers in secondsFromNow seconds) ───────────
+
+  Future<void> scheduleTestAlarm({
+    required SettingsState settings,
+    required int secondsFromNow,
+  }) async {
+    await init();
+    final now = DateTime.now();
+    final targetTime = now.add(Duration(seconds: secondsFromNow));
+    final scheduledTzTime = tz.TZDateTime.from(targetTime, tz.local);
+
+    final bool isEn = settings.appLanguage == 'en';
+    final title = isEn ? '🔔 Test Prayer Alarm' : '🔔 Uji Coba Notifikasi Adzan';
+    final body = isEn
+        ? 'Verification successful! Adzan notification and sound is working.'
+        : 'Verifikasi berhasil! Notifikasi dan suara adzan berfungsi dengan baik.';
+
+    String soundFile = '';
+    String channelId = 'prayer_alarms_silent';
+    String channelName = 'Prayer Alarms (Silent)';
+    String channelDesc = 'Silent prayer time reminders';
+
+    bool soundEnabled = settings.enableAdzanSound;
+    bool playTone = settings.playToneOnly;
+    final String muadzinKey = settings.adzanMuadzin;
+    if (muadzinKey == 'tone') {
+      playTone = true;
+    }
+
+    if (soundEnabled) {
+      if (playTone) {
+        final uri = settings.customSoundUri;
+        if (uri != null && uri.isNotEmpty) {
+          channelId = 'prayer_alarms_tone_${uri.hashCode}';
+          channelName = 'Prayer Alarms (Custom Tone)';
+          channelDesc = 'Custom prayer time tone';
+          soundFile = uri;
+
+          final androidPlugin = _notificationsPlugin
+              .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+          if (androidPlugin != null) {
+            await androidPlugin.createNotificationChannel(AndroidNotificationChannel(
+              channelId,
+              channelName,
+              description: channelDesc,
+              importance: Importance.max,
+              playSound: true,
+              sound: UriAndroidNotificationSound(uri),
+            ));
+          }
+        } else {
+          channelId = 'prayer_alarms_tone_default';
+          channelName = 'Prayer Alarms (System Default)';
+          channelDesc = 'Default system prayer tone';
+          soundFile = 'system_default';
+
+          final androidPlugin = _notificationsPlugin
+              .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+          if (androidPlugin != null) {
+            await androidPlugin.createNotificationChannel(AndroidNotificationChannel(
+              channelId,
+              channelName,
+              description: channelDesc,
+              importance: Importance.max,
+              playSound: true,
+            ));
+          }
+        }
+      } else {
+        final info = _muadzinChannels[muadzinKey] ?? _muadzinChannels['makkah']!;
+        soundFile = info['file']!;
+        channelId = info['channelId']!;
+        channelName = info['channelName']!;
+        channelDesc = 'Prayer notification — ${info["label"]}';
+      }
+    }
+
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      channelDescription: channelDesc,
+      importance: Importance.max,
+      priority: Priority.high,
+      sound: soundFile.isEmpty
+          ? null
+          : (soundFile == 'system_default'
+              ? null
+              : (playTone
+                  ? UriAndroidNotificationSound(soundFile)
+                  : RawResourceAndroidNotificationSound(soundFile))),
+      playSound: soundFile.isNotEmpty,
+    );
+
+    final iosDetails = DarwinNotificationDetails(
+      sound: soundFile.isEmpty
+          ? null
+          : (soundFile == 'system_default'
+              ? null
+              : (playTone
+                  ? null
+                  : '$soundFile.mp3')),
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: soundFile.isNotEmpty,
+    );
+
+    final notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _notificationsPlugin.zonedSchedule(
+      id: 9999, // Static test alarm ID
+      title: title,
+      body: body,
+      scheduledDate: scheduledTzTime,
+      notificationDetails: notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
   }
 }

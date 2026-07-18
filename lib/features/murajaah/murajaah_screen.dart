@@ -304,6 +304,67 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  bool get _isRangeValid {
+    if (_startSurahId < 1 || _endSurahId < 1) return false;
+    if (_startSurahId > _endSurahId) return false;
+    if (_startSurahId == _endSurahId && _startAyah > _endAyah) return false;
+
+    final maxStart = _ayasForSurah(_startSurahId);
+    final maxEnd = _ayasForSurah(_endSurahId);
+    if (_startAyah < 1 || _startAyah > maxStart) return false;
+    if (_endAyah < 1 || _endAyah > maxEnd) return false;
+
+    return true;
+  }
+
+  String? get _rangeError {
+    final isEn = ref.read(settingsProvider).appLanguage == 'en';
+    if (_startSurahId > _endSurahId) {
+      return isEn
+          ? 'Start surah cannot be after end surah'
+          : 'Surah mulai tidak boleh setelah surah selesai';
+    }
+    if (_startSurahId == _endSurahId && _startAyah > _endAyah) {
+      return isEn
+          ? 'Start ayah cannot be after end ayah'
+          : 'Ayat mulai tidak boleh setelah ayat selesai';
+    }
+    final maxStart = _ayasForSurah(_startSurahId);
+    if (_startAyah < 1 || _startAyah > maxStart) {
+      return isEn
+          ? 'Start ayah must be between 1 and $maxStart'
+          : 'Ayat mulai harus antara 1 dan $maxStart';
+    }
+    final maxEnd = _ayasForSurah(_endSurahId);
+    if (_endAyah < 1 || _endAyah > maxEnd) {
+      return isEn
+          ? 'End ayah must be between 1 and $maxEnd'
+          : 'Ayat selesai harus antara 1 dan $maxEnd';
+    }
+    return null;
+  }
+
+  void _deletePlaylistItem(int idx) {
+    if (idx < 0 || idx >= _playlist.length) return;
+
+    final wasActive = idx == _currentPlaylistIndex && (_isPlaying || _isPaused);
+
+    if (wasActive) {
+      _stop();
+    }
+
+    setState(() {
+      if (!wasActive) {
+        _playlist.removeAt(idx);
+        if (idx < _currentPlaylistIndex) {
+          _currentPlaylistIndex--;
+        }
+      } else {
+        _playlist.removeAt(idx);
+      }
+    });
+  }
+
   // ── UI helpers ──────────────────────────────────────────────────────────
 
   void _showSurahPicker({
@@ -406,7 +467,6 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
     required ValueChanged<int> onSurahChanged,
     required ValueChanged<int> onAyahChanged,
   }) {
-    final maxAyas = _ayasForSurah(surahId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -472,6 +532,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                   children: [
                     Expanded(
                       child: TextFormField(
+                        key: ValueKey('${surahId}_$ayah'),
                         initialValue: '$ayah',
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
@@ -483,8 +544,10 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                           hintStyle: TextStyle(color: AppTheme.outline),
                         ),
                         onChanged: (v) {
-                          final parsed = int.tryParse(v) ?? 1;
-                          onAyahChanged(parsed.clamp(1, maxAyas));
+                          final parsed = int.tryParse(v);
+                          if (parsed != null) {
+                            onAyahChanged(parsed);
+                          }
                         },
                       ),
                     ),
@@ -626,6 +689,14 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
             const SizedBox(width: 8),
             _AnimatedEqualizer(),
           ],
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade300),
+            onPressed: () => _deletePlaylistItem(idx),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            splashRadius: 16,
+          ),
         ],
       ),
     );
@@ -793,6 +864,28 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                           }),
                           onAyahChanged: (a) => setState(() => _endAyah = a),
                         ),
+                        if (!_isRangeValid) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline_rounded, size: 16, color: Colors.redAccent),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _rangeError ?? '',
+                                    style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         // Repeat config
                         Container(
@@ -832,7 +925,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                         const SizedBox(height: 24),
                         // Build playlist button
                         ElevatedButton.icon(
-                          onPressed: _loadingPlaylist ? null : _buildPlaylist,
+                          onPressed: (_loadingPlaylist || !_isRangeValid) ? null : _buildPlaylist,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,

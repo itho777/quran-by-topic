@@ -62,6 +62,7 @@ class AlarmService {
           importance: Importance.max,
           playSound: true,
           sound: RawResourceAndroidNotificationSound(entry.value['file']!),
+          audioAttributesUsage: AudioAttributesUsage.alarm,
         ));
       }
       // Silent channel for when adzan sound is disabled
@@ -327,6 +328,7 @@ class AlarmService {
                   importance: Importance.max,
                   playSound: true,
                   sound: UriAndroidNotificationSound(uri),
+                  audioAttributesUsage: AudioAttributesUsage.alarm,
                 ));
               }
             } else {
@@ -345,6 +347,7 @@ class AlarmService {
                   description: channelDesc,
                   importance: Importance.max,
                   playSound: true,
+                  audioAttributesUsage: AudioAttributesUsage.alarm,
                 ));
               }
             }
@@ -377,6 +380,8 @@ class AlarmService {
                       ? UriAndroidNotificationSound(soundFile)
                       : RawResourceAndroidNotificationSound(soundFile))),
           playSound: soundFile.isNotEmpty,
+          category: AndroidNotificationCategory.alarm,
+          audioAttributesUsage: AudioAttributesUsage.alarm,
         );
 
         final iosDetails = DarwinNotificationDetails(
@@ -404,7 +409,7 @@ class AlarmService {
           body: body,
           scheduledDate: scheduledTzTime,
           notificationDetails: notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.alarmClock,
         );
       }
     }
@@ -474,6 +479,7 @@ class AlarmService {
               importance: Importance.max,
               playSound: true,
               sound: UriAndroidNotificationSound(uri),
+              audioAttributesUsage: AudioAttributesUsage.alarm,
             ));
           }
         } else {
@@ -491,6 +497,7 @@ class AlarmService {
               description: channelDesc,
               importance: Importance.max,
               playSound: true,
+              audioAttributesUsage: AudioAttributesUsage.alarm,
             ));
           }
         }
@@ -517,6 +524,8 @@ class AlarmService {
                   ? UriAndroidNotificationSound(soundFile)
                   : RawResourceAndroidNotificationSound(soundFile))),
       playSound: soundFile.isNotEmpty,
+      category: AndroidNotificationCategory.alarm,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
     );
 
     final iosDetails = DarwinNotificationDetails(
@@ -543,7 +552,7 @@ class AlarmService {
       body: body,
       scheduledDate: scheduledTzTime,
       notificationDetails: notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.alarmClock,
     );
     final tzNow = tz.TZDateTime.now(tz.local);
     return 'Now: ${now.toIso8601String().substring(11, 19)} | TZNow: ${tzNow.toIso8601String().substring(11, 19)} | Target: ${scheduledTzTime.toIso8601String().substring(11, 19)} | Zone: ${tz.local.name}';

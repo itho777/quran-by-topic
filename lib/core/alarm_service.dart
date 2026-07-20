@@ -382,6 +382,7 @@ class AlarmService {
           playSound: soundFile.isNotEmpty,
           category: AndroidNotificationCategory.alarm,
           audioAttributesUsage: AudioAttributesUsage.alarm,
+          visibility: NotificationVisibility.public,
         );
 
         final iosDetails = DarwinNotificationDetails(
@@ -526,6 +527,7 @@ class AlarmService {
       playSound: soundFile.isNotEmpty,
       category: AndroidNotificationCategory.alarm,
       audioAttributesUsage: AudioAttributesUsage.alarm,
+      visibility: NotificationVisibility.public,
     );
 
     final iosDetails = DarwinNotificationDetails(

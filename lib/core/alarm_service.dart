@@ -24,8 +24,8 @@ class AlarmService {
     if (_initialized) return;
 
     tz.initializeTimeZones();
-    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
 
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('ic_notification');

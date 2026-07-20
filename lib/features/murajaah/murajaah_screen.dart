@@ -963,7 +963,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                 if (hasPlaylist) ...[
                   Divider(height: 1, color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 4, 6),
                     child: Row(
                       children: [
                         Icon(Icons.queue_music_rounded,
@@ -973,6 +973,27 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                           '${_playlist.length} ${isEn ? 'verses' : 'ayat'}',
                           style: TextStyle(
                               color: AppTheme.outline, fontSize: 12),
+                        ),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: () async {
+                            if (_isPlaying || _isPaused) await _stop();
+                            setState(() => _playlist.clear());
+                          },
+                          icon: Icon(Icons.clear_all_rounded,
+                              size: 14, color: AppTheme.error),
+                          label: Text(
+                            isEn ? 'Clear' : 'Hapus Semua',
+                            style: TextStyle(
+                                color: AppTheme.error, fontSize: 11),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
                       ],
                     ),

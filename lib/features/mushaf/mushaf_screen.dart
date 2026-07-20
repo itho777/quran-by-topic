@@ -122,6 +122,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   late StreamSubscription _playerCompleteSubscription;
 
+  // Zoom state for Mushaf page
+  final TransformationController _pageTransformController = TransformationController();
+  bool _isZoomed = false;
+
   // Scrolling reference
 
   final Map<int, GlobalKey> _verseKeys = {};
@@ -352,9 +356,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     });
 
+    // Track zoom so PageView swiping is disabled while zoomed in
+    _pageTransformController.addListener(() {
+      final zoomed = _pageTransformController.value.getMaxScaleOnAxis() > 1.01;
+      if (zoomed != _isZoomed && mounted) {
+        setState(() => _isZoomed = zoomed);
+      }
+    });
+
     // Start auto collapse timer for floating menus
-
-
     _startMenuCollapseTimer();
     _startStudyMenuCollapseTimer();
   }
@@ -367,7 +377,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     WakelockPlus.disable().ignore();
     _menuCollapseTimer?.cancel();
     _studyMenuCollapseTimer?.cancel();
-
+    _pageTransformController.dispose();
 
     _playerStateSubscription.cancel();
 
@@ -1090,8 +1100,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     int pageNum = index + 1;
     debugPrint('onPageChanged: index=$index, pageNum=$pageNum, playAfter=$_playAfterPageLoad');
 
+    // Reset zoom transform when page changes
+    _pageTransformController.value = Matrix4.identity();
+
     setState(() {
       _currentPage = pageNum;
+      _isZoomed = false;
     });
 
     _onUserInteraction();
@@ -2244,8 +2258,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                     reverse: true,
 
-                    // Fix #3: Disable horizontal swipe in fullWidth mode.
-                    physics: ref.watch(settingsProvider).mushafFullWidth
+                    // Disable horizontal swipe in fullWidth mode OR when user has zoomed in.
+                    physics: (ref.watch(settingsProvider).mushafFullWidth || _isZoomed)
                         ? const NeverScrollableScrollPhysics()
                         : const PageScrollPhysics(),
 
@@ -2327,52 +2341,57 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 child: pageImage,
                               );
 
-                              // In normal (fit) mode: render directly without InteractiveViewer.
-                              // InteractiveViewer absorbs all pointer events even when pan/zoom
-                              // are disabled, causing diagonal swipe conflicts with the PageView.
+                              // ── Fit-to-page mode: zoomable via InteractiveViewer. ──────────────
+                              // When scale == 1.0 the PageView handles horizontal swipes normally.
+                              // When zoomed (_isZoomed), PageView physics switch to NeverScrollable
+                              // so the InteractiveViewer can pan freely without page-flip conflicts.
                               if (!fullWidth) {
                                 return SizedBox(
                                   width: pageW,
                                   height: pageH,
-                                  child: pageDecorationBox,
+                                  child: InteractiveViewer(
+                                    key: ValueKey('iv_fit_$pageNum'),
+                                    transformationController: _pageTransformController,
+                                    maxScale: 4.0,
+                                    minScale: 1.0,
+                                    panEnabled: true,
+                                    scaleEnabled: true,
+                                    child: pageDecorationBox,
+                                  ),
                                 );
                               }
 
-                              // In fullWidth mode: wrap in InteractiveViewer for pan/zoom,
-                              // then in SingleChildScrollView because the page is taller than screen.
-                              return Center(
-                                child: SizedBox(
-                                  width: pageW,
-                                  child: SingleChildScrollView(
-                                    physics: const ClampingScrollPhysics(),
-                                    child: SizedBox(
-                                      width: pageW,
-                                      height: pageH,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFBF9F1),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.08),
-                                              blurRadius: 16,
-                                              offset: const Offset(0, 4),
-                                            )
-                                          ],
-                                        ),
-                                        child: InteractiveViewer(
-                                          // Reset transform on page/mode/menu changes.
-                                          key: ValueKey('iv_${pageNum}_$_menusVisible'),
-                                          maxScale: 3.0,
-                                          minScale: 1.0,
-                                          panEnabled: true,
-                                          scaleEnabled: true,
-                                          boundaryMargin: const EdgeInsets.symmetric(
-                                              vertical: 240.0, horizontal: 80.0),
-                                          constrained: false,
-                                          child: pageImage,
-                                        ),
-                                      ),
+                              // ── Full-width mode: InteractiveViewer only (no SingleChildScrollView
+                              //    conflict). constrained:false lets the taller-than-screen page
+                              //    be panned vertically at natural scale, and zoomed on top.
+                              return SizedBox(
+                                width: pageW,
+                                height: availH,
+                                child: InteractiveViewer(
+                                  key: ValueKey('iv_fw_${pageNum}_$_menusVisible'),
+                                  constrained: false,
+                                  maxScale: 3.0,
+                                  minScale: (availH / pageH).clamp(0.3, 1.0),
+                                  panEnabled: true,
+                                  scaleEnabled: true,
+                                  boundaryMargin: EdgeInsets.symmetric(
+                                    vertical: availH * 0.25,
+                                    horizontal: 32.0,
+                                  ),
+                                  child: Container(
+                                    width: pageW,
+                                    height: pageH,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFBF9F1),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 4),
+                                        )
+                                      ],
                                     ),
+                                    child: pageImage,
                                   ),
                                 ),
                               );

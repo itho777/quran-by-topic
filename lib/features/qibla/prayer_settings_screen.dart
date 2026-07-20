@@ -442,23 +442,38 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   }
                 }
 
-                await AlarmService.instance.scheduleTestAlarm(
-                  settings: settings,
-                  secondsFromNow: 5,
-                );
+                // 1. Play preview sound immediately for instant feedback
+                await AlarmService.instance.playAdzanPreview(settings.adzanMuadzin);
 
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(isEn
-                      ? 'Test alarm scheduled in 5 seconds. Lock your phone/close the app to test!'
-                      : 'Notifikasi uji coba dijadwalkan dalam 5 detik. Kunci layar/tutup aplikasi untuk menguji!'),
-                  duration: const Duration(seconds: 4),
-                  action: SnackBarAction(
-                    label: 'OK',
-                    textColor: Colors.white,
-                    onPressed: () {},
-                  ),
-                ));
+                // 2. Schedule a notification (tests lock-screen/background delivery)
+                try {
+                  await AlarmService.instance.scheduleTestAlarm(
+                    settings: settings,
+                    secondsFromNow: 10,
+                  );
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(isEn
+                        ? 'Sound played ✓  •  Notification scheduled in 10 s — lock your phone to test!'
+                        : 'Suara berhasil diputar ✓  •  Notifikasi dijadwalkan dalam 10 detik – kunci layar untuk menguji!'),
+                    duration: const Duration(seconds: 5),
+                    action: SnackBarAction(
+                      label: 'OK',
+                      textColor: Colors.white,
+                      onPressed: () {},
+                    ),
+                  ));
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(isEn
+                        ? 'Sound played ✓  •  Notification scheduling failed: $e'
+                        : 'Suara berhasil ✓  •  Gagal jadwalkan notifikasi: $e'),
+                    backgroundColor: AppTheme.error,
+                    duration: const Duration(seconds: 6),
+                  ));
+                }
               },
             ),
           ),

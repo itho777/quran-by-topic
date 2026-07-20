@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
@@ -463,12 +464,17 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   ));
                 } catch (e) {
                   if (!context.mounted) return;
+                  final packageInfo = await PackageInfo.fromPlatform();
+                  final pName = packageInfo.packageName;
+                  final pVersion = packageInfo.version;
+                  final pBuild = packageInfo.buildNumber;
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(isEn
-                        ? 'Notification scheduling failed: $e'
-                        : 'Gagal menjadwalkan notifikasi: $e'),
+                        ? 'Notification scheduling failed (Pkg: $pName, Ver: $pVersion+$pBuild): $e'
+                        : 'Gagal menjadwalkan notifikasi (Pkg: $pName, Ver: $pVersion+$pBuild): $e'),
                     backgroundColor: AppTheme.error,
-                    duration: const Duration(seconds: 6),
+                    duration: const Duration(seconds: 8),
                   ));
                 }
               },

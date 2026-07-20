@@ -25,7 +25,7 @@ class AlarmService {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('launcher_icon');
+        AndroidInitializationSettings('ic_notification');
 
     const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,

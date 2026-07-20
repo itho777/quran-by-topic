@@ -428,7 +428,7 @@ class AlarmService {
 
   // ─── Test Alarm Scheduling (triggers in secondsFromNow seconds) ───────────
 
-  Future<void> scheduleTestAlarm({
+  Future<String> scheduleTestAlarm({
     required SettingsState settings,
     required int secondsFromNow,
   }) async {
@@ -545,5 +545,7 @@ class AlarmService {
       notificationDetails: notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
+    final tzNow = tz.TZDateTime.now(tz.local);
+    return 'Now: ${now.toIso8601String().substring(11, 19)} | TZNow: ${tzNow.toIso8601String().substring(11, 19)} | Target: ${scheduledTzTime.toIso8601String().substring(11, 19)} | Zone: ${tz.local.name}';
   }
 }

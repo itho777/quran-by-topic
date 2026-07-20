@@ -445,7 +445,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
 
                 // Schedule a notification (tests lock-screen/background delivery and sound)
                 try {
-                  await AlarmService.instance.scheduleTestAlarm(
+                  final debugInfo = await AlarmService.instance.scheduleTestAlarm(
                     settings: settings,
                     secondsFromNow: 10,
                   );
@@ -453,9 +453,9 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(isEn
-                        ? 'Test notification scheduled in 10 s — lock your phone/close the app to test!'
-                        : 'Notifikasi uji coba dijadwalkan dalam 10 detik – kunci layar/tutup aplikasi untuk menguji!'),
-                    duration: const Duration(seconds: 5),
+                        ? 'Scheduled! [$debugInfo]'
+                        : 'Dijadwalkan! [$debugInfo]'),
+                    duration: const Duration(seconds: 12),
                     action: SnackBarAction(
                       label: 'OK',
                       textColor: Colors.white,

@@ -1,4 +1,4 @@
-package com.example.tafseer_id
+package id.tafseer.app
 
 import android.app.Activity
 import android.content.Intent
@@ -10,7 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.example.tafseer_id/ringtone_picker"
+    private val CHANNEL = "id.tafseer.app/ringtone_picker"
     private var pendingResult: MethodChannel.Result? = null
     private var currentRingtone: Ringtone? = null
 

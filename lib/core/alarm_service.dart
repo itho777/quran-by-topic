@@ -123,7 +123,7 @@ class AlarmService {
         await _previewPlayer.stop();
         previewNotifier.value = 'tone';
         
-        const channel = MethodChannel('com.example.tafseer_id/ringtone_picker');
+        const channel = MethodChannel('id.tafseer.app/ringtone_picker');
         await channel.invokeMethod('playRingtone', {'uri': customSoundUri ?? ''});
         
         // Auto-stop preview after 4 seconds
@@ -162,7 +162,7 @@ class AlarmService {
     try {
       await _previewPlayer.stop();
       if (previewNotifier.value == 'tone') {
-        const channel = MethodChannel('com.example.tafseer_id/ringtone_picker');
+        const channel = MethodChannel('id.tafseer.app/ringtone_picker');
         await channel.invokeMethod('stopRingtone');
       }
       previewNotifier.value = null;

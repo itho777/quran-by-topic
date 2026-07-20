@@ -432,6 +432,26 @@ class AlarmService {
     return await Permission.ignoreBatteryOptimizations.isGranted;
   }
 
+  Future<bool> isAutoStartSupported() async {
+    try {
+      const channel = MethodChannel('id.tafseer.app/ringtone_picker');
+      final bool supported = await channel.invokeMethod('isAutoStartSupported');
+      return supported;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> openAutoStartSettings() async {
+    try {
+      const channel = MethodChannel('id.tafseer.app/ringtone_picker');
+      final bool success = await channel.invokeMethod('openAutoStartSettings');
+      return success;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ─── Test Alarm Scheduling (triggers in secondsFromNow seconds) ───────────
 
   Future<String> scheduleTestAlarm({

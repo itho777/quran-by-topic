@@ -5,6 +5,7 @@ import android.content.Intent
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
+import android.content.ComponentName
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -50,6 +51,49 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("ERROR", e.message, null)
+                    }
+                }
+                "isAutoStartSupported" -> {
+                    val manufacturer = android.os.Build.MANUFACTURER.lowercase()
+                    val supported = listOf("xiaomi", "oppo", "vivo", "huawei", "oneplus").contains(manufacturer)
+                    result.success(supported)
+                }
+                "openAutoStartSettings" -> {
+                    try {
+                        val manufacturer = android.os.Build.MANUFACTURER.lowercase()
+                        val intent = Intent()
+                        when (manufacturer) {
+                            "xiaomi" -> {
+                                intent.component = ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")
+                            }
+                            "oppo" -> {
+                                intent.component = ComponentName("com.oppo.safe", "com.oppo.safe.permission.floatwindow.FloatWindowListActivity")
+                            }
+                            "vivo" -> {
+                                intent.component = ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")
+                            }
+                            "huawei" -> {
+                                intent.component = ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity")
+                            }
+                            else -> {
+                                intent.action = android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                intent.data = Uri.parse("package:$packageName")
+                            }
+                        }
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.parse("package:$packageName")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (ex: Exception) {
+                            result.error("ERROR", ex.message, null)
+                        }
                     }
                 }
                 else -> {

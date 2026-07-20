@@ -20,6 +20,7 @@ class PrayerSettingsScreen extends ConsumerStatefulWidget {
 class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
   bool _notificationGranted = false;
   bool _batteryOptimizationIgnored = false;
+  bool _autoStartSupported = false;
 
   @override
   void initState() {
@@ -30,13 +31,16 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
   Future<void> _checkPermissions() async {
     final notifGranted = await Permission.notification.isGranted;
     bool batteryIgnored = true;
+    bool autoStartSup = false;
     if (Platform.isAndroid) {
       batteryIgnored = await Permission.ignoreBatteryOptimizations.isGranted;
+      autoStartSup = await AlarmService.instance.isAutoStartSupported();
     }
     if (mounted) {
       setState(() {
         _notificationGranted = notifGranted;
         _batteryOptimizationIgnored = batteryIgnored;
+        _autoStartSupported = autoStartSup;
       });
     }
   }
@@ -398,6 +402,38 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                             child: Text(isEn ? 'Exempt' : 'Bebaskan', style: const TextStyle(fontSize: 12)),
                           ),
                   ),
+                  if (_autoStartSupported) ...[
+                    Divider(height: 1, indent: 16, endIndent: 16),
+                    ListTile(
+                      leading: _iconBox(
+                        Icons.settings_power_outlined,
+                        Colors.blue,
+                      ),
+                      title: Text(
+                        isEn ? 'Enable Autostart' : 'Aktifkan Autostart',
+                        style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        isEn
+                            ? 'Required to receive adzan alarms when the app is closed'
+                            : 'Wajib agar adzan berbunyi saat aplikasi ditutup',
+                        style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                      ),
+                      trailing: ElevatedButton(
+                        onPressed: () async {
+                          await AlarmService.instance.openAutoStartSettings();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          minimumSize: Size.zero,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text(isEn ? 'Setup' : 'Atur', style: const TextStyle(fontSize: 12)),
+                      ),
+                    ),
+                  ],
                 ],
               ],
             ),

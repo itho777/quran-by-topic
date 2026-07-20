@@ -119,42 +119,28 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
-  build-ios:
-    name: Build iOS App
-    runs-on: macos-latest
-    needs: bump-version
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.4'
-          channel: 'stable'
-          cache: true
-
-      - name: Write local.properties (CI override)
-        run: |
-          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build iOS (No Codesign)
-        run: flutter build ios --release --no-codesign
-
-      - name: Zip iOS App Bundle
-        run: |
-          cd build/ios/iphoneos
-          zip -r Runner.zip Runner.app
-
-      - name: Upload iOS App artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tafseer-id-release-ios
-          path: build/ios/iphoneos/Runner.zip
-          retention-days: 30
-
+  # ── iOS build disabled (macos-latest runners have very long queue times) ──
+  # Uncomment the block below to re-enable iOS builds when needed.
+  #
+  # build-ios:
+  #   name: Build iOS App
+  #   runs-on: macos-latest
+  #   needs: bump-version
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ github.ref }}
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: '3.44.4'
+  #         channel: 'stable'
+  #         cache: true
+  #     - run: flutter pub get
+  #     - run: flutter build ios --release --no-codesign
+  #     - run: cd build/ios/iphoneos && zip -r Runner.zip Runner.app
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: tafseer-id-release-ios
+  #         path: build/ios/iphoneos/Runner.zip
+  #         retention-days: 30

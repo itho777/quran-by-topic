@@ -442,10 +442,7 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   }
                 }
 
-                // 1. Play preview sound immediately for instant feedback
-                await AlarmService.instance.playAdzanPreview(settings.adzanMuadzin);
-
-                // 2. Schedule a notification (tests lock-screen/background delivery)
+                // Schedule a notification (tests lock-screen/background delivery and sound)
                 try {
                   await AlarmService.instance.scheduleTestAlarm(
                     settings: settings,
@@ -455,8 +452,8 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(isEn
-                        ? 'Sound played ✓  •  Notification scheduled in 10 s — lock your phone to test!'
-                        : 'Suara berhasil diputar ✓  •  Notifikasi dijadwalkan dalam 10 detik – kunci layar untuk menguji!'),
+                        ? 'Test notification scheduled in 10 s — lock your phone/close the app to test!'
+                        : 'Notifikasi uji coba dijadwalkan dalam 10 detik – kunci layar/tutup aplikasi untuk menguji!'),
                     duration: const Duration(seconds: 5),
                     action: SnackBarAction(
                       label: 'OK',
@@ -468,8 +465,8 @@ class _PrayerSettingsScreenState extends ConsumerState<PrayerSettingsScreen> {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(isEn
-                        ? 'Sound played ✓  •  Notification scheduling failed: $e'
-                        : 'Suara berhasil ✓  •  Gagal jadwalkan notifikasi: $e'),
+                        ? 'Notification scheduling failed: $e'
+                        : 'Gagal menjadwalkan notifikasi: $e'),
                     backgroundColor: AppTheme.error,
                     duration: const Duration(seconds: 6),
                   ));

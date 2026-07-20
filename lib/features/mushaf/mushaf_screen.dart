@@ -123,7 +123,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   late StreamSubscription _playerCompleteSubscription;
 
   // Zoom state for Mushaf page
-  final TransformationController _pageTransformController = TransformationController();
+  final Map<int, TransformationController> _transformControllers = {};
   bool _isZoomed = false;
 
   // Scrolling reference
@@ -356,14 +356,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     });
 
-    // Track zoom so PageView swiping is disabled while zoomed in
-    _pageTransformController.addListener(() {
-      final zoomed = _pageTransformController.value.getMaxScaleOnAxis() > 1.01;
-      if (zoomed != _isZoomed && mounted) {
-        setState(() => _isZoomed = zoomed);
-      }
-    });
-
     // Start auto collapse timer for floating menus
     _startMenuCollapseTimer();
     _startStudyMenuCollapseTimer();
@@ -377,7 +369,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     WakelockPlus.disable().ignore();
     _menuCollapseTimer?.cancel();
     _studyMenuCollapseTimer?.cancel();
-    _pageTransformController.dispose();
+    for (final c in _transformControllers.values) {
+      c.dispose();
+    }
+    _transformControllers.clear();
 
     _playerStateSubscription.cancel();
 
@@ -1100,8 +1095,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     int pageNum = index + 1;
     debugPrint('onPageChanged: index=$index, pageNum=$pageNum, playAfter=$_playAfterPageLoad');
 
-    // Reset zoom transform when page changes
-    _pageTransformController.value = Matrix4.identity();
+    // Reset zoom transform on all pages when page changes
+    for (final c in _transformControllers.values) {
+      c.value = Matrix4.identity();
+    }
 
     setState(() {
       _currentPage = pageNum;
@@ -2341,43 +2338,44 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 child: pageImage,
                               );
 
-                              // ── Fit-to-page mode: zoomable via InteractiveViewer. ──────────────
-                              // When scale == 1.0 the PageView handles horizontal swipes normally.
-                              // When zoomed (_isZoomed), PageView physics switch to NeverScrollable
-                              // so the InteractiveViewer can pan freely without page-flip conflicts.
                               if (!fullWidth) {
+                                final controller = _transformControllers.putIfAbsent(
+                                  pageNum,
+                                  () => TransformationController()
+                                    ..addListener(() {
+                                      if (pageNum == _currentPage) {
+                                        final zoomed = _transformControllers[pageNum]!.value.getMaxScaleOnAxis() > 1.01;
+                                        if (zoomed != _isZoomed && mounted) {
+                                          setState(() => _isZoomed = zoomed);
+                                        }
+                                      }
+                                    }),
+                                );
                                 return SizedBox(
-                                  width: pageW,
-                                  height: pageH,
+                                  width: availW,
+                                  height: availH,
                                   child: InteractiveViewer(
                                     key: ValueKey('iv_fit_$pageNum'),
-                                    transformationController: _pageTransformController,
+                                    transformationController: controller,
                                     maxScale: 4.0,
                                     minScale: 1.0,
                                     panEnabled: true,
                                     scaleEnabled: true,
-                                    child: pageDecorationBox,
+                                    child: Center(
+                                      child: pageDecorationBox,
+                                    ),
                                   ),
                                 );
                               }
 
-                              // ── Full-width mode: InteractiveViewer only (no SingleChildScrollView
-                              //    conflict). constrained:false lets the taller-than-screen page
-                              //    be panned vertically at natural scale, and zoomed on top.
+                              // ── Full-width mode: zoom disabled, vertical scrolling only via SingleChildScrollView.
+                              //    This prevents horizontal panning/diagonal swipe from breaking the full-width layout.
                               return SizedBox(
                                 width: pageW,
                                 height: availH,
-                                child: InteractiveViewer(
-                                  key: ValueKey('iv_fw_${pageNum}_$_menusVisible'),
-                                  constrained: false,
-                                  maxScale: 3.0,
-                                  minScale: (availH / pageH).clamp(0.3, 1.0),
-                                  panEnabled: true,
-                                  scaleEnabled: true,
-                                  boundaryMargin: EdgeInsets.symmetric(
-                                    vertical: availH * 0.25,
-                                    horizontal: 32.0,
-                                  ),
+                                child: SingleChildScrollView(
+                                  physics: const ClampingScrollPhysics(),
+                                  scrollDirection: Axis.vertical,
                                   child: Container(
                                     width: pageW,
                                     height: pageH,

@@ -331,7 +331,7 @@
       display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;
     }
     .form-group label {
-      font-size: 0.8rem; font-weight: 600; color: var(--text2);
+      font-size: 0.8rem; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 6px;
     }
     .input, .select, .textarea {
       background: var(--bg);
@@ -349,6 +349,11 @@
     .textarea { resize: vertical; min-height: 80px; }
     .font-arabic { font-family: 'Noto Naskh Arabic', serif; font-size: 1.1rem; direction: rtl; text-align: right; }
     .hint { font-size: 0.73rem; color: var(--muted); font-weight: normal; }
+
+    /* Language Grid */
+    .lang-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    }
 
     /* Tables */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
@@ -399,6 +404,7 @@
       .cms-main { padding: 16px; }
       .split-layout { flex-direction: column; }
       .list-pane { width: 100%; min-width: 0; }
+      .lang-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -515,7 +521,7 @@
 
       <div class="card">
         <div class="card-title">Welcome to the Tafseer.id CMS Console</div>
-        <p class="card-subtitle" style="margin-bottom:0">You have full administrative privileges to edit verse translations, tafsir explanations, featured Ayah settings, hero text, topic tags, and import/export CSV datasets directly in Supabase.</p>
+        <p class="card-subtitle" style="margin-bottom:0">You have full administrative privileges to edit verse translations, tafsir explanations, featured Ayah settings, hero text, topic tags, and import/export CSV datasets directly in Supabase (supporting both 🇮🇩 Bahasa Indonesia and 🇬🇧 English).</p>
       </div>
     </div>
 
@@ -554,24 +560,33 @@
               <label>Arabic Script <span class="hint">(read-only)</span></label>
               <textarea id="edit-arabic" class="textarea font-arabic" readonly rows="2"></textarea>
             </div>
-            <div class="form-group">
-              <label for="edit-trans-id">Indonesian Translation (Kemenag)</label>
-              <textarea id="edit-trans-id" class="textarea" rows="3"></textarea>
+
+            <!-- Bilingual Translations -->
+            <div class="lang-grid">
+              <div class="form-group">
+                <label for="edit-trans-id">🇮🇩 Indonesian Translation (Kemenag)</label>
+                <textarea id="edit-trans-id" class="textarea" rows="3"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="edit-trans-en">🇬🇧 English Translation (Sahih Int.)</label>
+                <textarea id="edit-trans-en" class="textarea" rows="3"></textarea>
+              </div>
             </div>
-            <div class="form-group">
-              <label for="edit-trans-en">English Translation (Sahih Int.)</label>
-              <textarea id="edit-trans-en" class="textarea" rows="3"></textarea>
+
+            <!-- Bilingual Tafsirs -->
+            <div class="lang-grid">
+              <div class="form-group">
+                <label for="edit-tafsir-jalalayn">🇮🇩 Tafsir Jalalayn (Indonesian)</label>
+                <textarea id="edit-tafsir-jalalayn" class="textarea" rows="4"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="edit-tafsir-katsir">🇬🇧 Tafsir Ibn Kathir (English)</label>
+                <textarea id="edit-tafsir-katsir" class="textarea" rows="4"></textarea>
+              </div>
             </div>
+
             <div class="form-group">
-              <label for="edit-tafsir-jalalayn">Tafsir Jalalayn (Indonesian)</label>
-              <textarea id="edit-tafsir-jalalayn" class="textarea" rows="4"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="edit-tafsir-katsir">Tafsir Ibn Kathir (English)</label>
-              <textarea id="edit-tafsir-katsir" class="textarea" rows="4"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="edit-nuzul">Asbabun Nuzul (Al-Wahidi)</label>
+              <label for="edit-nuzul">📜 Asbabun Nuzul (Al-Wahidi)</label>
               <textarea id="edit-nuzul" class="textarea" rows="3"></textarea>
             </div>
           </div>
@@ -582,22 +597,39 @@
     <!-- 3. SITE SETTINGS VIEW -->
     <div class="view" id="view-settings">
       <div class="view-title">Site Settings</div>
-      <div class="view-subtitle">Global branding, hero titles, tagline, and featured ayah rotation</div>
+      <div class="view-subtitle">Global branding, hero titles, taglines, and featured ayah rotation</div>
 
-      <div class="card" style="max-width:680px">
+      <div class="card" style="max-width:720px">
         <form id="config-form">
           <div class="form-group">
             <label for="cfg-hero-title">Hero Calligraphy Title (Arabic)</label>
             <input type="text" id="cfg-hero-title" class="input font-arabic">
           </div>
-          <div class="form-group">
-            <label for="cfg-hero-subtitle">Hero Subtitle</label>
-            <input type="text" id="cfg-hero-subtitle" class="input">
+
+          <!-- Bilingual Hero Subtitle -->
+          <div class="lang-grid">
+            <div class="form-group">
+              <label for="cfg-hero-subtitle-id">🇮🇩 Hero Subtitle (Bahasa Indonesia)</label>
+              <input type="text" id="cfg-hero-subtitle-id" class="input" placeholder="Tafsir & Terjemahan Al-Qur'an Tematik">
+            </div>
+            <div class="form-group">
+              <label for="cfg-hero-subtitle-en">🇬🇧 Hero Subtitle (English)</label>
+              <input type="text" id="cfg-hero-subtitle-en" class="input" placeholder="Thematic Quran Exegesis & Translation">
+            </div>
           </div>
-          <div class="form-group">
-            <label for="cfg-tagline">App Tagline</label>
-            <input type="text" id="cfg-tagline" class="input" placeholder="Read · Comprehend · Apply">
+
+          <!-- Bilingual Tagline -->
+          <div class="lang-grid">
+            <div class="form-group">
+              <label for="cfg-tagline-id">🇮🇩 App Tagline (Bahasa Indonesia)</label>
+              <input type="text" id="cfg-tagline-id" class="input" placeholder="Baca · Pahami · Amalkan">
+            </div>
+            <div class="form-group">
+              <label for="cfg-tagline-en">🇬🇧 App Tagline (English)</label>
+              <input type="text" id="cfg-tagline-en" class="input" placeholder="Read · Comprehend · Apply">
+            </div>
           </div>
+
           <div class="form-group">
             <label for="cfg-featured-rotation-mode">Featured Ayah Rotation Mode</label>
             <select id="cfg-featured-rotation-mode" class="select">
@@ -606,18 +638,36 @@
               <option value="daily_playlist">Daily Playlist (Cycle Through Playlist)</option>
             </select>
           </div>
+
           <div class="form-group">
             <label for="cfg-featured-key">Featured Ayah Key (sura:ayah)</label>
             <input type="text" id="cfg-featured-key" class="input" placeholder="2:255">
           </div>
-          <div class="form-group">
-            <label for="cfg-featured-note">Featured Ayah Label</label>
-            <input type="text" id="cfg-featured-note" class="input" placeholder="Ayat Kursi">
+
+          <!-- Bilingual Featured Ayah Note -->
+          <div class="lang-grid">
+            <div class="form-group">
+              <label for="cfg-featured-note-id">🇮🇩 Featured Ayah Label (Indonesian)</label>
+              <input type="text" id="cfg-featured-note-id" class="input" placeholder="Ayat Kursi">
+            </div>
+            <div class="form-group">
+              <label for="cfg-featured-note-en">🇬🇧 Featured Ayah Label (English)</label>
+              <input type="text" id="cfg-featured-note-en" class="input" placeholder="Verse of the Throne">
+            </div>
           </div>
-          <div class="form-group">
-            <label for="cfg-announcement">Announcement Banner</label>
-            <input type="text" id="cfg-announcement" class="input" placeholder="Leave empty to hide">
+
+          <!-- Bilingual Announcement Banner -->
+          <div class="lang-grid">
+            <div class="form-group">
+              <label for="cfg-announcement-id">🇮🇩 Announcement Banner (Indonesian)</label>
+              <input type="text" id="cfg-announcement-id" class="input" placeholder="Leave empty to hide">
+            </div>
+            <div class="form-group">
+              <label for="cfg-announcement-en">🇬🇧 Announcement Banner (English)</label>
+              <input type="text" id="cfg-announcement-en" class="input" placeholder="Leave empty to hide">
+            </div>
           </div>
+
           <div id="config-status" class="success-msg">✓ Settings saved successfully!</div>
           <button type="submit" class="btn-primary" style="margin-top:12px">Save All Settings</button>
         </form>
@@ -643,7 +693,7 @@
     <!-- 4. TAGS MANAGER VIEW -->
     <div class="view" id="view-tags">
       <div class="view-title">Tags Manager</div>
-      <div class="view-subtitle">Manage topic tags and hierarchy</div>
+      <div class="view-subtitle">Manage topic tags in both 🇮🇩 Bahasa Indonesia and 🇬🇧 English</div>
 
       <div class="split-layout">
         <div class="card" style="width:300px;min-width:300px">
@@ -654,10 +704,10 @@
               <input type="text" id="tag-name" required class="input" placeholder="e.g. Sabar, Patience">
             </div>
             <div class="form-group">
-              <label for="tag-lang">Language</label>
+              <label for="tag-lang">Target Language</label>
               <select id="tag-lang" class="select">
-                <option value="id">Indonesian (id)</option>
-                <option value="en">English (en)</option>
+                <option value="id">🇮🇩 Indonesian (id)</option>
+                <option value="en">🇬🇧 English (en)</option>
               </select>
             </div>
             <div class="form-group">
@@ -671,12 +721,12 @@
 
         <div class="card" style="flex:1;display:flex;flex-direction:column">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
-            <div class="card-title" style="margin:0">All Tags</div>
+            <div class="card-title" style="margin:0">All Topic Tags</div>
             <div style="display:flex;gap:10px">
               <select id="tags-lang-filter" class="select" style="width:auto;padding:6px 10px;font-size:0.8rem">
                 <option value="all">All Languages</option>
-                <option value="id">Indonesian</option>
-                <option value="en">English</option>
+                <option value="id">🇮🇩 Indonesian</option>
+                <option value="en">🇬🇧 English</option>
               </select>
               <input type="text" id="tags-search" class="input" placeholder="Search tags…" style="width:180px;padding:6px 10px;font-size:0.8rem">
             </div>
@@ -747,9 +797,9 @@
           <div class="card-title" style="font-size:0.88rem;margin-bottom:6px">💡 Format Guide</div>
           <ul style="color:var(--muted);font-size:0.82rem;line-height:1.7;padding-left:1.2rem">
             <li>All templates have 6,236 rows — one per Quran verse.</li>
-            <li><strong>Translations</strong>: columns <code>verse_id, source_id, text</code></li>
-            <li><strong>Tafsirs</strong>: columns <code>verse_id, tafsir_id, text</code></li>
-            <li><strong>Asbabun Nuzul</strong>: columns <code>verse_id, source, text</code></li>
+            <li><strong>Translations</strong>: columns <code>verse_id, source_id, text</code> (e.g. <code>id.kemenag</code> or <code>en.sahih</code>)</li>
+            <li><strong>Tafsirs</strong>: columns <code>verse_id, tafsir_id, text</code> (e.g. <code>id.jalalayn</code> or <code>en.katsir</code>)</li>
+            <li><strong>Asbabun Nuzul</strong>: columns <code>verse_id, source, text</code> (e.g. <code>id.wahidi</code> or <code>en.wahidi</code>)</li>
           </ul>
         </div>
       </div>
@@ -923,7 +973,7 @@
       document.getElementById('edit-trans-en').value = transMap['en.sahih'] || transMap['en.sahih-international'] || '';
       document.getElementById('edit-tafsir-jalalayn').value = tafsirMap['id.jalalayn'] || '';
       document.getElementById('edit-tafsir-katsir').value = tafsirMap['en.katsir'] || tafsirMap['en.ibn-kathir'] || '';
-      document.getElementById('edit-nuzul').value = nuzulMap['en.wahidi'] || nuzulMap['id.wahidi'] || '';
+      document.getElementById('edit-nuzul').value = nuzulMap['id.wahidi'] || nuzulMap['en.wahidi'] || '';
     } catch (_) {}
   }
 
@@ -939,7 +989,7 @@
         get('edit-trans-en') ? sb.from('translations').upsert({ verse_id: activeVerseId, source_id: 'en.sahih', text: get('edit-trans-en') }, { onConflict: 'verse_id,source_id' }) : Promise.resolve(),
         get('edit-tafsir-jalalayn') ? sb.from('tafsirs').upsert({ verse_id: activeVerseId, tafsir_id: 'id.jalalayn', text: get('edit-tafsir-jalalayn') }, { onConflict: 'verse_id,tafsir_id' }) : Promise.resolve(),
         get('edit-tafsir-katsir') ? sb.from('tafsirs').upsert({ verse_id: activeVerseId, tafsir_id: 'en.katsir', text: get('edit-tafsir-katsir') }, { onConflict: 'verse_id,tafsir_id' }) : Promise.resolve(),
-        get('edit-nuzul') ? sb.from('asbabun_nuzul').upsert({ verse_id: activeVerseId, source: 'en.wahidi', text: get('edit-nuzul') }, { onConflict: 'verse_id,source' }) : Promise.resolve(),
+        get('edit-nuzul') ? sb.from('asbabun_nuzul').upsert({ verse_id: activeVerseId, source: 'id.wahidi', text: get('edit-nuzul') }, { onConflict: 'verse_id,source' }) : Promise.resolve(),
       ]);
       btn.textContent = '✓ Saved!';
       setTimeout(() => { btn.textContent = 'Save Changes'; btn.disabled = false; }, 2000);
@@ -949,16 +999,24 @@
   // 3. SITE SETTINGS & PLAYLIST
   const CFG_MAP = {
     home_hero_title: 'cfg-hero-title',
-    home_hero_subtitle: 'cfg-hero-subtitle',
-    app_tagline: 'cfg-tagline',
+    home_hero_subtitle: 'cfg-hero-subtitle-id',
+    home_hero_subtitle_id: 'cfg-hero-subtitle-id',
+    home_hero_subtitle_en: 'cfg-hero-subtitle-en',
+    app_tagline: 'cfg-tagline-id',
+    app_tagline_id: 'cfg-tagline-id',
+    app_tagline_en: 'cfg-tagline-en',
     featured_rotation_mode: 'cfg-featured-rotation-mode',
     featured_ayah_key: 'cfg-featured-key',
-    featured_ayah_note: 'cfg-featured-note',
-    announcement_text: 'cfg-announcement',
+    featured_ayah_note: 'cfg-featured-note-id',
+    featured_ayah_note_id: 'cfg-featured-note-id',
+    featured_ayah_note_en: 'cfg-featured-note-en',
+    announcement_text: 'cfg-announcement-id',
+    announcement_text_id: 'cfg-announcement-id',
+    announcement_text_en: 'cfg-announcement-en',
   };
 
   async function loadSiteConfig() {
-    const { data } = await sb.from('site_config').select('key,value').in('key', Object.keys(CFG_MAP));
+    const { data } = await sb.from('site_config').select('key,value');
     (data||[]).forEach(({ key, value }) => {
       const id = CFG_MAP[key];
       if (id && document.getElementById(id)) document.getElementById(id).value = value || '';
@@ -1035,7 +1093,7 @@
       <tr>
         <td>${t.id}</td>
         <td>${t.name}</td>
-        <td><span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--accent)">${t.lang}</span></td>
+        <td><span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--accent)">${t.lang === 'id' ? '🇮🇩 id' : '🇬🇧 en'}</span></td>
         <td>${t.parent_id||'—'}</td>
         <td><button class="btn-danger" onclick="deleteTag('${t.id}','${t.lang}')">Delete</button></td>
       </tr>`).join('');

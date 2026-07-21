@@ -645,8 +645,37 @@
 <!-- ===================== ADMIN CMS FULL-SCREEN OVERLAY ===================== -->
 <div id="cms-overlay" class="cms-overlay" style="display:none" aria-label="Admin CMS" role="dialog" aria-modal="true">
 
-  <!-- CMS Sidebar -->
-  <aside class="cms-sidebar">
+  <!-- Direct Admin Login Screen -->
+  <div id="cms-login-screen" class="cms-login-card" style="display:none">
+    <div class="cms-login-logo">
+      <span class="cms-login-logo-icon">☪</span>
+      <h2>Tafseer.id</h2>
+      <p>Administrator Console</p>
+    </div>
+    <form id="cms-login-form" onsubmit="event.preventDefault();">
+      <div class="cms-input-group">
+        <label for="cms-login-email">Email Address</label>
+        <input type="email" id="cms-login-email" required placeholder="admin@tafseer.id">
+      </div>
+      <div class="cms-input-group">
+        <label for="cms-login-password">Password</label>
+        <input type="password" id="cms-login-password" required placeholder="••••••••">
+      </div>
+      <div id="cms-login-error" class="cms-login-error-msg" style="display:none"></div>
+      <button type="submit" id="cms-login-submit" class="cms-login-btn">Sign In</button>
+    </form>
+    <div class="cms-login-divider"><span>OR</span></div>
+    <button id="cms-login-google" class="cms-login-google-btn">
+      <svg class="google-icon" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.65l3.15-3.15C17.45 1.77 14.94 1 12 1 7.35 1 3.4 3.65 1.48 7.5l3.77 2.92c.9-2.7 3.4-4.38 6.75-4.38z"/><path fill="#4285F4" d="M23.49 12.27c0-.8-.07-1.56-.2-2.3H12v4.51h6.44c-.28 1.46-1.1 2.69-2.34 3.52l3.63 2.82c2.13-1.97 3.76-4.86 3.76-8.55z"/><path fill="#FBBC05" d="M5.25 14.58c-.24-.72-.37-1.49-.37-2.29 0-.8.13-1.57.37-2.29L1.48 7.08C.54 8.96 0 11.08 0 13.33c0 2.25.54 4.37 1.48 6.25l3.77-3.0z"/><path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.63-2.82c-1.12.75-2.55 1.2-4.33 1.2-3.35 0-5.85-2.22-6.75-5.38L1.48 16c1.92 3.85 5.87 6.5 10.52 6.5z"/></svg>
+      Sign In with Google
+    </button>
+    <button id="cms-login-cancel" class="cms-login-cancel-btn">Cancel</button>
+  </div>
+
+  <!-- Actual CMS Sidebar & Workspace Container -->
+  <div id="cms-workspace" class="cms-workspace-layout" style="display:flex; width:100%; height:100%;">
+    <!-- CMS Sidebar -->
+    <aside class="cms-sidebar">
     <div class="cms-sidebar-header">
       <span class="cms-logo-icon">☪</span>
       <div>
@@ -1006,7 +1035,7 @@
 
     </div><!-- /.cms-body -->
   </main><!-- /.cms-main -->
-
+  </div><!-- #cms-workspace -->
 </div><!-- #cms-overlay -->
 
 <script src="app.js" type="module"></script>

@@ -2215,6 +2215,8 @@ async function triggerRouting() {
     updateBreadcrumbs('home');
     highlightActiveSuraInSidebar(null);
     renderHomeGrid();
+  } else if (hash === '#admin' || hash === '#/admin') {
+    openAdminCms();
   } else if (hash.startsWith('#sura/')) {
     const parts = hash.split('/');
     const suraId = parseInt(parts[1], 10);
@@ -3779,21 +3781,30 @@ let cmsActiveVerseId = null;
 
 // Open / close the full-screen CMS overlay
 function openAdminCms() {
+  if (!currentUser || currentUserProfile?.role !== 'admin') {
+    alert('Admin access requires signing in with an Admin account. Please sign in under Settings > Account.');
+    // Switch to settings panel
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-settings')?.classList.add('active');
+    document.querySelectorAll('.sidebar-content .panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-settings')?.classList.add('active');
+    window.location.hash = '#home';
+    return;
+  }
+
   const overlay = document.getElementById('cms-overlay');
   if (!overlay) return;
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
   // Populate user info from current session
-  if (currentUserProfile) {
-    const name = currentUserProfile.display_name || currentUser?.email || 'Admin';
-    const el = document.getElementById('cms-user-name');
-    const elEmail = document.getElementById('cms-user-email');
-    const elAvatar = document.getElementById('cms-user-avatar');
-    if (el) el.textContent = name;
-    if (elEmail) elEmail.textContent = currentUser?.email || '';
-    if (elAvatar) elAvatar.textContent = name[0].toUpperCase();
-  }
+  const name = currentUserProfile.display_name || currentUser?.email || 'Admin';
+  const el = document.getElementById('cms-user-name');
+  const elEmail = document.getElementById('cms-user-email');
+  const elAvatar = document.getElementById('cms-user-avatar');
+  if (el) el.textContent = name;
+  if (elEmail) elEmail.textContent = currentUser?.email || '';
+  if (elAvatar) elAvatar.textContent = name[0].toUpperCase();
 
   cmsLoadDashboardStats();
 }

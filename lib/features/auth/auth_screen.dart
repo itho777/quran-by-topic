@@ -66,10 +66,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         );
       }
       // After login: pull cloud settings then go home
-      if (mounted) {
-        await ref.read(settingsProvider.notifier).loadFromCloud();
-        context.go('/');
-      }
+      if (!mounted) return;
+      await ref.read(settingsProvider.notifier).loadFromCloud();
+      if (!mounted) return;
+      context.go('/');
     } on AuthException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
@@ -100,6 +100,151 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   @override
   Widget build(BuildContext context) {
+    // ── If already signed in, show signed-in state card ─────────────────────
+    final currentUser = ref.watch(currentUserProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final isAdmin = ref.watch(isAdminProvider);
+
+    if (currentUser != null) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: Column(
+              children: [
+                const SizedBox(height: 24),
+                _buildHeader(),
+                const SizedBox(height: 40),
+                profileAsync.when(
+                  loading: () => const CircularProgressIndicator(),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (profile) => Column(
+                    children: [
+                      // Signed-in card
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceContainer,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppTheme.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: AppTheme.primary.withValues(alpha: 0.15),
+                              backgroundImage: (profile?.avatarUrl != null && profile!.avatarUrl!.isNotEmpty)
+                                  ? NetworkImage(profile.avatarUrl!)
+                                  : null,
+                              child: (profile?.avatarUrl == null || profile!.avatarUrl!.isEmpty)
+                                  ? Text(
+                                      (profile?.displayName ?? currentUser.email ?? 'U')[0].toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        color: AppTheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              profile?.displayName ?? currentUser.email?.split('@').first ?? 'User',
+                              style: TextStyle(
+                                color: AppTheme.onSurface,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              currentUser.email ?? '',
+                              style: TextStyle(color: AppTheme.outline, fontSize: 13),
+                            ),
+                            if (isAdmin) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.admin_panel_settings_outlined, size: 14, color: AppTheme.primary),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      'Admin',
+                                      style: TextStyle(
+                                        color: AppTheme.primary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Go to Home button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.home_outlined, size: 18),
+                          label: const Text('Go to Home', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          onPressed: () => context.go('/'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                      if (isAdmin) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton.icon(
+                            icon: Icon(Icons.admin_panel_settings_outlined, size: 18, color: AppTheme.primary),
+                            label: Text('Admin Dashboard',
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                            onPressed: () => context.go('/admin'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppTheme.primary),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () async {
+                          await ref.read(authServiceProvider).signOut();
+                          if (context.mounted) context.go('/');
+                        },
+                        child: Text(
+                          'Sign Out',
+                          style: TextStyle(color: AppTheme.error, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(

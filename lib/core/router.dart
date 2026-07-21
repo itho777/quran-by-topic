@@ -18,6 +18,7 @@ import '../features/library/library_screen.dart';
 import '../features/admin/admin_dashboard_screen.dart';
 import '../features/admin/admin_screens.dart';
 import '../features/admin/admin_cms_screen.dart';
+import '../features/admin/admin_login_screen.dart';
 import '../features/qibla/qibla_screen.dart';
 import '../features/qibla/qibla_ar_screen.dart';
 import '../features/qibla/prayer_settings_screen.dart';
@@ -42,15 +43,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final path = state.uri.path;
 
       // Admin guard — must be signed in AND have admin role
-      if (path.startsWith('/admin')) {
-        if (user == null) return '/login';
+      if (path.startsWith('/admin') && !path.startsWith('/admin-login')) {
+        if (user == null) return '/admin-login';
         // Role check — isAdminProvider reads from profile cache
         final isAdmin = ref.read(isAdminProvider);
-        if (!isAdmin) return '/';
+        if (!isAdmin) return '/admin-login';
       }
 
-      // If already logged in and visiting /login, go to profile
-      if (path == '/login' && user != null) return '/profile';
+      // If already logged in and visiting /login, let auth_screen.dart handle it
+      // (it shows logged-in state instead of redirecting here)
 
       return null;
     },
@@ -187,6 +188,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const AuthScreen(),
+      ),
+
+      // ── Admin Login (standalone — separate from user /login) ───────────────
+      GoRoute(
+        path: '/admin-login',
+        builder: (context, state) => const AdminLoginScreen(),
       ),
 
       // ── Admin section (no bottom nav shell) ───────────────────────────────

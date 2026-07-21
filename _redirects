@@ -1,2 +1,3 @@
-/admin/
-/admin
+/admin      /admin/      301
+/web-admin  /web-admin/  301
+/login      /login/      301

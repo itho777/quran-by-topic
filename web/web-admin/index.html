@@ -420,7 +420,7 @@
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <span class="icon">☪</span>
+      <img src="../logo-light-trans.png" alt="Tafseer.id Logo" style="height: 64px; margin-bottom: 12px;">
       <h1>Tafseer.id</h1>
       <p>Administrator Console</p>
     </div>
@@ -457,7 +457,7 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <span class="icon">☪</span>
+      <img src="../logo-light-trans.png" alt="Tafseer.id Logo" style="height: 28px;">
       <div>
         <div class="sidebar-brand">Tafseer.id</div>
         <span class="sidebar-badge">Admin CMS</span>
@@ -1205,7 +1205,8 @@
 
   $btnGoogle.addEventListener('click', async () => {
     hideError(); $btnGoogle.disabled = true;
-    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    localStorage.setItem('admin_path', window.location.pathname);
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/' } });
     if (error) { showError('Google sign-in failed: ' + error.message); $btnGoogle.disabled = false; }
   });
 

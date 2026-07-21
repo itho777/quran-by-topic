@@ -1,16 +1,675 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="refresh" content="0; url=../#admin">
-  <title>Tafseer.id Admin CMS</title>
-  <script>
-    window.location.replace("../#admin");
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin CMS — Tafseer.id</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d10;
+      --bg2:       #161619;
+      --bg3:       #1c1c21;
+      --bg-hover:  #24242b;
+      --border:    #2e2e38;
+      --text:      #e8e8f0;
+      --text2:     #a0a0b8;
+      --muted:     #60607a;
+      --accent:    #c9973a;
+      --accent-l:  #e8b96a;
+      --green:     #4caf7d;
+      --red:       #ef4444;
+      --blue:      #4a90d9;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN PAGE ─────────────────────────────── */
+    #login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,151,58,0.08) 0%, transparent 65%), var(--bg);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .login-logo .icon {
+      font-size: 2.2rem;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .login-logo h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .login-logo p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-size: 0.78rem; font-weight: 600; color: var(--text2); }
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { outline: none; border-color: var(--accent); }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider {
+      display: flex; align-items: center;
+      color: var(--muted); font-size: 0.75rem;
+      margin: 18px 0;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      border-top: 1px solid var(--border);
+    }
+    .divider span { padding: 0 10px; }
+
+    .btn-google {
+      width: 100%;
+      background: #fff;
+      color: #1f2937;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      padding: 11px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      transition: background 0.2s;
+    }
+    .btn-google:hover { background: #f3f4f6; }
+    .btn-google:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .error-msg {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: var(--red);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* ── CMS LAYOUT ─────────────────────────────── */
+    #cms-page {
+      display: none;
+      min-height: 100vh;
+      flex-direction: row;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-header {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-header .icon { font-size: 1.4rem; color: var(--accent); }
+    .sidebar-brand { font-size: 0.9rem; font-weight: 700; }
+    .sidebar-badge {
+      font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--accent);
+      background: rgba(201,151,58,0.12);
+      border-radius: 4px; padding: 1px 5px;
+    }
+
+    .sidebar-nav { flex: 1; padding: 10px 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      font-size: 0.85rem; font-weight: 500;
+      color: var(--text2);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border: none; background: none; width: 100%;
+      text-align: left;
+    }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text); }
+    .nav-item.active { background: rgba(201,151,58,0.12); color: var(--accent); }
+
+    .sidebar-footer {
+      padding: 12px 8px;
+      border-top: 1px solid var(--border);
+    }
+    .user-info {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--bg3);
+      margin-bottom: 8px;
+    }
+    .user-avatar {
+      width: 30px; height: 30px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+    .user-email { font-size: 0.7rem; color: var(--muted); }
+
+    .btn-signout {
+      width: 100%;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 7px;
+      padding: 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-signout:hover { border-color: var(--red); color: var(--red); }
+
+    /* Main content */
+    .cms-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    /* Views */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .view-title {
+      font-size: 1.3rem; font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .view-subtitle {
+      font-size: 0.82rem; color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+
+    /* Quick actions */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .action-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: center; gap: 12px;
+      text-align: left;
+    }
+    .action-card:hover { border-color: var(--accent); background: var(--bg3); }
+    .action-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+    }
+    .action-title { font-size: 0.85rem; font-weight: 600; }
+    .action-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* Section heading */
+    .section-heading {
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* Loading overlay */
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+      z-index: 9999;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { font-size: 0.85rem; color: var(--muted); }
+
+    @media (max-width: 640px) {
+      .sidebar { width: 60px; min-width: 60px; }
+      .sidebar-brand, .sidebar-badge, .nav-item span,
+      .user-info .user-name, .user-info .user-email,
+      .btn-signout span { display: none; }
+      .nav-item { justify-content: center; }
+      .sidebar-header { justify-content: center; }
+      .cms-main { padding: 16px; }
+    }
+  </style>
 </head>
 <body>
-  <p style="font-family:sans-serif;text-align:center;margin-top:2rem">
-    Redirecting to Tafseer.id Admin CMS… <a href="../#admin">Click here if not redirected</a>.
-  </p>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Checking session…</p>
+</div>
+
+<!-- ── LOGIN PAGE ──────────────────────────────────── -->
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="icon">☪</span>
+      <h1>Tafseer.id</h1>
+      <p>Administrator Console</p>
+    </div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="admin@tafseer.id" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="btn-login">Sign In</button>
+
+    <div class="divider"><span>OR</span></div>
+
+    <button class="btn-google" id="btn-google">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.65l3.15-3.15C17.45 1.77 14.94 1 12 1 7.35 1 3.4 3.65 1.48 7.5l3.77 2.92c.9-2.7 3.4-4.38 6.75-4.38z"/>
+        <path fill="#4285F4" d="M23.49 12.27c0-.8-.07-1.56-.2-2.3H12v4.51h6.44c-.28 1.46-1.1 2.69-2.34 3.52l3.63 2.82c2.13-1.97 3.76-4.86 3.76-8.55z"/>
+        <path fill="#FBBC05" d="M5.25 14.58A7.2 7.2 0 0 1 4.88 12.3c0-.8.13-1.57.37-2.29L1.48 7.08C.54 8.96 0 11.08 0 13.33c0 2.25.54 4.37 1.48 6.25l3.77-2.92-.0-.08z"/>
+        <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.63-2.82c-1.12.75-2.55 1.2-4.33 1.2-3.35 0-5.85-2.22-6.75-5.38L1.48 16c1.92 3.85 5.87 6.5 10.52 6.5z"/>
+      </svg>
+      Sign In with Google
+    </button>
+
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+</div>
+
+<!-- ── CMS PAGE ────────────────────────────────────── -->
+<div id="cms-page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="icon">☪</span>
+      <div>
+        <div class="sidebar-brand">Tafseer.id</div>
+        <span class="sidebar-badge">Admin CMS</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-view="verses">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>Verse Editor</span>
+      </button>
+      <button class="nav-item" data-view="tags">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <span>Tags Manager</span>
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">—</div>
+          <div class="user-email" id="user-email">—</div>
+        </div>
+      </div>
+      <button class="btn-signout" id="btn-signout">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="cms-main">
+
+    <!-- Dashboard View -->
+    <div class="view active" id="view-dashboard">
+      <div class="view-title">Dashboard</div>
+      <div class="view-subtitle">Overview of Tafseer.id database</div>
+
+      <p class="section-heading">Database Stats</p>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="stat-label">Verses</div><div class="stat-value" id="stat-verses">—</div></div>
+        <div class="stat-card"><div class="stat-label">Tags</div><div class="stat-value" id="stat-tags">—</div></div>
+        <div class="stat-card"><div class="stat-label">Verse-Tags</div><div class="stat-value" id="stat-verse-tags">—</div></div>
+        <div class="stat-card"><div class="stat-label">Translations</div><div class="stat-value" id="stat-translations">—</div></div>
+      </div>
+
+      <p class="section-heading">Quick Actions</p>
+      <div class="actions-grid">
+        <div class="action-card" onclick="switchView('verses')">
+          <div class="action-icon" style="background:rgba(201,151,58,0.12)">📖</div>
+          <div>
+            <div class="action-title">Edit Verses</div>
+            <div class="action-desc">Browse and update translations</div>
+          </div>
+        </div>
+        <div class="action-card" onclick="switchView('tags')">
+          <div class="action-icon" style="background:rgba(74,144,217,0.12)">🏷️</div>
+          <div>
+            <div class="action-title">Manage Tags</div>
+            <div class="action-desc">Add, edit or delete topic tags</div>
+          </div>
+        </div>
+        <div class="action-card" onclick="window.open('https://tafseer.id','_blank')">
+          <div class="action-icon" style="background:rgba(76,175,125,0.12)">🌐</div>
+          <div>
+            <div class="action-title">View Live Site</div>
+            <div class="action-desc">Open tafseer.id in new tab</div>
+          </div>
+        </div>
+        <div class="action-card" onclick="switchView('settings')">
+          <div class="action-icon" style="background:rgba(239,68,68,0.12)">⚙️</div>
+          <div>
+            <div class="action-title">Settings</div>
+            <div class="action-desc">Site configuration</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verse Editor View -->
+    <div class="view" id="view-verses">
+      <div class="view-title">Verse Editor</div>
+      <div class="view-subtitle">Search and edit verse translations</div>
+      <p style="color:var(--muted);font-size:0.9rem">Coming soon — verse editing interface.</p>
+    </div>
+
+    <!-- Tags View -->
+    <div class="view" id="view-tags">
+      <div class="view-title">Tags Manager</div>
+      <div class="view-subtitle">Manage topic tags and verse associations</div>
+      <p style="color:var(--muted);font-size:0.9rem">Coming soon — tag management interface.</p>
+    </div>
+
+    <!-- Settings View -->
+    <div class="view" id="view-settings">
+      <div class="view-title">Settings</div>
+      <div class="view-subtitle">Site configuration and preferences</div>
+      <p style="color:var(--muted);font-size:0.9rem">Coming soon — settings interface.</p>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL     = 'https://zgeygoclduqotqveperx.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik';
+
+  // ── Supabase ─────────────────────────────────────────────
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    }
+  });
+
+  // ── DOM refs ──────────────────────────────────────────────
+  const $loading    = document.getElementById('loading');
+  const $loginPage  = document.getElementById('login-page');
+  const $cmsPage    = document.getElementById('cms-page');
+  const $email      = document.getElementById('email');
+  const $password   = document.getElementById('password');
+  const $btnLogin   = document.getElementById('btn-login');
+  const $btnGoogle  = document.getElementById('btn-google');
+  const $btnSignout = document.getElementById('btn-signout');
+  const $errorMsg   = document.getElementById('error-msg');
+  const $userName   = document.getElementById('user-name');
+  const $userEmail  = document.getElementById('user-email');
+  const $userAvatar = document.getElementById('user-avatar');
+
+  // ── Helpers ───────────────────────────────────────────────
+  function showError(msg) {
+    $errorMsg.textContent = msg;
+    $errorMsg.style.display = 'block';
+  }
+  function hideError() { $errorMsg.style.display = 'none'; }
+
+  function showLogin() {
+    $loading.style.display = 'none';
+    $loginPage.style.display = 'flex';
+    $cmsPage.style.display = 'none';
+  }
+
+  function showCMS(user, profile) {
+    $loading.style.display = 'none';
+    $loginPage.style.display = 'none';
+    $cmsPage.style.display = 'flex';
+
+    const name = profile?.display_name || user.email.split('@')[0];
+    $userName.textContent  = name;
+    $userEmail.textContent = user.email;
+    $userAvatar.textContent = name[0].toUpperCase();
+
+    loadStats();
+  }
+
+  async function checkAdmin(user) {
+    // Check profile role
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('display_name, role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isAdmin =
+      profile?.role === 'admin' ||
+      user.app_metadata?.role === 'admin' ||
+      user.user_metadata?.role === 'admin';
+
+    return { isAdmin, profile };
+  }
+
+  async function handleSession(session) {
+    if (!session) { showLogin(); return; }
+
+    const { isAdmin, profile } = await checkAdmin(session.user);
+    if (!isAdmin) {
+      await sb.auth.signOut();
+      showLogin();
+      showError('Access denied. This account does not have admin privileges.');
+      return;
+    }
+    showCMS(session.user, profile);
+  }
+
+  async function loadStats() {
+    const [
+      { count: verses },
+      { count: tags },
+      { count: verseTags },
+      { count: translations },
+    ] = await Promise.all([
+      sb.from('verses').select('*', { count: 'exact', head: true }),
+      sb.from('tags').select('*', { count: 'exact', head: true }),
+      sb.from('verse_tags').select('*', { count: 'exact', head: true }),
+      sb.from('verse_translations').select('*', { count: 'exact', head: true }),
+    ]);
+
+    document.getElementById('stat-verses').textContent       = (verses ?? '—').toLocaleString();
+    document.getElementById('stat-tags').textContent         = (tags ?? '—').toLocaleString();
+    document.getElementById('stat-verse-tags').textContent   = (verseTags ?? '—').toLocaleString();
+    document.getElementById('stat-translations').textContent = (translations ?? '—').toLocaleString();
+  }
+
+  // ── View switching ─────────────────────────────────────────
+  window.switchView = function(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('view-' + name)?.classList.add('active');
+    document.querySelector(`.nav-item[data-view="${name}"]`)?.classList.add('active');
+  };
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  // ── Login: email/password ─────────────────────────────────
+  $btnLogin.addEventListener('click', async () => {
+    hideError();
+    const email    = $email.value.trim();
+    const password = $password.value;
+    if (!email || !password) { showError('Please enter email and password.'); return; }
+
+    $btnLogin.disabled = true;
+    $btnLogin.textContent = 'Signing in…';
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+
+    $btnLogin.disabled = false;
+    $btnLogin.textContent = 'Sign In';
+
+    if (error) { showError(error.message); }
+    // on success onAuthStateChange fires → handleSession
+  });
+
+  // Allow Enter key
+  [$email, $password].forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') $btnLogin.click(); });
+  });
+
+  // ── Login: Google OAuth ───────────────────────────────────
+  $btnGoogle.addEventListener('click', async () => {
+    hideError();
+    $btnGoogle.disabled = true;
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href }
+    });
+    if (error) {
+      showError('Google sign-in failed: ' + error.message);
+      $btnGoogle.disabled = false;
+    }
+    // On success → browser redirects to Google, returns here, onAuthStateChange fires
+  });
+
+  // ── Sign out ──────────────────────────────────────────────
+  $btnSignout.addEventListener('click', async () => {
+    await sb.auth.signOut();
+  });
+
+  // ── Auth state listener ───────────────────────────────────
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT') { showLogin(); return; }
+    if (session) { await handleSession(session); }
+  });
+
+  // ── Init: check existing session ─────────────────────────
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    await handleSession(session);
+  })();
+</script>
 </body>
 </html>

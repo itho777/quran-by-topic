@@ -3757,8 +3757,6 @@ async function handleAuthSession(session) {
   if (profile?.role === 'admin') {
     const adminTab = document.getElementById('tab-admin');
     if (adminTab) adminTab.style.display = '';
-    loadAdminStats();
-    loadAdminConfig();
   }
 }
 
@@ -3773,42 +3771,410 @@ function handleAuthSignOut() {
 }
 
 // =====================================================================
-// --- ADMIN CONTROLLER ---
+// --- ADMIN CMS CONTROLLER (full-screen overlay) ---
 // =====================================================================
-async function loadAdminStats() {
-  const statsEl = document.getElementById('admin-stats');
-  if (!statsEl || !supabaseClient) return;
-  const tables = [{ id: 'verses', label: 'Verses' }, { id: 'translations', label: 'Translations' }, { id: 'tafsirs', label: 'Tafsirs' }, { id: 'tags', label: 'Tags' }];
-  statsEl.innerHTML = tables.map(t => `<div class="admin-stat-card"><div class="admin-stat-num" id="stat-${t.id}">—</div><div class="admin-stat-label">${t.label}</div></div>`).join('');
-  for (const t of tables) {
-    const { count } = await supabaseClient.from(t.id).select('*', { count: 'exact', head: true });
-    const el = document.getElementById(`stat-${t.id}`);
-    if (el && count !== null) el.textContent = count >= 1000 ? (count / 1000).toFixed(1) + 'K' : count;
+
+let cmsActiveSurahId = 1;
+let cmsActiveVerseId = null;
+
+// Open / close the full-screen CMS overlay
+function openAdminCms() {
+  const overlay = document.getElementById('cms-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  // Populate user info from current session
+  if (currentUserProfile) {
+    const name = currentUserProfile.display_name || currentUser?.email || 'Admin';
+    const el = document.getElementById('cms-user-name');
+    const elEmail = document.getElementById('cms-user-email');
+    const elAvatar = document.getElementById('cms-user-avatar');
+    if (el) el.textContent = name;
+    if (elEmail) elEmail.textContent = currentUser?.email || '';
+    if (elAvatar) elAvatar.textContent = name[0].toUpperCase();
+  }
+
+  cmsLoadDashboardStats();
+}
+
+function closeAdminCms() {
+  const overlay = document.getElementById('cms-overlay');
+  if (overlay) overlay.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// CMS Nav routing
+document.querySelectorAll('.cms-nav-item').forEach(item => {
+  item.addEventListener('click', e => {
+    e.preventDefault();
+    const viewId = item.getAttribute('data-cms-view');
+    document.querySelectorAll('.cms-nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.cms-view').forEach(v => v.classList.remove('active'));
+    const view = document.getElementById(viewId);
+    if (view) view.classList.add('active');
+    const titles = {
+      'cms-dashboard': 'Dashboard Overview',
+      'cms-verses': 'Verse Content Editor',
+      'cms-config': 'Site Settings CMS',
+      'cms-tags': 'Tags Manager',
+      'cms-database': 'Database Tool (CSV)',
+    };
+    const titleEl = document.getElementById('cms-view-title');
+    if (titleEl) titleEl.textContent = titles[viewId] || '';
+    if (viewId === 'cms-dashboard') cmsLoadDashboardStats();
+    if (viewId === 'cms-verses') cmsLoadSurahsDropdown();
+    if (viewId === 'cms-config') cmsLoadSiteConfig();
+    if (viewId === 'cms-tags') cmsLoadTags();
+  });
+});
+
+// Refresh button
+document.getElementById('cms-refresh-btn')?.addEventListener('click', () => {
+  const active = document.querySelector('.cms-view.active')?.id;
+  if (active === 'cms-dashboard') cmsLoadDashboardStats();
+  if (active === 'cms-verses') { cmsLoadSurahsDropdown(); cmsResetVerseEditor(); }
+  if (active === 'cms-config') cmsLoadSiteConfig();
+  if (active === 'cms-tags') cmsLoadTags();
+});
+
+// ── A. DASHBOARD STATS ────────────────────────────────────────────────────
+async function cmsLoadDashboardStats() {
+  if (!supabaseClient) return;
+  const targets = [
+    { id: 'cms-stat-verses', table: 'verses' },
+    { id: 'cms-stat-translations', table: 'translations' },
+    { id: 'cms-stat-tafsirs', table: 'tafsirs' },
+    { id: 'cms-stat-tags', table: 'tags' },
+    { id: 'cms-stat-verse-tags', table: 'verse_tags' },
+    { id: 'cms-stat-nuzul', table: 'asbabun_nuzul' },
+  ];
+  for (const t of targets) {
+    try {
+      const { count } = await supabaseClient.from(t.table).select('*', { count: 'exact', head: true });
+      const el = document.getElementById(t.id);
+      if (el && count !== null) el.textContent = count >= 1000000 ? (count/1000000).toFixed(1)+'M' : count >= 1000 ? (count/1000).toFixed(1)+'K' : count;
+    } catch (_) {}
   }
 }
 
-async function loadAdminConfig() {
-  if (!supabaseClient) return;
-  const { data } = await supabaseClient.from('site_config').select('key, value').in('key', ['home_hero_title', 'home_hero_subtitle', 'announcement_text']);
-  if (!data) return;
-  const map = { home_hero_title: 'cfg-hero-title', home_hero_subtitle: 'cfg-hero-subtitle', announcement_text: 'cfg-announcement' };
-  data.forEach(cfg => { const el = document.getElementById(map[cfg.key]); if (el) el.value = cfg.value; });
+// ── B. VERSE EDITOR ───────────────────────────────────────────────────────
+async function cmsLoadSurahsDropdown() {
+  const select = document.getElementById('cms-select-surah');
+  if (!select || !supabaseClient) return;
+  select.innerHTML = '<option>Loading…</option>';
+  try {
+    const { data } = await supabaseClient.from('surahs').select('id,name_en,name_id').order('id');
+    select.innerHTML = data.map(s => `<option value="${s.id}">${s.id}. ${s.name_en} (${s.name_id||''})</option>`).join('');
+    cmsActiveVerseId = data[0]?.id;
+    cmsLoadVersesList(data[0]?.id);
+  } catch(_) { select.innerHTML = '<option>Error</option>'; }
 }
 
-function initAdminPanel() {
-  document.getElementById('admin-config-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!supabaseClient) return;
-    const configs = [
-      { key: 'home_hero_title', value: document.getElementById('cfg-hero-title')?.value.trim() || '' },
-      { key: 'home_hero_subtitle', value: document.getElementById('cfg-hero-subtitle')?.value.trim() || '' },
-      { key: 'announcement_text', value: document.getElementById('cfg-announcement')?.value.trim() || '' },
-    ];
-    const { error } = await supabaseClient.from('site_config').upsert(configs, { onConflict: 'key' });
-    const statusEl = document.getElementById('admin-save-status');
-    if (!error && statusEl) { statusEl.style.display = 'inline'; setTimeout(() => statusEl.style.display = 'none', 3000); }
-  });
+document.getElementById('cms-select-surah')?.addEventListener('change', e => {
+  cmsActiveSurahId = parseInt(e.target.value);
+  cmsLoadVersesList(cmsActiveSurahId);
+  cmsResetVerseEditor();
+});
+
+async function cmsLoadVersesList(surahId) {
+  const tbody = document.getElementById('cms-verse-list-body');
+  if (!tbody || !supabaseClient) return;
+  cmsActiveSurahId = surahId;
+  tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:1.5rem;color:var(--text-muted)">Loading…</td></tr>';
+  try {
+    const { data } = await supabaseClient.from('verses').select('id,sura_id,ayah_number,text_ar').eq('sura_id', surahId).order('ayah_number');
+    tbody.innerHTML = '';
+    data.forEach(v => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${v.ayah_number}</td><td style="font-family:'Noto Naskh Arabic',serif;font-size:1rem;direction:rtl">${(v.text_ar||'').substring(0,35)}…</td>`;
+      tr.addEventListener('click', () => {
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('cms-selected'));
+        tr.classList.add('cms-selected');
+        cmsLoadVerseDetail(v.id, v.ayah_number);
+      });
+      tbody.appendChild(tr);
+    });
+  } catch(_) { tbody.innerHTML = '<tr><td colspan="2" class="cms-empty">Error loading verses</td></tr>'; }
 }
+
+function cmsResetVerseEditor() {
+  const empty = document.getElementById('cms-editor-empty');
+  const form = document.getElementById('cms-editor-form');
+  if (empty) empty.style.display = '';
+  if (form) form.style.display = 'none';
+  cmsActiveVerseId = null;
+}
+
+async function cmsLoadVerseDetail(verseId, ayahNum) {
+  cmsActiveVerseId = verseId;
+  const empty = document.getElementById('cms-editor-empty');
+  const form = document.getElementById('cms-editor-form');
+  if (empty) empty.style.display = 'none';
+  if (form) form.style.display = 'flex';
+  document.getElementById('cms-edit-verse-label').textContent = `${cmsActiveSurahId}:${ayahNum}`;
+  ['cms-edit-arabic','cms-edit-trans-id','cms-edit-trans-en','cms-edit-tafsir-jalalayn','cms-edit-tafsir-katsir','cms-edit-nuzul'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'cms-edit-arabic' ? 'Loading…' : '';
+  });
+  try {
+    const [{ data: verse }, { data: trans }, { data: tafsirs }, { data: nuzul }] = await Promise.all([
+      supabaseClient.from('verses').select('text_ar').eq('id', verseId).maybeSingle(),
+      supabaseClient.from('translations').select('source_id,text').eq('verse_id', verseId),
+      supabaseClient.from('tafsirs').select('tafsir_id,text').eq('verse_id', verseId),
+      supabaseClient.from('asbabun_nuzul').select('source,text').eq('verse_id', verseId),
+    ]);
+    const ar = document.getElementById('cms-edit-arabic');
+    if (ar) ar.value = verse?.text_ar || '';
+    const transMap = Object.fromEntries((trans||[]).map(t => [t.source_id, t.text]));
+    const tafsirMap = Object.fromEntries((tafsirs||[]).map(t => [t.tafsir_id, t.text]));
+    const nuzulMap = Object.fromEntries((nuzul||[]).map(n => [n.source, n.text]));
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('cms-edit-trans-id', transMap['id.kemenag']);
+    set('cms-edit-trans-en', transMap['en.sahih'] || transMap['en.sahih-international']);
+    set('cms-edit-tafsir-jalalayn', tafsirMap['id.jalalayn']);
+    set('cms-edit-tafsir-katsir', tafsirMap['en.katsir'] || tafsirMap['en.ibn-kathir']);
+    set('cms-edit-nuzul', nuzulMap['en.wahidi'] || nuzulMap['id.wahidi']);
+  } catch(_) {}
+}
+
+document.getElementById('cms-btn-save-verse')?.addEventListener('click', async () => {
+  if (!cmsActiveVerseId || !supabaseClient) return;
+  const get = id => document.getElementById(id)?.value?.trim() || '';
+  const upsertTrans = async (sourceId, text) => {
+    if (!text) return;
+    await supabaseClient.from('translations').upsert({ verse_id: cmsActiveVerseId, source_id: sourceId, text }, { onConflict: 'verse_id,source_id' });
+  };
+  const upsertTafsir = async (tafsirId, text) => {
+    if (!text) return;
+    await supabaseClient.from('tafsirs').upsert({ verse_id: cmsActiveVerseId, tafsir_id: tafsirId, text }, { onConflict: 'verse_id,tafsir_id' });
+  };
+  const btn = document.getElementById('cms-btn-save-verse');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    await Promise.all([
+      upsertTrans('id.kemenag', get('cms-edit-trans-id')),
+      upsertTrans('en.sahih', get('cms-edit-trans-en')),
+      upsertTafsir('id.jalalayn', get('cms-edit-tafsir-jalalayn')),
+      upsertTafsir('en.katsir', get('cms-edit-tafsir-katsir')),
+      (async () => {
+        const text = get('cms-edit-nuzul');
+        if (text) await supabaseClient.from('asbabun_nuzul').upsert({ verse_id: cmsActiveVerseId, source: 'en.wahidi', text }, { onConflict: 'verse_id,source' });
+      })(),
+    ]);
+    btn.textContent = '✓ Saved!';
+    setTimeout(() => { btn.textContent = 'Save Changes'; btn.disabled = false; }, 2000);
+  } catch(_) { btn.textContent = 'Error'; btn.disabled = false; }
+});
+
+// ── C. SITE CONFIG ────────────────────────────────────────────────────────
+const _CFG_KEYS = ['home_hero_title','home_hero_subtitle','app_tagline','featured_rotation_mode','featured_ayah_key','featured_ayah_note','announcement_text'];
+const _CFG_INPUT_MAP = {
+  home_hero_title: 'cfg-hero-title',
+  home_hero_subtitle: 'cfg-hero-subtitle',
+  app_tagline: 'cfg-tagline',
+  featured_rotation_mode: 'cfg-featured-rotation-mode',
+  featured_ayah_key: 'cfg-featured-key',
+  featured_ayah_note: 'cfg-featured-note',
+  announcement_text: 'cfg-announcement',
+};
+
+async function cmsLoadSiteConfig() {
+  if (!supabaseClient) return;
+  const { data } = await supabaseClient.from('site_config').select('key,value').in('key', _CFG_KEYS);
+  (data||[]).forEach(({ key, value }) => {
+    const inputId = _CFG_INPUT_MAP[key];
+    if (!inputId) return;
+    const el = document.getElementById(inputId);
+    if (el) el.value = value;
+  });
+  cmsLoadPlaylist();
+}
+
+document.getElementById('cms-config-form')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!supabaseClient) return;
+  const configs = Object.entries(_CFG_INPUT_MAP).map(([key, inputId]) => ({
+    key, value: document.getElementById(inputId)?.value?.trim() || ''
+  }));
+  const { error } = await supabaseClient.from('site_config').upsert(configs, { onConflict: 'key' });
+  const statusEl = document.getElementById('cms-config-status');
+  if (!error && statusEl) {
+    statusEl.style.display = 'block';
+    setTimeout(() => statusEl.style.display = 'none', 3000);
+  }
+});
+
+async function cmsLoadPlaylist() {
+  const tbody = document.getElementById('cms-playlist-tbody');
+  if (!tbody || !supabaseClient) return;
+  try {
+    const { data } = await supabaseClient.from('featured_playlist').select('*').order('sort_order');
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="cms-empty">No playlist entries yet</td></tr>'; return;
+    }
+    tbody.innerHTML = data.map(row => `
+      <tr>
+        <td>${row.verse_key}</td>
+        <td>${row.note||'—'}</td>
+        <td><button class="cms-btn cms-btn-danger" style="padding:3px 8px;font-size:0.78rem" onclick="cmsDeletePlaylistRow(${row.id})">Delete</button></td>
+      </tr>`).join('');
+  } catch(_) { tbody.innerHTML = '<tr><td colspan="3" class="cms-empty">Table not found</td></tr>'; }
+}
+
+async function cmsDeletePlaylistRow(id) {
+  if (!supabaseClient) return;
+  await supabaseClient.from('featured_playlist').delete().eq('id', id);
+  cmsLoadPlaylist();
+}
+
+document.getElementById('cms-playlist-add-form')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!supabaseClient) return;
+  const key = document.getElementById('cms-play-verse-key')?.value?.trim();
+  const note = document.getElementById('cms-play-note')?.value?.trim();
+  if (!key) return;
+  await supabaseClient.from('featured_playlist').insert({ verse_key: key, note: note||null });
+  document.getElementById('cms-play-verse-key').value = '';
+  document.getElementById('cms-play-note').value = '';
+  cmsLoadPlaylist();
+});
+
+// ── D. TAGS MANAGER ───────────────────────────────────────────────────────
+let _allTags = [];
+
+async function cmsLoadTags() {
+  const tbody = document.getElementById('cms-tags-tbody');
+  if (!tbody || !supabaseClient) return;
+  tbody.innerHTML = '<tr><td colspan="5" class="cms-empty">Loading…</td></tr>';
+  const { data } = await supabaseClient.from('tags').select('id,name,lang,parent_id').order('id');
+  _allTags = data || [];
+  cmsRenderTags();
+}
+
+function cmsRenderTags() {
+  const tbody = document.getElementById('cms-tags-tbody');
+  const langFilter = document.getElementById('cms-tags-lang-filter')?.value || 'all';
+  const search = (document.getElementById('cms-tags-search')?.value || '').toLowerCase();
+  const filtered = _allTags.filter(t =>
+    (langFilter === 'all' || t.lang === langFilter) &&
+    (!search || t.name.toLowerCase().includes(search) || (t.id+'').includes(search))
+  );
+  if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="5" class="cms-empty">No tags found</td></tr>'; return; }
+  tbody.innerHTML = filtered.slice(0, 200).map(t => `
+    <tr>
+      <td>${t.id}</td>
+      <td>${t.name}</td>
+      <td><span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--accent)">${t.lang}</span></td>
+      <td>${t.parent_id||'—'}</td>
+      <td><button class="cms-btn cms-btn-danger" style="padding:3px 8px;font-size:0.78rem" onclick="cmsDeleteTag('${t.id}','${t.lang}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+document.getElementById('cms-tags-lang-filter')?.addEventListener('change', cmsRenderTags);
+document.getElementById('cms-tags-search')?.addEventListener('input', cmsRenderTags);
+
+async function cmsDeleteTag(id, lang) {
+  if (!confirm(`Delete tag "${id}" (${lang})?`)) return;
+  await supabaseClient.from('tags').delete().eq('id', id).eq('lang', lang);
+  await cmsLoadTags();
+}
+
+document.getElementById('cms-tag-create-form')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!supabaseClient) return;
+  const name = document.getElementById('cms-tag-name')?.value?.trim();
+  const lang = document.getElementById('cms-tag-lang')?.value;
+  const parent = document.getElementById('cms-tag-parent')?.value?.trim() || null;
+  if (!name) return;
+  const { error } = await supabaseClient.from('tags').insert({ name, lang, parent_id: parent });
+  const statusEl = document.getElementById('cms-tag-status');
+  if (!error && statusEl) {
+    statusEl.style.display = 'block';
+    document.getElementById('cms-tag-name').value = '';
+    document.getElementById('cms-tag-parent').value = '';
+    setTimeout(() => statusEl.style.display = 'none', 2000);
+    cmsLoadTags();
+  }
+});
+
+// ── E. DATABASE TOOL (CSV IMPORT / EXPORT) ───────────────────────────────
+
+document.getElementById('cms-btn-start-import')?.addEventListener('click', async () => {
+  const fileInput = document.getElementById('cms-import-file');
+  const type = document.getElementById('cms-import-type')?.value;
+  const statusEl = document.getElementById('cms-import-status');
+  const progressWrap = document.getElementById('cms-import-progress-wrap');
+  const progressBar = document.getElementById('cms-import-progress-bar');
+  const progressStatus = document.getElementById('cms-import-progress-status');
+  if (!fileInput?.files[0]) { if(statusEl){ statusEl.style.display='block'; statusEl.className='cms-error-msg'; statusEl.textContent='Please select a CSV file first.'; } return; }
+  const text = await fileInput.files[0].text();
+  const lines = text.split('\n').filter(l => l.trim());
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  const rows = lines.slice(1).map(l => {
+    const vals = []; let cur='', inQ=false;
+    for (const ch of l) { if(ch==='"') inQ=!inQ; else if(ch===','&&!inQ){vals.push(cur.trim());cur='';} else cur+=ch; }
+    vals.push(cur.trim());
+    return Object.fromEntries(headers.map((h,i) => [h, (vals[i]||'').replace(/^"|"$/g,'')]));
+  });
+  progressWrap.style.display='block'; statusEl.style.display='none';
+  const BATCH = 50;
+  let done = 0;
+  for (let i=0; i<rows.length; i+=BATCH) {
+    const batch = rows.slice(i, i+BATCH).map(r => ({
+      verse_id: parseInt(r.verse_id||'0'),
+      ...(type==='translations' ? { source_id: r.source_id, text: r.text } : {}),
+      ...(type==='tafsirs' ? { tafsir_id: r.tafsir_id, text: r.text } : {}),
+      ...(type==='asbabun_nuzul' ? { source: r.source, text: r.text } : {}),
+    }));
+    const conflictCol = type==='translations' ? 'verse_id,source_id' : type==='tafsirs' ? 'verse_id,tafsir_id' : 'verse_id,source';
+    await supabaseClient.from(type==='asbabun_nuzul'?'asbabun_nuzul':type).upsert(batch, { onConflict: conflictCol });
+    done += batch.length;
+    const pct = Math.round((done/rows.length)*100);
+    progressBar.style.width = pct+'%';
+    progressStatus.textContent = `Processing: ${done} / ${rows.length} rows`;
+  }
+  statusEl.style.display='block'; statusEl.className='cms-success-msg';
+  statusEl.textContent = `✓ Import complete: ${done} rows processed.`;
+  progressWrap.style.display='none';
+});
+
+document.getElementById('cms-btn-start-export')?.addEventListener('click', async () => {
+  const type = document.getElementById('cms-export-type')?.value;
+  if (!supabaseClient || !type) return;
+  const { data } = await supabaseClient.from(type).select('*').limit(100000);
+  if (!data || !data.length) return;
+  const cols = Object.keys(data[0]);
+  const csv = [cols.join(','), ...data.map(row => cols.map(c => {
+    const v = String(row[c]??''); return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
+  }).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`${type}_export.csv`; a.click();
+  URL.revokeObjectURL(url);
+});
+
+function cmsGenerateTemplate(type) {
+  const templates = {
+    translations: 'verse_id,source_id,text',
+    tafsirs: 'verse_id,tafsir_id,text',
+    nuzul: 'verse_id,source,text',
+  };
+  const header = templates[type];
+  const rows = Array.from({length:6236}, (_,i) => `${i+1},,`).join('\n');
+  const csv = header+'\n'+rows;
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`template_${type}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('cms-btn-tpl-translations')?.addEventListener('click', () => cmsGenerateTemplate('translations'));
+document.getElementById('cms-btn-tpl-tafsirs')?.addEventListener('click', () => cmsGenerateTemplate('tafsirs'));
+document.getElementById('cms-btn-tpl-nuzul')?.addEventListener('click', () => cmsGenerateTemplate('nuzul'));
+
+
 
 // =====================================================================
 // --- ADVANCED SEARCH (Supabase-powered) ---
@@ -3937,7 +4303,6 @@ async function initApp() {
 
     // 7. Initialize new controllers
     initAdvancedSearch();
-    initAdminPanel();
     initMushafView();
     initAuth(); // async — runs in background, does not block startup
 
@@ -4115,14 +4480,8 @@ function setupEventBindings() {
         renderBookmarksList();
       }
       if (viewName === 'admin') {
-        // Switch to admin panel in sidebar
-        document.querySelectorAll('.sidebar-content .panel').forEach(p => p.classList.remove('active'));
-        const adminPanel = document.getElementById('panel-admin');
-        if (adminPanel) adminPanel.classList.add('active');
-        if (supabaseClient && currentUserProfile?.role === 'admin') {
-          loadAdminStats();
-          loadAdminConfig();
-        }
+        // Open full-screen Admin CMS overlay
+        openAdminCms();
         return;
       }
 

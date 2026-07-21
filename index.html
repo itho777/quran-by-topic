@@ -112,7 +112,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         Credits
       </button>
-      <button class="nav-tab" data-view="admin" id="tab-admin" style="display:none">
+      <button class="nav-tab" id="tab-admin" style="display:none" onclick="openAdminCms()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
         Admin
       </button>
@@ -239,34 +239,7 @@
         </div>
       </div>
 
-      <!-- ADMIN SIDEBAR PANEL -->
-      <div class="panel" id="panel-admin">
-        <div class="settings-container">
-          <div class="settings-section">
-            <h3 class="settings-section-title">Admin Panel</h3>
-            <div class="admin-stats" id="admin-stats"><!-- populated by JS --></div>
-            <details style="margin-top:1rem" open>
-              <summary style="cursor:pointer;font-weight:600;font-size:0.9rem;color:var(--accent);padding:0.5rem 0">Site Configuration</summary>
-              <form id="admin-config-form" style="margin-top:0.75rem">
-                <div class="form-group">
-                  <label style="font-size:0.82rem;color:var(--text-muted)">Hero Title (EN)</label>
-                  <input type="text" id="cfg-hero-title" class="input-text" />
-                </div>
-                <div class="form-group">
-                  <label style="font-size:0.82rem;color:var(--text-muted)">Hero Subtitle (EN)</label>
-                  <input type="text" id="cfg-hero-subtitle" class="input-text" />
-                </div>
-                <div class="form-group">
-                  <label style="font-size:0.82rem;color:var(--text-muted)">Announcement Banner</label>
-                  <input type="text" id="cfg-announcement" class="input-text" placeholder="Leave empty to hide" />
-                </div>
-                <button type="submit" class="btn btn-primary" style="width:100%">Save Configuration</button>
-                <span class="admin-save-status" id="admin-save-status" style="display:none">✓ Saved</span>
-              </form>
-            </details>
-          </div>
-        </div>
-      </div>
+      <!-- ADMIN PANEL: now a full-screen overlay, see #cms-overlay below -->
 
     </div>
   </aside>
@@ -668,6 +641,373 @@
   </div>
 
 </div><!-- #app -->
+
+<!-- ===================== ADMIN CMS FULL-SCREEN OVERLAY ===================== -->
+<div id="cms-overlay" class="cms-overlay" style="display:none" aria-label="Admin CMS" role="dialog" aria-modal="true">
+
+  <!-- CMS Sidebar -->
+  <aside class="cms-sidebar">
+    <div class="cms-sidebar-header">
+      <span class="cms-logo-icon">☪</span>
+      <div>
+        <div class="cms-brand">Tafseer.id</div>
+        <span class="cms-role-badge">Admin CMS</span>
+      </div>
+    </div>
+
+    <nav class="cms-nav">
+      <a href="#" class="cms-nav-item active" data-cms-view="cms-dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="cms-nav-item" data-cms-view="cms-verses">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Verse Editor
+      </a>
+      <a href="#" class="cms-nav-item" data-cms-view="cms-config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Site Settings
+      </a>
+      <a href="#" class="cms-nav-item" data-cms-view="cms-tags">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Tags Manager
+      </a>
+      <a href="#" class="cms-nav-item" data-cms-view="cms-database">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+        Database (CSV)
+      </a>
+    </nav>
+
+    <div class="cms-sidebar-footer">
+      <div class="cms-user-info">
+        <div class="cms-user-avatar" id="cms-user-avatar">A</div>
+        <div class="cms-user-details">
+          <span class="cms-user-name" id="cms-user-name">Admin</span>
+          <span class="cms-user-email" id="cms-user-email"></span>
+        </div>
+      </div>
+      <button class="cms-exit-btn" onclick="closeAdminCms()" title="Exit Admin CMS">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Exit CMS
+      </button>
+    </div>
+  </aside>
+
+  <!-- CMS Main Content -->
+  <main class="cms-main">
+    <header class="cms-header">
+      <h1 class="cms-view-title" id="cms-view-title">Dashboard Overview</h1>
+      <div class="cms-header-actions">
+        <button class="cms-btn cms-btn-icon" id="cms-refresh-btn" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="cms-body">
+
+      <!-- ── VIEW A: DASHBOARD ─────────────────────────────────────────── -->
+      <section id="cms-dashboard" class="cms-view active">
+        <div class="cms-stats-grid">
+          <div class="cms-stat-card">
+            <div class="cms-stat-icon">📖</div>
+            <div class="cms-stat-info">
+              <span class="cms-stat-num" id="cms-stat-verses">—</span>
+              <span class="cms-stat-label">Total Verses</span>
+            </div>
+          </div>
+          <div class="cms-stat-card">
+            <div class="cms-stat-icon">🇮🇩</div>
+            <div class="cms-stat-info">
+              <span class="cms-stat-num" id="cms-stat-translations">—</span>
+              <span class="cms-stat-label">Translations</span>
+            </div>
+          </div>
+          <div class="cms-stat-card">
+            <div class="cms-stat-icon">📚</div>
+            <div class="cms-stat-info">
+              <span class="cms-stat-num" id="cms-stat-tafsirs">—</span>
+              <span class="cms-stat-label">Tafsir Passages</span>
+            </div>
+          </div>
+          <div class="cms-stat-card">
+            <div class="cms-stat-icon">🏷️</div>
+            <div class="cms-stat-info">
+              <span class="cms-stat-num" id="cms-stat-tags">—</span>
+              <span class="cms-stat-label">Topic Tags</span>
+            </div>
+          </div>
+          <div class="cms-stat-card">
+            <div class="cms-stat-icon">🔖</div>
+            <div class="cms-stat-info">
+              <span class="cms-stat-num" id="cms-stat-verse-tags">—</span>
+              <span class="cms-stat-label">Verse-Tag Mappings</span>
+            </div>
+          </div>
+          <div class="cms-stat-card">
+            <div class="cms-stat-icon">📜</div>
+            <div class="cms-stat-info">
+              <span class="cms-stat-num" id="cms-stat-nuzul">—</span>
+              <span class="cms-stat-label">Asbabun Nuzul</span>
+            </div>
+          </div>
+        </div>
+        <div class="cms-welcome-card">
+          <h3>Welcome to the Tafseer.id CMS</h3>
+          <p>You have full administrative privileges to edit Quranic text, manage translations and tafsirs, tag verses to topics, manage the featured ayah, and configure home screen content — all directly in the live database.</p>
+          <div class="cms-quick-tips">
+            <strong>💡 Tip:</strong> Use the <strong>Verse Editor</strong> tab to edit any verse's translation, tafsir, or Asbabun Nuzul. Changes are reflected instantly in the app.
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW B: VERSE CONTENT EDITOR ────────────────────────────── -->
+      <section id="cms-verses" class="cms-view">
+        <div class="cms-split-layout">
+          <!-- Left: Surah + Verse list -->
+          <div class="cms-list-panel">
+            <div class="cms-filter-row">
+              <label for="cms-select-surah" class="cms-label">Surah</label>
+              <select id="cms-select-surah" class="cms-select"></select>
+            </div>
+            <div class="cms-verse-list-wrap">
+              <table class="cms-table cms-table-selectable">
+                <thead>
+                  <tr><th>Ayah</th><th>Arabic Preview</th></tr>
+                </thead>
+                <tbody id="cms-verse-list-body">
+                  <tr><td colspan="2" style="text-align:center;color:var(--text-muted);padding:2rem">Select a surah to load verses</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Right: Editor pane -->
+          <div class="cms-editor-pane">
+            <div id="cms-editor-empty" class="cms-pane-placeholder">
+              <div class="cms-placeholder-icon">📖</div>
+              <p>Select a verse from the list to edit its translations, tafsirs, and tags.</p>
+            </div>
+            <div id="cms-editor-form" class="cms-pane-content" style="display:none">
+              <div class="cms-pane-header">
+                <h3>Edit Verse <span id="cms-edit-verse-label"></span></h3>
+                <button id="cms-btn-save-verse" class="cms-btn cms-btn-primary">Save Changes</button>
+              </div>
+              <div class="cms-form-scroll">
+                <div class="cms-form-group">
+                  <label class="cms-label">Arabic Script <span class="cms-hint">(read-only)</span></label>
+                  <textarea id="cms-edit-arabic" class="cms-textarea cms-font-arabic" rows="3" readonly></textarea>
+                </div>
+                <div class="cms-form-group">
+                  <label class="cms-label" for="cms-edit-trans-id">Indonesian Translation (Kemenag)</label>
+                  <textarea id="cms-edit-trans-id" class="cms-textarea" rows="3"></textarea>
+                </div>
+                <div class="cms-form-group">
+                  <label class="cms-label" for="cms-edit-trans-en">English Translation (Sahih Int.)</label>
+                  <textarea id="cms-edit-trans-en" class="cms-textarea" rows="3"></textarea>
+                </div>
+                <div class="cms-form-group">
+                  <label class="cms-label" for="cms-edit-tafsir-jalalayn">Tafsir Jalalayn (Indonesian)</label>
+                  <textarea id="cms-edit-tafsir-jalalayn" class="cms-textarea" rows="5"></textarea>
+                </div>
+                <div class="cms-form-group">
+                  <label class="cms-label" for="cms-edit-tafsir-katsir">Tafsir Ibn Kathir (English)</label>
+                  <textarea id="cms-edit-tafsir-katsir" class="cms-textarea" rows="5"></textarea>
+                </div>
+                <div class="cms-form-group">
+                  <label class="cms-label" for="cms-edit-nuzul">Asbabun Nuzul (Al-Wahidi)</label>
+                  <textarea id="cms-edit-nuzul" class="cms-textarea" rows="4"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW C: SITE SETTINGS CMS ───────────────────────────────── -->
+      <section id="cms-config" class="cms-view">
+        <div class="cms-card cms-max-w-xl">
+          <h3 class="cms-card-title">Global Branding &amp; Home Layout</h3>
+          <p class="cms-subtitle">Modify general texts, featured ayah settings, and announcement banners</p>
+          <hr class="cms-divider">
+          <form id="cms-config-form">
+            <div class="cms-form-group">
+              <label class="cms-label" for="cfg-hero-title">Hero Arabic Title</label>
+              <input type="text" id="cfg-hero-title" class="cms-input cms-font-arabic" style="text-align:center" />
+              <span class="cms-hint">Arabic calligraphy shown at top of home screen</span>
+            </div>
+            <div class="cms-form-group">
+              <label class="cms-label" for="cfg-hero-subtitle">Hero Subtitle</label>
+              <input type="text" id="cfg-hero-subtitle" class="cms-input" />
+            </div>
+            <div class="cms-form-group">
+              <label class="cms-label" for="cfg-tagline">App Tagline</label>
+              <input type="text" id="cfg-tagline" class="cms-input" placeholder="Read · Comprehend · Apply" />
+              <span class="cms-hint">Tagline shown under logo on the splash and home screens</span>
+            </div>
+            <div class="cms-form-group">
+              <label class="cms-label" for="cfg-featured-rotation-mode">Featured Ayah Rotation Mode</label>
+              <select id="cfg-featured-rotation-mode" class="cms-select">
+                <option value="manual">Manual (Use Key Below)</option>
+                <option value="daily_random">Daily Random (Auto-Pick)</option>
+                <option value="daily_playlist">Daily Playlist (Cycle Through Playlist)</option>
+              </select>
+            </div>
+            <div class="cms-form-group" id="cfg-group-featured-key">
+              <label class="cms-label" for="cfg-featured-key">Featured Ayah Key (sura:ayah)</label>
+              <input type="text" id="cfg-featured-key" class="cms-input" placeholder="2:255" />
+              <span class="cms-hint">Format: sura:ayah — e.g. 2:255 (Ayat Kursi), 3:190, etc.</span>
+            </div>
+            <div class="cms-form-group">
+              <label class="cms-label" for="cfg-featured-note">Featured Ayah Label</label>
+              <input type="text" id="cfg-featured-note" class="cms-input" placeholder="Ayat Kursi" />
+            </div>
+            <div class="cms-form-group">
+              <label class="cms-label" for="cfg-announcement">Announcement Banner</label>
+              <input type="text" id="cfg-announcement" class="cms-input" placeholder="Leave empty to hide" />
+            </div>
+            <div id="cms-config-status" class="cms-success-msg" style="display:none">✓ Settings saved successfully!</div>
+            <button type="submit" class="cms-btn cms-btn-primary" style="width:100%">Save All Settings</button>
+          </form>
+
+          <!-- Curated Playlist -->
+          <div style="margin-top:2rem">
+            <hr class="cms-divider">
+            <h3 class="cms-card-title">Curated Rotation Playlist</h3>
+            <p class="cms-subtitle">Verses used in "Daily Playlist" rotation mode</p>
+            <form id="cms-playlist-add-form" style="display:flex;gap:10px;margin-bottom:1rem">
+              <input type="text" id="cms-play-verse-key" required class="cms-input" placeholder="e.g. 2:255" style="max-width:130px" />
+              <input type="text" id="cms-play-note" class="cms-input" placeholder="Description (optional)" />
+              <button type="submit" class="cms-btn cms-btn-primary" style="white-space:nowrap">Add</button>
+            </form>
+            <div class="cms-table-wrap">
+              <table class="cms-table">
+                <thead><tr><th>Verse Key</th><th>Note</th><th>Action</th></tr></thead>
+                <tbody id="cms-playlist-tbody"><tr><td colspan="3" class="cms-empty">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW D: TOPIC & TAGS MANAGER ────────────────────────────── -->
+      <section id="cms-tags" class="cms-view">
+        <div class="cms-split-layout">
+          <div class="cms-card cms-sidebar-form">
+            <h3 class="cms-card-title">Create Topic Tag</h3>
+            <form id="cms-tag-create-form">
+              <div class="cms-form-group">
+                <label class="cms-label" for="cms-tag-name">Tag Name / Title</label>
+                <input type="text" id="cms-tag-name" required class="cms-input" placeholder="e.g. Sabar, Patience" />
+              </div>
+              <div class="cms-form-group">
+                <label class="cms-label" for="cms-tag-lang">Language</label>
+                <select id="cms-tag-lang" class="cms-select">
+                  <option value="id">Indonesian (id)</option>
+                  <option value="en">English (en)</option>
+                </select>
+              </div>
+              <div class="cms-form-group">
+                <label class="cms-label" for="cms-tag-parent">Parent Tag ID <span class="cms-hint">(optional)</span></label>
+                <input type="text" id="cms-tag-parent" class="cms-input" placeholder="Leave empty for top-level" />
+              </div>
+              <div id="cms-tag-status" class="cms-success-msg" style="display:none">✓ Tag created!</div>
+              <button type="submit" class="cms-btn cms-btn-primary" style="width:100%">Add New Topic Tag</button>
+            </form>
+          </div>
+          <div class="cms-card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem">
+              <h3 class="cms-card-title" style="margin:0">All Topic Tags</h3>
+              <select id="cms-tags-lang-filter" class="cms-select" style="width:auto;padding:0.3rem 0.6rem;font-size:0.8rem">
+                <option value="all">All</option>
+                <option value="id">Indonesian</option>
+                <option value="en">English</option>
+              </select>
+              <input type="text" id="cms-tags-search" class="cms-input" placeholder="Search tags…" style="max-width:220px" />
+            </div>
+            <div class="cms-table-wrap" style="flex:1;overflow:auto">
+              <table class="cms-table">
+                <thead><tr><th>ID</th><th>Name</th><th>Lang</th><th>Parent</th><th>Action</th></tr></thead>
+                <tbody id="cms-tags-tbody"><tr><td colspan="5" class="cms-empty">Loading tags…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VIEW E: DATABASE TOOL (CSV IMPORT / EXPORT) ─────────────── -->
+      <section id="cms-database" class="cms-view">
+        <div class="cms-split-layout">
+          <div style="display:flex;flex-direction:column;gap:1.5rem;min-width:340px;max-width:420px">
+            <!-- Import Card -->
+            <div class="cms-card">
+              <h3 class="cms-card-title">Import CSV Dataset</h3>
+              <p class="cms-subtitle">Bulk upload translation, tafsir, or nuzul data to Supabase. Updates are matched by verse_id.</p>
+              <hr class="cms-divider">
+              <div class="cms-form-group">
+                <label class="cms-label" for="cms-import-type">Table Type</label>
+                <select id="cms-import-type" class="cms-select">
+                  <option value="translations">Translations</option>
+                  <option value="tafsirs">Tafsirs</option>
+                  <option value="asbabun_nuzul">Asbabun Nuzul</option>
+                </select>
+              </div>
+              <div class="cms-form-group">
+                <label class="cms-label" for="cms-import-file">Upload CSV File</label>
+                <input type="file" id="cms-import-file" accept=".csv" class="cms-input" />
+              </div>
+              <div id="cms-import-progress-wrap" style="display:none;margin-top:0.75rem">
+                <div style="background:var(--border-color);height:6px;border-radius:3px;overflow:hidden;margin-bottom:0.4rem">
+                  <div id="cms-import-progress-bar" style="background:var(--accent);height:100%;width:0%;transition:width .1s"></div>
+                </div>
+                <span id="cms-import-progress-status" style="font-size:0.78rem;color:var(--text-muted)">Processing…</span>
+              </div>
+              <div id="cms-import-status" style="display:none;margin-top:0.75rem"></div>
+              <button id="cms-btn-start-import" class="cms-btn cms-btn-primary" style="width:100%;margin-top:1rem">Start Import</button>
+            </div>
+            <!-- Export Card -->
+            <div class="cms-card">
+              <h3 class="cms-card-title">Export Database Table</h3>
+              <p class="cms-subtitle">Download records as a CSV spreadsheet.</p>
+              <hr class="cms-divider">
+              <div class="cms-form-group">
+                <label class="cms-label" for="cms-export-type">Table to Export</label>
+                <select id="cms-export-type" class="cms-select">
+                  <option value="translations">Translations</option>
+                  <option value="tafsirs">Tafsirs</option>
+                  <option value="asbabun_nuzul">Asbabun Nuzul</option>
+                  <option value="tags">Tags</option>
+                  <option value="verse_tags">Verse Tags</option>
+                </select>
+              </div>
+              <button id="cms-btn-start-export" class="cms-btn cms-btn-outline" style="width:100%">Export to CSV</button>
+            </div>
+          </div>
+          <!-- Right: Templates + Instructions -->
+          <div class="cms-card" style="flex:1">
+            <h3 class="cms-card-title">Blank CSV Templates</h3>
+            <p class="cms-subtitle">Download blank 6,236-row frames matching the Supabase schema.</p>
+            <hr class="cms-divider">
+            <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.5rem">
+              <button class="cms-btn cms-btn-outline" id="cms-btn-tpl-translations">📥 Translations CSV Template</button>
+              <button class="cms-btn cms-btn-outline" id="cms-btn-tpl-tafsirs">📥 Tafsirs CSV Template</button>
+              <button class="cms-btn cms-btn-outline" id="cms-btn-tpl-nuzul">📥 Asbabun Nuzul CSV Template</button>
+            </div>
+            <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:0.5rem">💡 Format Guide</h4>
+            <ul style="color:var(--text-muted);font-size:0.82rem;line-height:1.7;padding-left:1.2rem">
+              <li>All templates have 6,236 rows — one per Quran verse (row 1 = verse 1 = Al-Fatiha 1).</li>
+              <li><strong>Translations</strong>: columns <code>verse_id, source_id, text</code>. Source: <code>id.kemenag</code> or <code>en.sahih</code>.</li>
+              <li><strong>Tafsirs</strong>: columns <code>verse_id, tafsir_id, text</code>. Tafsir: <code>id.jalalayn</code> or <code>en.katsir</code>.</li>
+              <li><strong>Asbabun Nuzul</strong>: columns <code>verse_id, source, text</code>. Source: <code>en.wahidi</code>.</li>
+              <li>Wrap fields containing commas or newlines in double-quotes.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /.cms-body -->
+  </main><!-- /.cms-main -->
+
+</div><!-- #cms-overlay -->
 
 <script src="app.js" type="module"></script>
 </body>

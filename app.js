@@ -3688,22 +3688,36 @@ window.togglePlayAyah = togglePlayAyah;
 // =====================================================================
 async function initAuth() {
   if (!supabaseClient) return;
+
+  // Fix double hash (e.g. #login#access_token=... or #home#access_token=...) from OAuth redirects
+  if (window.location.hash.includes('access_token=')) {
+    const idx = window.location.hash.indexOf('access_token=');
+    if (idx > 1) {
+      window.location.hash = '#' + window.location.hash.substring(idx);
+    }
+  }
+
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) await handleAuthSession(session);
+
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
+    if (session) {
       await handleAuthSession(session);
-      // After OAuth redirect: restore the page the user was on before login
-      const restoreHash = localStorage.getItem('auth_redirect_hash');
-      if (restoreHash) {
-        localStorage.removeItem('auth_redirect_hash');
-        // Use replaceState so back button still works cleanly
-        window.location.hash = restoreHash;
+      if (event === 'SIGNED_IN') {
+        // Clean up hash fragment after OAuth login
+        const restoreHash = localStorage.getItem('auth_redirect_hash');
+        if (restoreHash && !restoreHash.includes('access_token')) {
+          localStorage.removeItem('auth_redirect_hash');
+          window.location.hash = restoreHash;
+        } else if (window.location.hash.includes('access_token')) {
+          window.location.hash = '#home';
+        }
       }
     } else if (event === 'SIGNED_OUT') {
       handleAuthSignOut();
     }
   });
+
   document.getElementById('auth-login-btn')?.addEventListener('click', async () => {
     const email = document.getElementById('auth-email')?.value.trim();
     const password = document.getElementById('auth-password')?.value;
@@ -3713,6 +3727,7 @@ async function initAuth() {
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error && errEl) { errEl.textContent = error.message; errEl.style.display = 'block'; }
   });
+
   document.getElementById('auth-logout-btn')?.addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
   });
@@ -3723,13 +3738,10 @@ async function initAuth() {
     if (errEl) errEl.style.display = 'none';
     const btn = document.getElementById('auth-google-login');
     if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
-    // Save current hash to restore after login redirect
     localStorage.setItem('auth_redirect_hash', window.location.hash || '#home');
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Use origin only (no #login hash) — the hash router owns '#' so appending
-        // '#login' causes a double-hash that prevents Supabase from parsing the token.
         redirectTo: window.location.origin + '/'
       }
     });
@@ -3737,28 +3749,41 @@ async function initAuth() {
       if (errEl) { errEl.textContent = 'Google sign-in failed: ' + error.message; errEl.style.display = 'block'; }
       if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     }
-    // On success the browser redirects to Google — no further JS needed here
   });
 }
 
 async function handleAuthSession(session) {
+  if (!session || !session.user) return;
   currentUser = session.user;
-  const { data: profile } = await supabaseClient.from('profiles').select('display_name, role, avatar_url').eq('id', currentUser.id).maybeSingle();
-  currentUserProfile = profile;
-  const name = profile?.display_name || currentUser.email.split('@')[0];
+  
+  try {
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('display_name, role, avatar_url')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+    currentUserProfile = profile;
+  } catch (e) {
+    console.warn('Profile fetch error:', e);
+  }
+
+  const name = currentUserProfile?.display_name || currentUser.email.split('@')[0];
   const elOut = document.getElementById('auth-logged-out');
   const elIn = document.getElementById('auth-logged-in');
   if (elOut) elOut.style.display = 'none';
   if (elIn) elIn.style.display = 'block';
+
   const nameEl = document.getElementById('auth-user-name');
   const emailEl = document.getElementById('auth-user-email');
   const avatarEl = document.getElementById('auth-avatar-initial');
   if (nameEl) nameEl.textContent = name;
   if (emailEl) emailEl.textContent = currentUser.email;
   if (avatarEl) avatarEl.textContent = name[0].toUpperCase();
-  if (profile?.role === 'admin') {
-    const adminTab = document.getElementById('tab-admin');
-    if (adminTab) adminTab.style.display = '';
+
+  const isAdmin = currentUserProfile?.role === 'admin' || currentUser.app_metadata?.role === 'admin' || currentUser.user_metadata?.role === 'admin';
+  const adminTab = document.getElementById('tab-admin');
+  if (adminTab) {
+    adminTab.style.display = isAdmin ? '' : 'none';
   }
 }
 

@@ -81,7 +81,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = int.parse(state.pathParameters['id']!);
                   final autoplay = state.uri.queryParameters['autoplay'] == '1';
-                  return SurahDetailScreen(surahId: id, autoplay: autoplay);
+                  final ayahStr = state.uri.queryParameters['ayah'];
+                  final initialAyah = ayahStr != null ? int.tryParse(ayahStr) : null;
+                  return SurahDetailScreen(
+                    surahId: id,
+                    autoplay: autoplay,
+                    initialAyah: initialAyah,
+                  );
                 },
                 routes: [
                   GoRoute(

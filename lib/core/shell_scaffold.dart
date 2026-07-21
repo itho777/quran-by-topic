@@ -51,7 +51,6 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
     if (location.startsWith('/mushaf')) return 2;
     if (location.startsWith('/topics')) return 3;
     if (location.startsWith('/qibla')) return 4;
-    if (location.startsWith('/settings')) return 5;
     return 0;
   }
 
@@ -71,7 +70,6 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
         break;
       case 3: context.go('/topics'); break;
       case 4: context.go('/qibla'); break;
-      case 5: context.go('/settings'); break;
     }
   }
 
@@ -79,7 +77,6 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
     final hideNavBar = ref.watch(hideNavBarProvider);
-    final user = ref.watch(currentUserProvider);
     final location = GoRouterState.of(context).uri.toString();
 
     // Track navigation history safely outside the build phase
@@ -172,11 +169,6 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
                       icon: Text('🕋', style: TextStyle(fontSize: 20)),
                       activeIcon: Text('🕋', style: TextStyle(fontSize: 20)),
                       label: 'Qibla',
-                    ),
-                    const BottomNavigationBarItem(
-                      icon: Icon(Icons.more_horiz_outlined),
-                      activeIcon: Icon(Icons.more_horiz),
-                      label: 'More',
                     ),
                   ],
                 ),

@@ -1055,58 +1055,16 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
         ),
         actions: [
-          // Language Toggle Pill
-          Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: ['en', 'id'].map((lang) {
-                  final active = _currentLang == lang;
-                  return GestureDetector(
-                    onTap: () => ref.read(settingsProvider.notifier).setAppLanguage(lang),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(20),
-                        border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-                      ),
-                      child: Text(
-                        lang.toUpperCase(),
-                        style: TextStyle(
-                          color: active ? AppTheme.primary : AppTheme.outline,
-                          fontSize: 11,
-                          fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
           // Play button
           IconButton(
             icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),
             tooltip: isEn ? 'Play Audio' : 'Putar Audio',
             onPressed: _toggleAudio,
           ),
-          // Reciter Selector
-          IconButton(
-            icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
-            tooltip: isEn ? 'Select Reciter' : 'Pilih Qori',
-            onPressed: _showReciterSelection,
-          ),
           // Bookmark
           IconButton(
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: AppTheme.primary),
+            tooltip: isEn ? 'Bookmark' : 'Simpan',
             onPressed: () => _showBookmarkOptions(context),
           ),
           // Read in Mushaf
@@ -1119,25 +1077,136 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 context.go('/mushaf?page=$pageNum');
               },
             ),
-          // Jump to Ayah (explore_outlined)
-          IconButton(
-            icon: Icon(Icons.explore_outlined, color: AppTheme.primary, size: 22),
-            tooltip: isEn ? 'Go to Ayah' : 'Lompat ke Ayat',
-            onPressed: _showJumpDialog,
-          ),
-          // Share
-          IconButton(
-            icon: Icon(Icons.share, color: AppTheme.primary),
-            tooltip: isEn ? 'Copy & Share' : 'Salin & Bagikan',
-            onPressed: _copyActiveAyah,
-          ),
-          // Settings
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: AppTheme.outline, size: 20),
-            tooltip: isEn ? 'Settings' : 'Pengaturan',
-            onPressed: () => context.push('/settings'),
+          // Overflow — secondary actions
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: AppTheme.primary),
+            tooltip: isEn ? 'More' : 'Lainnya',
+            color: AppTheme.surfaceContainerHigh,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (value) {
+              switch (value) {
+                case 'lang_en':
+                  ref.read(settingsProvider.notifier).setAppLanguage('en');
+                  break;
+                case 'lang_id':
+                  ref.read(settingsProvider.notifier).setAppLanguage('id');
+                  break;
+                case 'reciter':
+                  _showReciterSelection();
+                  break;
+                case 'murajaah':
+                  context.go('/murajaah');
+                  break;
+                case 'jump':
+                  _showJumpDialog();
+                  break;
+                case 'share':
+                  _copyActiveAyah();
+                  break;
+                case 'settings':
+                  context.push('/settings');
+                  break;
+              }
+            },
+            itemBuilder: (ctx) {
+              return [
+                // Language header
+                PopupMenuItem<String>(
+                  enabled: false,
+                  height: 28,
+                  child: Text(
+                    isEn ? 'LANGUAGE' : 'BAHASA',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppTheme.outline,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'lang_en',
+                  child: Row(children: [
+                    Icon(Icons.language, size: 18,
+                        color: _currentLang == 'en' ? AppTheme.primary : AppTheme.outline),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('English', style: TextStyle(
+                      fontSize: 13,
+                      color: _currentLang == 'en' ? AppTheme.primary : AppTheme.onSurface,
+                      fontWeight: _currentLang == 'en' ? FontWeight.bold : FontWeight.normal,
+                    ))),
+                    if (_currentLang == 'en')
+                      Icon(Icons.check, size: 14, color: AppTheme.primary),
+                  ]),
+                ),
+                PopupMenuItem<String>(
+                  value: 'lang_id',
+                  child: Row(children: [
+                    Icon(Icons.language, size: 18,
+                        color: _currentLang == 'id' ? AppTheme.primary : AppTheme.outline),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text('Indonesia', style: TextStyle(
+                      fontSize: 13,
+                      color: _currentLang == 'id' ? AppTheme.primary : AppTheme.onSurface,
+                      fontWeight: _currentLang == 'id' ? FontWeight.bold : FontWeight.normal,
+                    ))),
+                    if (_currentLang == 'id')
+                      Icon(Icons.check, size: 14, color: AppTheme.primary),
+                  ]),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem<String>(
+                  value: 'reciter',
+                  child: Row(children: [
+                    Icon(Icons.record_voice_over, size: 18, color: AppTheme.primary),
+                    const SizedBox(width: 10),
+                    Text(isEn ? 'Select Reciter' : 'Pilih Qori',
+                        style: const TextStyle(fontSize: 13)),
+                  ]),
+                ),
+                PopupMenuItem<String>(
+                  value: 'murajaah',
+                  child: Row(children: [
+                    const Icon(Icons.headphones_rounded, size: 18, color: Color(0xFF4CAF50)),
+                    const SizedBox(width: 10),
+                    Text(isEn ? 'Murajaah' : 'Murājaah',
+                        style: const TextStyle(fontSize: 13)),
+                  ]),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem<String>(
+                  value: 'jump',
+                  child: Row(children: [
+                    Icon(Icons.explore_outlined, size: 18, color: AppTheme.primary),
+                    const SizedBox(width: 10),
+                    Text(isEn ? 'Jump to Ayah' : 'Lompat ke Ayat',
+                        style: const TextStyle(fontSize: 13)),
+                  ]),
+                ),
+                PopupMenuItem<String>(
+                  value: 'share',
+                  child: Row(children: [
+                    Icon(Icons.share, size: 18, color: AppTheme.primary),
+                    const SizedBox(width: 10),
+                    Text(isEn ? 'Copy & Share' : 'Salin & Bagikan',
+                        style: const TextStyle(fontSize: 13)),
+                  ]),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem<String>(
+                  value: 'settings',
+                  child: Row(children: [
+                    Icon(Icons.settings_outlined, size: 18, color: AppTheme.outline),
+                    const SizedBox(width: 10),
+                    Text(isEn ? 'Settings' : 'Pengaturan',
+                        style: const TextStyle(fontSize: 13)),
+                  ]),
+                ),
+              ];
+            },
           ),
         ],
+
       ),
       body: NestedScrollView(
         headerSliverBuilder: (context, _) => [

@@ -21,8 +21,8 @@ import '../../core/local_db.dart';
 import '../../core/cdn_translation_service.dart';
 
 import '../../core/theme.dart';
-
 import '../../core/settings_manager.dart';
+import '../../core/murajaah_service.dart';
 
 import '../../core/bookmarks_manager.dart';
 
@@ -2638,6 +2638,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 case 'share':
                                   _copyActiveAyah();
                                   break;
+                                case 'murajaah':
+                                  context.go('/murajaah');
+                                  break;
                                 case 'settings':
                                   context.push('/settings');
                                   break;
@@ -2706,6 +2709,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                     Icon(Icons.info_outline, size: 18, color: AppTheme.primary),
                                     const SizedBox(width: 10),
                                     Text(isEn ? 'Ayah Detail' : 'Detail Ayat',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ]),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'murajaah',
+                                  child: Row(children: [
+                                    const Icon(Icons.headphones_rounded, size: 18, color: Color(0xFF4CAF50)),
+                                    const SizedBox(width: 10),
+                                    Text(isEn ? 'Murajaah' : 'Murājaah',
                                         style: const TextStyle(fontSize: 13)),
                                   ]),
                                 ),
@@ -2954,7 +2966,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                               final isSelected = vId == _selectedVerseId;
 
-                              final isPlaying = vId == _playingVerseId && _isPlaying;
+                              final murajaahState = ref.watch(murajaahProvider);
+                              final isMurajaahPlaying = murajaahState.sessionActive &&
+                                  murajaahState.isPlaying &&
+                                  murajaahState.currentVerse?.verseKey == v['verse_key'];
+                              final isPlaying = (vId == _playingVerseId && _isPlaying) || isMurajaahPlaying;
 
                               final key = _verseKeys.putIfAbsent(vId, () => GlobalKey());
 

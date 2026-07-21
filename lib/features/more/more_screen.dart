@@ -235,32 +235,8 @@ class MoreScreen extends ConsumerWidget {
                   trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                   onTap: () => context.go('/library'),
                 ),
-                Divider(height: 1, indent: 16, endIndent: 16),
-
-                // Murajaah — Memorization Tool
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.headphones_rounded, color: Color(0xFF4CAF50), size: 18),
-                  ),
-                  title: Text(
-                    settings.appLanguage == 'en' ? 'Murajaah (Memorization)' : 'Murājaah (Hafalan)',
-                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    settings.appLanguage == 'en'
-                        ? 'Audio playlist with verse & surah repeats'
-                        : 'Pemutar audio dengan pengulangan ayat & surah',
-                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
-                  ),
-                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
-                  onTap: () => context.go('/murajaah'),
-                ),
               ],
+
             ),
           ),
           const SizedBox(height: 20),

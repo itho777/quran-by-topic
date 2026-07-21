@@ -14,11 +14,19 @@ import '../../core/quran_sources.dart';
 import '../mushaf/source_picker_sheet.dart';
 import '../../core/local_db.dart';
 import '../../core/cdn_translation_service.dart';
+import '../../core/murajaah_service.dart';
 
 class SurahDetailScreen extends ConsumerStatefulWidget {
   final int surahId;
   final bool autoplay;
-  const SurahDetailScreen({super.key, required this.surahId, this.autoplay = false});
+  final int? initialAyah;
+
+  const SurahDetailScreen({
+    super.key,
+    required this.surahId,
+    this.autoplay = false,
+    this.initialAyah,
+  });
 
   @override
   ConsumerState<SurahDetailScreen> createState() => _SurahDetailScreenState();
@@ -65,6 +73,17 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     _load().then((_) {
       if (widget.autoplay && mounted) {
         _playAudioForVerse(1);
+      } else if (widget.initialAyah != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final key = _ayahKeys[widget.initialAyah];
+          if (key?.currentContext != null) {
+            Scrollable.ensureVisible(
+              key!.currentContext!,
+              duration: const Duration(milliseconds: 300),
+              alignment: 0.2,
+            );
+          }
+        });
       }
     });
     _loadSurahsList();
@@ -565,10 +584,20 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     );
   }
 
-  void _goSpecificAyah() {
-    final ayah = int.tryParse(_ayahController.text) ?? 1;
-    final clamped = ayah.clamp(1, _maxAyas);
-    context.go('/mushaf?verse_key=$_selectedSurahId:$clamped');
+  void _copySurahLink() {
+    if (_surah == null) return;
+    final isEn = _currentLang == 'en';
+    final surahName = isEn ? (_surah!['name_en'] ?? '') : (_surah!['name_id'] ?? _surah!['name_en'] ?? '');
+    const webBase = 'https://tafseer.id';
+    final link = '$webBase/#sura/${widget.surahId}';
+    Clipboard.setData(ClipboardData(text: 'Surah $surahName (${widget.surahId})\n\n$link'));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isEn ? 'Surah link copied to clipboard' : 'Tautan surah berhasil disalin'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _showSurahPicker() {
@@ -816,58 +845,17 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 tooltip: isEn ? 'Play Audio' : 'Putar Audio',
                 onPressed: _toggleAudio,
               ),
-              // Reciter Selector
+              // Translation source picker
               IconButton(
-                icon: Icon(Icons.record_voice_over, color: AppTheme.primary, size: 20),
-                tooltip: isEn ? 'Select Reciter' : 'Pilih Qori',
-                onPressed: _showReciterSelection,
-              ),
-              // Language Toggle Pill
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: ['en', 'id'].map((lang) {
-                      final active = _currentLang == lang;
-                      return GestureDetector(
-                        onTap: () => ref.read(settingsProvider.notifier).setAppLanguage(lang),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: active ? AppTheme.primary.withValues(alpha: 0.15) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(20),
-                            border: active ? Border.all(color: AppTheme.primary.withValues(alpha: 0.5)) : null,
-                          ),
-                          child: Text(
-                            lang.toUpperCase(),
-                            style: TextStyle(
-                              color: active ? AppTheme.primary : AppTheme.outline,
-                              fontSize: 11,
-                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.translate, color: AppTheme.outline),
-                tooltip: 'Translation',
+                icon: Icon(Icons.translate, color: AppTheme.primary),
+                tooltip: isEn ? 'Translation' : 'Terjemahan',
                 onPressed: _showTranslationSourcePicker,
               ),
+              // Display options
               PopupMenuButton<String>(
                 icon: Icon(Icons.tune, color: AppTheme.outline),
                 color: AppTheme.surfaceContainer,
-                tooltip: 'Display',
+                tooltip: isEn ? 'Display' : 'Tampilan',
                 onSelected: (v) => setState(() {
                   if (v == 'arabic') _showArabic = !_showArabic;
                   if (v == 'translit') _showTranslit = !_showTranslit;
@@ -877,32 +865,154 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   PopupMenuItem(value: 'arabic', child: Row(children: [
                     Icon(_showArabic ? Icons.check_box : Icons.check_box_outline_blank,
                       color: AppTheme.primary, size: 18),
-                    const SizedBox(width: 8), const Text('Show Arabic'),
+                    const SizedBox(width: 8), Text(isEn ? 'Show Arabic' : 'Tampilkan Arab'),
                   ])),
                   PopupMenuItem(value: 'translit', child: Row(children: [
                     Icon(_showTranslit ? Icons.check_box : Icons.check_box_outline_blank,
                       color: AppTheme.primary, size: 18),
-                    const SizedBox(width: 8), const Text('Show Transliteration'),
+                    const SizedBox(width: 8), Text(isEn ? 'Show Transliteration' : 'Tampilkan Transliterasi'),
                   ])),
                   PopupMenuItem(value: 'translation', child: Row(children: [
                     Icon(_showTranslation ? Icons.check_box : Icons.check_box_outline_blank,
                       color: AppTheme.primary, size: 18),
-                    const SizedBox(width: 8), const Text('Show Translation'),
+                    const SizedBox(width: 8), Text(isEn ? 'Show Translation' : 'Tampilkan Terjemahan'),
                   ])),
                 ],
               ),
-              if (_firstPageNumber != null)
-                IconButton(
-                  icon: AppTheme.getMushafIcon(color: AppTheme.primary),
-                  tooltip: 'Read in Mushaf',
-                  onPressed: () => context.go('/mushaf?page=$_firstPageNumber'),
-                ),
-              IconButton(
-                icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
-                tooltip: isEn ? 'Settings' : 'Pengaturan',
-                onPressed: () => context.push('/settings'),
+              // Overflow — secondary actions
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert, color: AppTheme.primary),
+                tooltip: isEn ? 'More' : 'Lainnya',
+                color: AppTheme.surfaceContainerHigh,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'lang_en':
+                      ref.read(settingsProvider.notifier).setAppLanguage('en');
+                      setState(() {});
+                      break;
+                    case 'lang_id':
+                      ref.read(settingsProvider.notifier).setAppLanguage('id');
+                      setState(() {});
+                      break;
+                    case 'reciter':
+                      _showReciterSelection();
+                      break;
+                    case 'mushaf':
+                      if (_firstPageNumber != null) {
+                        context.go('/mushaf?page=$_firstPageNumber');
+                      }
+                      break;
+                    case 'murajaah':
+                      context.go('/murajaah');
+                      break;
+                    case 'share':
+                      _copySurahLink();
+                      break;
+                    case 'settings':
+                      context.push('/settings');
+                      break;
+                  }
+                },
+                itemBuilder: (ctx) {
+                  return [
+                    // Language header
+                    PopupMenuItem<String>(
+                      enabled: false,
+                      height: 28,
+                      child: Text(
+                        isEn ? 'LANGUAGE' : 'BAHASA',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.outline,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'lang_en',
+                      child: Row(children: [
+                        Icon(Icons.language, size: 18,
+                            color: _currentLang == 'en' ? AppTheme.primary : AppTheme.outline),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text('English', style: TextStyle(
+                          fontSize: 13,
+                          color: _currentLang == 'en' ? AppTheme.primary : AppTheme.onSurface,
+                          fontWeight: _currentLang == 'en' ? FontWeight.bold : FontWeight.normal,
+                        ))),
+                        if (_currentLang == 'en')
+                          Icon(Icons.check, size: 14, color: AppTheme.primary),
+                      ]),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'lang_id',
+                      child: Row(children: [
+                        Icon(Icons.language, size: 18,
+                            color: _currentLang == 'id' ? AppTheme.primary : AppTheme.outline),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text('Indonesia', style: TextStyle(
+                          fontSize: 13,
+                          color: _currentLang == 'id' ? AppTheme.primary : AppTheme.onSurface,
+                          fontWeight: _currentLang == 'id' ? FontWeight.bold : FontWeight.normal,
+                        ))),
+                        if (_currentLang == 'id')
+                          Icon(Icons.check, size: 14, color: AppTheme.primary),
+                      ]),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'reciter',
+                      child: Row(children: [
+                        Icon(Icons.record_voice_over, size: 18, color: AppTheme.primary),
+                        const SizedBox(width: 10),
+                        Text(isEn ? 'Select Reciter' : 'Pilih Qori',
+                            style: const TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    if (_firstPageNumber != null)
+                      PopupMenuItem<String>(
+                        value: 'mushaf',
+                        child: Row(children: [
+                          AppTheme.getMushafIcon(color: AppTheme.primary, size: 18),
+                          const SizedBox(width: 10),
+                          Text(isEn ? 'Read in Mushaf' : 'Buka Mushaf',
+                              style: const TextStyle(fontSize: 13)),
+                        ]),
+                      ),
+                    PopupMenuItem<String>(
+                      value: 'murajaah',
+                      child: Row(children: [
+                        const Icon(Icons.headphones_rounded, size: 18, color: Color(0xFF4CAF50)),
+                        const SizedBox(width: 10),
+                        Text(isEn ? 'Murajaah' : 'Murājaah',
+                            style: const TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'share',
+                      child: Row(children: [
+                        Icon(Icons.share, size: 18, color: AppTheme.primary),
+                        const SizedBox(width: 10),
+                        Text(isEn ? 'Copy & Share' : 'Salin & Bagikan',
+                            style: const TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    const PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'settings',
+                      child: Row(children: [
+                        Icon(Icons.settings_outlined, size: 18, color: AppTheme.outline),
+                        const SizedBox(width: 10),
+                        Text(isEn ? 'Settings' : 'Pengaturan',
+                            style: const TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                  ];
+                },
               ),
             ],
+
           ),
 
           // ── Go to Ayah Row (Exactly same style and logic as Home) ───────────────────
@@ -934,14 +1044,15 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          GestureDetector(
+                          InkWell(
                             onTap: _showSurahPicker,
+                            borderRadius: BorderRadius.circular(12),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
                                 color: AppTheme.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 children: [
@@ -954,18 +1065,23 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                                             )
                                           : null;
                                       final name = s == null
-                                          ? ''
+                                          ? '$_selectedSurahId'
                                           : isEn
                                               ? '${s['id']}. ${s['name_en'] ?? ''}'
                                               : '${s['id']}. ${s['name_id'] ?? s['name_en'] ?? ''}';
                                       return Text(
                                         name,
-                                        style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
+                                        maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: AppTheme.onSurface,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       );
                                     }),
                                   ),
-                                  Icon(Icons.search, color: AppTheme.outline, size: 16),
+                                  Icon(Icons.arrow_drop_down, color: AppTheme.primary, size: 20),
                                 ],
                               ),
                             ),
@@ -975,6 +1091,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      flex: 1,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -988,55 +1105,63 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          TextField(
-                            controller: _ayahController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            style: TextStyle(color: AppTheme.onSurface, fontSize: 13),
-                            onSubmitted: (_) => _goSpecificAyah(),
-                            onChanged: (val) {
-                              if (val.isNotEmpty) {
-                                final numVal = int.tryParse(val);
-                                if (numVal != null) {
-                                  if (numVal > _maxAyas) {
-                                    _ayahController.text = _maxAyas.toString();
-                                    _ayahController.selection = TextSelection.fromPosition(
-                                      TextPosition(offset: _ayahController.text.length),
-                                    );
-                                  } else if (numVal < 1) {
-                                    _ayahController.text = '1';
-                                    _ayahController.selection = TextSelection.fromPosition(
-                                      TextPosition(offset: _ayahController.text.length),
-                                    );
-                                  }
-                                }
-                              }
-                            },
-                            decoration: InputDecoration(
-                              hintText: '1',
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          SizedBox(
+                            height: 42,
+                            child: TextField(
+                              controller: _ayahController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppTheme.onSurface, fontSize: 13, fontWeight: FontWeight.bold),
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                filled: true,
+                                fillColor: AppTheme.surfaceContainerHigh,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: AppTheme.primary),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: _goSpecificAyah,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryContainer,
-                        foregroundColor: AppTheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    SizedBox(
+                      height: 42,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final aNum = int.tryParse(_ayahController.text.trim()) ?? 1;
+                          final validAyah = aNum.clamp(1, _maxAyas);
+                          if (_selectedSurahId == widget.surahId) {
+                            final key = _ayahKeys[validAyah];
+                            if (key?.currentContext != null) {
+                              Scrollable.ensureVisible(
+                                key!.currentContext!,
+                                duration: const Duration(milliseconds: 300),
+                                alignment: 0.2,
+                              );
+                            }
+                          } else {
+                            context.go('/surahs/$_selectedSurahId/ayahs/$validAyah');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          elevation: 0,
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(isEn ? 'GO' : 'BUKA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                          const SizedBox(width: 2),
-                          Icon(Icons.arrow_forward, size: 12),
-                        ],
+                        child: Text(isEn ? 'GO' : 'GO', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       ),
                     ),
                   ],
@@ -1075,6 +1200,12 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   final v = _verses[i];
                   final aNum = v['ayah_number'] as int;
                   final key = _ayahKeys.putIfAbsent(aNum, () => GlobalKey());
+                  final murajaahState = ref.watch(murajaahProvider);
+                  final isMurajaahPlaying = murajaahState.sessionActive &&
+                      murajaahState.isPlaying &&
+                      murajaahState.currentVerse?.surahId == widget.surahId &&
+                      murajaahState.currentVerse?.ayahNumber == aNum;
+
                   return Container(
                     key: key,
                     child: _VerseCard(
@@ -1085,7 +1216,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       showArabic: _showArabic,
                       showTranslit: _showTranslit,
                       showTranslation: _showTranslation,
-                      isPlaying: _playingAyahNum == aNum && _isPlaying,
+                      isPlaying: (_playingAyahNum == aNum && _isPlaying) || isMurajaahPlaying,
                       isBookmarked: _bookmarkedKeys.contains(v['verse_key'] as String? ?? ''),
                       onPlayTapped: () {
                         if (_playingAyahNum == aNum && _isPlaying) {

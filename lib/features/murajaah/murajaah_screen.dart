@@ -10,30 +10,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
-import '../../core/quran_sources.dart';
-import '../../core/web_audio_player.dart';
-
-// ─── Data model ─────────────────────────────────────────────────────────────
-
-class _VerseEntry {
-  final int surahId;
-  final int ayahNumber;
-  final int globalId;
-  final String verseKey;
-  final String textAr;
-
-  const _VerseEntry({
-    required this.surahId,
-    required this.ayahNumber,
-    required this.globalId,
-    required this.verseKey,
-    required this.textAr,
-  });
-}
+import '../../core/murajaah_service.dart';
 
 // ─── Screen ─────────────────────────────────────────────────────────────────
 
@@ -55,25 +37,6 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   int _endSurahId = 1;
   int _endAyah = 7;
 
-  // ── Repeat config ───────────────────────────────────────────────────────
-  int _ayahRepeats = 1;     // how many times each individual ayah plays
-  int _playlistRepeats = 1; // how many times the full range plays
-
-  // ── Playback state ──────────────────────────────────────────────────────
-  final WebAudioPlayer _player = WebAudioPlayer();
-  List<_VerseEntry> _playlist = [];
-  bool _isPlaying = false;
-  bool _isPaused = false;
-  bool _loadingPlaylist = false;
-  bool _sessionActive = false; // true while a playback session is running
-
-  int _currentPlaylistIndex = 0;  // index into _playlist
-  int _currentAyahRepeat = 0;     // how many times current ayah has played so far
-  int _currentPlaylistRepeat = 0; // current pass through the full playlist
-
-  late StreamSubscription _completeSub;
-  late StreamSubscription _stateSub;
-
   // ── Scroll controller ───────────────────────────────────────────────────
   final ScrollController _scrollCtrl = ScrollController();
   final Map<int, GlobalKey> _rowKeys = {};
@@ -82,19 +45,10 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   void initState() {
     super.initState();
     _loadSurahs();
-
-    _completeSub = _player.onComplete.listen((_) => _onAyahComplete());
-    _stateSub = _player.onStateChange.listen((playing) {
-      if (mounted) setState(() => _isPlaying = playing);
-    });
   }
 
   @override
   void dispose() {
-    _player.stop();
-    _player.dispose();
-    _completeSub.cancel();
-    _stateSub.cancel();
     _scrollCtrl.dispose();
     super.dispose();
   }
@@ -143,7 +97,8 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   // ── Playlist builder ────────────────────────────────────────────────────
 
   Future<void> _buildPlaylist() async {
-    setState(() => _loadingPlaylist = true);
+    final notifier = ref.read(murajaahProvider.notifier);
+    notifier.setLoadingPlaylist(true);
 
     // Collect all (surahId, ayahNumber) pairs in the range
     final pairs = <Map<String, int>>[];
@@ -157,7 +112,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
     }
 
     if (pairs.isEmpty) {
-      setState(() { _loadingPlaylist = false; _playlist = []; });
+      notifier.setPlaylist([]);
       return;
     }
 
@@ -174,12 +129,12 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
         map[row['verse_key'] as String] = row;
       }
 
-      final entries = <_VerseEntry>[];
+      final entries = <MurajaahVerseEntry>[];
       for (final p in pairs) {
         final vk = '${p['surah']}:${p['ayah']}';
         final row = map[vk];
         if (row != null) {
-          entries.add(_VerseEntry(
+          entries.add(MurajaahVerseEntry(
             surahId: row['sura_id'] as int,
             ayahNumber: row['ayah_number'] as int,
             globalId: row['id'] as int,
@@ -189,117 +144,10 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
         }
       }
 
-      if (mounted) setState(() { _playlist = entries; _loadingPlaylist = false; });
+      notifier.setPlaylist(entries);
     } catch (e) {
-      if (mounted) setState(() { _loadingPlaylist = false; });
+      notifier.setLoadingPlaylist(false);
       _showError('Failed to load verses: $e');
-    }
-  }
-
-  // ── Playback controls ───────────────────────────────────────────────────
-
-  Future<void> _startPlayback() async {
-    if (_playlist.isEmpty) return;
-    _currentPlaylistIndex = 0;
-    _currentAyahRepeat = 0;
-    _currentPlaylistRepeat = 0;
-    _isPaused = false;
-    _sessionActive = true;
-    await _playCurrentAyah();
-  }
-
-  Future<void> _playCurrentAyah() async {
-    if (_currentPlaylistIndex >= _playlist.length) return;
-    final verse = _playlist[_currentPlaylistIndex];
-    final reciter = ref.read(settingsProvider).selectedReciter;
-    final url = QuranSources.buildAudioUrl(reciter, verse.surahId, verse.ayahNumber);
-    if (mounted) setState(() {});
-    _scrollToActiveRow(verse.globalId);
-    await _player.play(url);
-  }
-
-  void _onAyahComplete() {
-    // Guard: only advance if a session is actively running
-    if (!_sessionActive) return;
-    if (!mounted) return;
-
-    _currentAyahRepeat++;
-
-    if (_currentAyahRepeat < _ayahRepeats) {
-      // Repeat current ayah
-      _playCurrentAyah();
-      return;
-    }
-
-    // Move to next ayah
-    _currentAyahRepeat = 0;
-    _currentPlaylistIndex++;
-
-    if (_currentPlaylistIndex >= _playlist.length) {
-      // End of playlist pass
-      _currentPlaylistRepeat++;
-      if (_currentPlaylistRepeat < _playlistRepeats) {
-        // Repeat whole playlist
-        _currentPlaylistIndex = 0;
-        _playCurrentAyah();
-      } else {
-        // Done
-        if (mounted) setState(() { _isPlaying = false; _isPaused = false; _sessionActive = false; });
-      }
-      return;
-    }
-
-    _playCurrentAyah();
-  }
-
-  Future<void> _pause() async {
-    await _player.pause();
-    if (mounted) setState(() { _isPlaying = false; _isPaused = true; });
-  }
-
-  Future<void> _resume() async {
-    if (_isPaused) {
-      await _player.resume();
-      if (mounted) setState(() { _isPlaying = true; _isPaused = false; });
-    }
-  }
-
-  Future<void> _stop() async {
-    await _player.stop();
-    if (mounted) {
-      setState(() {
-        _isPlaying = false;
-        _isPaused = false;
-        _sessionActive = false;
-        _currentPlaylistIndex = 0;
-        _currentAyahRepeat = 0;
-        _currentPlaylistRepeat = 0;
-      });
-    }
-  }
-
-  Future<void> _skipNext() async {
-    if (_playlist.isEmpty) return;
-    _currentAyahRepeat = 0;
-    _currentPlaylistIndex = (_currentPlaylistIndex + 1).clamp(0, _playlist.length - 1);
-    await _playCurrentAyah();
-  }
-
-  Future<void> _skipPrev() async {
-    if (_playlist.isEmpty) return;
-    _currentAyahRepeat = 0;
-    _currentPlaylistIndex = (_currentPlaylistIndex - 1).clamp(0, _playlist.length - 1);
-    await _playCurrentAyah();
-  }
-
-  void _scrollToActiveRow(int globalId) {
-    final key = _rowKeys[globalId];
-    if (key?.currentContext != null) {
-      Scrollable.ensureVisible(
-        key!.currentContext!,
-        duration: const Duration(milliseconds: 350),
-        alignment: 0.4,
-      );
     }
   }
 
@@ -346,27 +194,6 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
           : 'Ayat selesai harus antara 1 dan $maxEnd';
     }
     return null;
-  }
-
-  void _deletePlaylistItem(int idx) {
-    if (idx < 0 || idx >= _playlist.length) return;
-
-    final wasActive = idx == _currentPlaylistIndex && (_isPlaying || _isPaused);
-
-    if (wasActive) {
-      _stop();
-    }
-
-    setState(() {
-      if (!wasActive) {
-        _playlist.removeAt(idx);
-        if (idx < _currentPlaylistIndex) {
-          _currentPlaylistIndex--;
-        }
-      } else {
-        _playlist.removeAt(idx);
-      }
-    });
   }
 
   // ── UI helpers ──────────────────────────────────────────────────────────
@@ -626,9 +453,12 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   }
 
   Widget _buildPlaylistItem(int idx) {
-    final verse = _playlist[idx];
-    final isActive = idx == _currentPlaylistIndex && (_isPlaying || _isPaused);
+    final murajaahState = ref.watch(murajaahProvider);
+    final verse = murajaahState.playlist[idx];
+    final isActive = idx == murajaahState.currentPlaylistIndex && murajaahState.sessionActive;
+    final isPlaying = isActive && murajaahState.isPlaying;
     final key = _rowKeys.putIfAbsent(verse.globalId, () => GlobalKey());
+
     return AnimatedContainer(
       key: key,
       duration: const Duration(milliseconds: 250),
@@ -688,14 +518,14 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
               ],
             ),
           ),
-          if (isActive && _isPlaying) ...[
+          if (isPlaying) ...[
             const SizedBox(width: 8),
             _AnimatedEqualizer(),
           ],
           const SizedBox(width: 8),
           IconButton(
             icon: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red.shade300),
-            onPressed: () => _deletePlaylistItem(idx),
+            onPressed: () => ref.read(murajaahProvider.notifier).deletePlaylistItem(idx),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             splashRadius: 16,
@@ -706,8 +536,15 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   }
 
   Widget _buildPlayerControls() {
-    final hasPlaylist = _playlist.isNotEmpty;
-    final loading = _loadingPlaylist;
+    final murajaahState = ref.watch(murajaahProvider);
+    final notifier = ref.read(murajaahProvider.notifier);
+    final hasPlaylist = murajaahState.playlist.isNotEmpty;
+    final loading = murajaahState.loadingPlaylist;
+    final isActive = murajaahState.sessionActive;
+    final isPlaying = murajaahState.isPlaying;
+    final isPaused = murajaahState.isPaused;
+    final currentVerse = murajaahState.currentVerse;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
       decoration: BoxDecoration(
@@ -718,11 +555,11 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Progress indicator
-          if (_isPlaying || _isPaused) ...[
+          if (isActive) ...[
             Row(
               children: [
                 Text(
-                  '${_currentPlaylistIndex + 1} / ${_playlist.length}',
+                  '${murajaahState.currentPlaylistIndex + 1} / ${murajaahState.playlist.length}',
                   style: TextStyle(color: AppTheme.outline, fontSize: 12),
                 ),
                 const SizedBox(width: 8),
@@ -730,9 +567,9 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: _playlist.isEmpty
+                      value: murajaahState.playlist.isEmpty
                           ? 0
-                          : (_currentPlaylistIndex + 1) / _playlist.length,
+                          : (murajaahState.currentPlaylistIndex + 1) / murajaahState.playlist.length,
                       backgroundColor: AppTheme.outlineVariant.withValues(alpha: 0.3),
                       color: AppTheme.primary,
                       minHeight: 4,
@@ -741,7 +578,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Pass ${_currentPlaylistRepeat + 1}/$_playlistRepeats',
+                  'Pass ${murajaahState.currentPlaylistRepeat + 1}/${murajaahState.playlistRepeats}',
                   style: TextStyle(color: AppTheme.outline, fontSize: 12),
                 ),
               ],
@@ -756,45 +593,77 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
               _ControlButton(
                 icon: Icons.skip_previous_rounded,
                 size: 28,
-                onTap: (_isPlaying || _isPaused) ? _skipPrev : null,
+                onTap: isActive ? () => notifier.skipPrev() : null,
               ),
               const SizedBox(width: 8),
               // Play / Pause / Stop
-              if (!_isPlaying && !_isPaused)
+              if (!isPlaying && !isPaused)
                 _PlayButton(
                   loading: loading,
                   onTap: hasPlaylist
-                      ? () => _startPlayback()
+                      ? () => notifier.startPlayback()
                       : null,
                 )
-              else if (_isPlaying)
+              else if (isPlaying)
                 _PlayButton(
                   icon: Icons.pause_circle_filled_rounded,
-                  onTap: _pause,
+                  onTap: () => notifier.pause(),
                 )
               else
                 _PlayButton(
                   icon: Icons.play_circle_filled_rounded,
-                  onTap: _resume,
+                  onTap: () => notifier.resume(),
                 ),
               const SizedBox(width: 8),
               // Skip Next
               _ControlButton(
                 icon: Icons.skip_next_rounded,
                 size: 28,
-                onTap: (_isPlaying || _isPaused) ? _skipNext : null,
+                onTap: isActive ? () => notifier.skipNext() : null,
               ),
               const SizedBox(width: 16),
               // Stop
-              if (_isPlaying || _isPaused)
+              if (isActive)
                 _ControlButton(
                   icon: Icons.stop_circle_rounded,
                   size: 28,
                   color: Colors.red.shade300,
-                  onTap: _stop,
+                  onTap: () => notifier.stop(),
                 ),
             ],
           ),
+          // ── Navigate to reading view while playing ───────────────────────
+          if (isActive && currentVerse != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _NavShortcutButton(
+                    iconWidget: AppTheme.getMushafIcon(color: AppTheme.primary, size: 16),
+                    label: 'Mushaf',
+                    color: AppTheme.primary,
+                    onTap: () {
+                      final vk = currentVerse.verseKey;
+                      context.go('/mushaf?verse_key=$vk');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _NavShortcutButton(
+                    iconWidget: Icon(Icons.list_alt_rounded, size: 16, color: AppTheme.secondary),
+                    label: 'Surah',
+                    color: AppTheme.secondary,
+                    onTap: () {
+                      context.go(
+                        '/surahs/${currentVerse.surahId}?ayah=${currentVerse.ayahNumber}',
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -803,7 +672,9 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
   @override
   Widget build(BuildContext context) {
     final isEn = ref.watch(settingsProvider).appLanguage == 'en';
-    final hasPlaylist = _playlist.isNotEmpty;
+    final murajaahState = ref.watch(murajaahProvider);
+    final notifier = ref.read(murajaahProvider.notifier);
+    final hasPlaylist = murajaahState.playlist.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -905,9 +776,9 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                                 label: isEn
                                     ? 'Repeat each ayah'
                                     : 'Ulangi tiap ayat',
-                                value: _ayahRepeats,
+                                value: murajaahState.ayahRepeats,
                                 icon: Icons.repeat_one_rounded,
-                                onChanged: (v) => setState(() => _ayahRepeats = v),
+                                onChanged: (v) => notifier.setAyahRepeats(v),
                               ),
                               Divider(
                                   height: 20,
@@ -917,10 +788,9 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                                 label: isEn
                                     ? 'Repeat playlist'
                                     : 'Ulangi daftar putar',
-                                value: _playlistRepeats,
+                                value: murajaahState.playlistRepeats,
                                 icon: Icons.repeat_rounded,
-                                onChanged: (v) =>
-                                    setState(() => _playlistRepeats = v),
+                                onChanged: (v) => notifier.setPlaylistRepeats(v),
                               ),
                             ],
                           ),
@@ -928,7 +798,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                         const SizedBox(height: 24),
                         // Build playlist button
                         ElevatedButton.icon(
-                          onPressed: (_loadingPlaylist || !_isRangeValid) ? null : _buildPlaylist,
+                          onPressed: (murajaahState.loadingPlaylist || !_isRangeValid) ? null : _buildPlaylist,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
@@ -937,7 +807,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                                 borderRadius: BorderRadius.circular(14)),
                             elevation: 0,
                           ),
-                          icon: _loadingPlaylist
+                          icon: murajaahState.loadingPlaylist
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
@@ -947,7 +817,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                                 )
                               : const Icon(Icons.playlist_add_rounded),
                           label: Text(
-                            _loadingPlaylist
+                            murajaahState.loadingPlaylist
                                 ? (isEn ? 'Building…' : 'Membangun…')
                                 : (isEn ? 'Build Playlist' : 'Buat Daftar Putar'),
                             style: const TextStyle(
@@ -970,16 +840,13 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                             size: 16, color: AppTheme.primary),
                         const SizedBox(width: 6),
                         Text(
-                          '${_playlist.length} ${isEn ? 'verses' : 'ayat'}',
+                          '${murajaahState.playlist.length} ${isEn ? 'verses' : 'ayat'}',
                           style: TextStyle(
                               color: AppTheme.outline, fontSize: 12),
                         ),
                         const Spacer(),
                         TextButton.icon(
-                          onPressed: () async {
-                            if (_isPlaying || _isPaused) await _stop();
-                            setState(() => _playlist.clear());
-                          },
+                          onPressed: () => notifier.clearPlaylist(),
                           icon: Icon(Icons.clear_all_rounded,
                               size: 14, color: AppTheme.error),
                           label: Text(
@@ -1001,7 +868,7 @@ class _MurajaahScreenState extends ConsumerState<MurajaahScreen> {
                   Expanded(
                     child: ListView.builder(
                       controller: _scrollCtrl,
-                      itemCount: _playlist.length,
+                      itemCount: murajaahState.playlist.length,
                       padding: const EdgeInsets.only(bottom: 8),
                       itemBuilder: (_, idx) => _buildPlaylistItem(idx),
                     ),
@@ -1084,6 +951,50 @@ class _ControlButton extends StatelessWidget {
 class _AnimatedEqualizer extends StatefulWidget {
   @override
   State<_AnimatedEqualizer> createState() => _AnimatedEqualizerState();
+}
+
+class _NavShortcutButton extends StatelessWidget {
+  final Widget iconWidget;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _NavShortcutButton({
+    required this.iconWidget,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              iconWidget,
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AnimatedEqualizerState extends State<_AnimatedEqualizer>

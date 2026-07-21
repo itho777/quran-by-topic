@@ -46,7 +46,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
     'tafsirs': '/admin/tafsirs',
     'asbabun_nuzul': '/admin/nuzul',
     'tags': '/admin/tags',
-    'verse_tags': '/admin/verse-tags',
+    'verse_tags': '/admin/tags',
   };
 
   @override

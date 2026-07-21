@@ -16,6 +16,7 @@ import '../features/auth/auth_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/admin/admin_dashboard_screen.dart';
+import '../features/admin/admin_verses_screen.dart';
 import '../features/admin/admin_screens.dart';
 import '../features/admin/admin_cms_screen.dart';
 import '../features/admin/admin_login_screen.dart';
@@ -201,6 +202,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin',
         builder: (context, state) => const AdminDashboardScreen(),
         routes: [
+          GoRoute(
+            path: 'verses',
+            builder: (context, state) => const AdminVersesScreen(),
+          ),
           GoRoute(
             path: 'tags',
             builder: (context, state) => const AdminTagsScreen(),

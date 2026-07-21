@@ -11,6 +11,15 @@ let currentUser = null;
 let currentUserProfile = null;
 
 function initSupabase() {
+  // Fix double hash (e.g. #login#access_token=... or #home#access_token=...) from OAuth redirects
+  // BEFORE creating the client so it can parse the access token on load.
+  if (window.location.hash.includes('access_token=')) {
+    const idx = window.location.hash.indexOf('access_token=');
+    if (idx > 1) {
+      window.location.hash = '#' + window.location.hash.substring(idx);
+    }
+  }
+
   if (typeof supabase !== 'undefined') {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } else {
@@ -3688,14 +3697,6 @@ window.togglePlayAyah = togglePlayAyah;
 // =====================================================================
 async function initAuth() {
   if (!supabaseClient) return;
-
-  // Fix double hash (e.g. #login#access_token=... or #home#access_token=...) from OAuth redirects
-  if (window.location.hash.includes('access_token=')) {
-    const idx = window.location.hash.indexOf('access_token=');
-    if (idx > 1) {
-      window.location.hash = '#' + window.location.hash.substring(idx);
-    }
-  }
 
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) await handleAuthSession(session);

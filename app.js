@@ -11,6 +11,13 @@ let currentUser = null;
 let currentUserProfile = null;
 
 function initSupabase() {
+  const adminPath = localStorage.getItem('admin_path');
+  if (adminPath && window.location.hash.includes('access_token=')) {
+    localStorage.removeItem('admin_path');
+    window.location.href = window.location.origin + adminPath + window.location.hash;
+    return;
+  }
+
   // Fix double hash (e.g. #login#access_token=... or #home#access_token=...) from OAuth redirects
   // BEFORE creating the client so it can parse the access token on load.
   if (window.location.hash.includes('access_token=')) {

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin CMS — Tafseer.id</title>
+  <title>Tafseer.id — Admin CMS Console</title>
   <meta name="robots" content="noindex,nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -106,6 +106,33 @@
     .btn-primary:hover { opacity: 0.88; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+    .btn-outline {
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .btn-outline:hover { background: var(--bg-hover); color: var(--text); border-color: var(--accent); }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+
     .divider {
       display: flex; align-items: center;
       color: var(--muted); font-size: 0.75rem;
@@ -150,6 +177,17 @@
       display: none;
     }
 
+    .success-msg {
+      background: rgba(76,175,125,0.1);
+      border: 1px solid rgba(76,175,125,0.3);
+      color: var(--green);
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      display: none;
+    }
+
     /* ── CMS LAYOUT ─────────────────────────────── */
     #cms-page {
       display: none;
@@ -159,8 +197,8 @@
 
     /* Sidebar */
     .sidebar {
-      width: 220px;
-      min-width: 220px;
+      width: 230px;
+      min-width: 230px;
       background: var(--bg2);
       border-right: 1px solid var(--border);
       display: flex;
@@ -221,8 +259,8 @@
       font-size: 0.8rem; font-weight: 700; color: #fff;
       flex-shrink: 0;
     }
-    .user-name { font-size: 0.8rem; font-weight: 600; color: var(--text); }
-    .user-email { font-size: 0.7rem; color: var(--muted); }
+    .user-name { font-size: 0.8rem; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-email { font-size: 0.7rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .btn-signout {
       width: 100%;
@@ -244,6 +282,8 @@
       flex: 1;
       overflow-y: auto;
       padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
     }
 
     /* Views */
@@ -275,38 +315,61 @@
     .stat-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
     .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text); }
 
-    /* Quick actions */
-    .actions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 12px;
-    }
-    .action-card {
+    /* Component cards */
+    .card {
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 16px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      display: flex; align-items: center; gap: 12px;
-      text-align: left;
+      padding: 20px;
+      margin-bottom: 20px;
     }
-    .action-card:hover { border-color: var(--accent); background: var(--bg3); }
-    .action-icon {
-      width: 36px; height: 36px;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; flex-shrink: 0;
-    }
-    .action-title { font-size: 0.85rem; font-weight: 600; }
-    .action-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+    .card-subtitle { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; }
 
-    /* Section heading */
-    .section-heading {
-      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em; color: var(--muted);
-      margin-bottom: 14px;
+    /* Forms & Inputs */
+    .form-group {
+      display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;
     }
+    .form-group label {
+      font-size: 0.8rem; font-weight: 600; color: var(--text2);
+    }
+    .input, .select, .textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .textarea { resize: vertical; min-height: 80px; }
+    .font-arabic { font-family: 'Noto Naskh Arabic', serif; font-size: 1.1rem; direction: rtl; text-align: right; }
+    .hint { font-size: 0.73rem; color: var(--muted); font-weight: normal; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .table {
+      width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;
+    }
+    .table th {
+      background: var(--bg3); padding: 10px 12px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border);
+    }
+    .table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text);
+    }
+    .table tr:last-child td { border-bottom: none; }
+    .table-selectable tbody tr { cursor: pointer; transition: background 0.15s; }
+    .table-selectable tbody tr:hover { background: var(--bg-hover); }
+    .table-selectable tbody tr.selected { background: rgba(201,151,58,0.12); }
+
+    /* Split layout */
+    .split-layout { display: flex; gap: 20px; min-height: 520px; }
+    .list-pane { width: 280px; min-width: 280px; display: flex; flex-direction: column; gap: 12px; }
+    .editor-pane { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; }
 
     /* Loading overlay */
     #loading {
@@ -326,7 +389,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     #loading p { font-size: 0.85rem; color: var(--muted); }
 
-    @media (max-width: 640px) {
+    @media (max-width: 768px) {
       .sidebar { width: 60px; min-width: 60px; }
       .sidebar-brand, .sidebar-badge, .nav-item span,
       .user-info .user-name, .user-info .user-email,
@@ -334,6 +397,8 @@
       .nav-item { justify-content: center; }
       .sidebar-header { justify-content: center; }
       .cms-main { padding: 16px; }
+      .split-layout { flex-direction: column; }
+      .list-pane { width: 100%; min-width: 0; }
     }
   </style>
 </head>
@@ -402,19 +467,23 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         <span>Verse Editor</span>
       </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Site Settings</span>
+      </button>
       <button class="nav-item" data-view="tags">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
         <span>Tags Manager</span>
       </button>
-      <button class="nav-item" data-view="settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>Settings</span>
+      <button class="nav-item" data-view="database">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+        <span>Database CSV</span>
       </button>
     </nav>
 
     <div class="sidebar-footer">
       <div class="user-info">
-        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-avatar" id="user-avatar">A</div>
         <div>
           <div class="user-name" id="user-name">—</div>
           <div class="user-email" id="user-email">—</div>
@@ -430,71 +499,260 @@
   <!-- Main Content -->
   <main class="cms-main">
 
-    <!-- Dashboard View -->
+    <!-- 1. DASHBOARD VIEW -->
     <div class="view active" id="view-dashboard">
-      <div class="view-title">Dashboard</div>
-      <div class="view-subtitle">Overview of Tafseer.id database</div>
+      <div class="view-title">Dashboard Overview</div>
+      <div class="view-subtitle">Live counts and overview of Supabase database</div>
 
-      <p class="section-heading">Database Stats</p>
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card"><div class="stat-label">Verses</div><div class="stat-value" id="stat-verses">—</div></div>
-        <div class="stat-card"><div class="stat-label">Tags</div><div class="stat-value" id="stat-tags">—</div></div>
-        <div class="stat-card"><div class="stat-label">Verse-Tags</div><div class="stat-value" id="stat-verse-tags">—</div></div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Verses</div><div class="stat-value" id="stat-verses">—</div></div>
         <div class="stat-card"><div class="stat-label">Translations</div><div class="stat-value" id="stat-translations">—</div></div>
+        <div class="stat-card"><div class="stat-label">Tafsir Passages</div><div class="stat-value" id="stat-tafsirs">—</div></div>
+        <div class="stat-card"><div class="stat-label">Topic Tags</div><div class="stat-value" id="stat-tags">—</div></div>
+        <div class="stat-card"><div class="stat-label">Verse-Tag Mappings</div><div class="stat-value" id="stat-verse-tags">—</div></div>
+        <div class="stat-card"><div class="stat-label">Asbabun Nuzul</div><div class="stat-value" id="stat-nuzul">—</div></div>
       </div>
 
-      <p class="section-heading">Quick Actions</p>
-      <div class="actions-grid">
-        <div class="action-card" onclick="switchView('verses')">
-          <div class="action-icon" style="background:rgba(201,151,58,0.12)">📖</div>
-          <div>
-            <div class="action-title">Edit Verses</div>
-            <div class="action-desc">Browse and update translations</div>
-          </div>
-        </div>
-        <div class="action-card" onclick="switchView('tags')">
-          <div class="action-icon" style="background:rgba(74,144,217,0.12)">🏷️</div>
-          <div>
-            <div class="action-title">Manage Tags</div>
-            <div class="action-desc">Add, edit or delete topic tags</div>
-          </div>
-        </div>
-        <div class="action-card" onclick="window.open('https://tafseer.id','_blank')">
-          <div class="action-icon" style="background:rgba(76,175,125,0.12)">🌐</div>
-          <div>
-            <div class="action-title">View Live Site</div>
-            <div class="action-desc">Open tafseer.id in new tab</div>
-          </div>
-        </div>
-        <div class="action-card" onclick="switchView('settings')">
-          <div class="action-icon" style="background:rgba(239,68,68,0.12)">⚙️</div>
-          <div>
-            <div class="action-title">Settings</div>
-            <div class="action-desc">Site configuration</div>
-          </div>
-        </div>
+      <div class="card">
+        <div class="card-title">Welcome to the Tafseer.id CMS Console</div>
+        <p class="card-subtitle" style="margin-bottom:0">You have full administrative privileges to edit verse translations, tafsir explanations, featured Ayah settings, hero text, topic tags, and import/export CSV datasets directly in Supabase.</p>
       </div>
     </div>
 
-    <!-- Verse Editor View -->
+    <!-- 2. VERSE EDITOR VIEW -->
     <div class="view" id="view-verses">
       <div class="view-title">Verse Editor</div>
-      <div class="view-subtitle">Search and edit verse translations</div>
-      <p style="color:var(--muted);font-size:0.9rem">Coming soon — verse editing interface.</p>
+      <div class="view-subtitle">Search and edit translations, tafsir, and Asbabun Nuzul for any verse</div>
+
+      <div class="split-layout">
+        <div class="list-pane">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="select-surah">Select Surah</label>
+            <select id="select-surah" class="select"></select>
+          </div>
+          <div class="table-wrap" style="flex:1">
+            <table class="table table-selectable">
+              <thead><tr><th>Ayah</th><th>Arabic Preview</th></tr></thead>
+              <tbody id="verse-list-body">
+                <tr><td colspan="2" style="text-align:center;color:var(--muted);padding:2rem">Select a surah to load verses</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="editor-pane">
+          <div id="editor-empty" style="text-align:center;margin:auto;color:var(--muted)">
+            <div style="font-size:2.5rem;margin-bottom:8px">📖</div>
+            <p>Select a verse from the list on the left to start editing.</p>
+          </div>
+          <div id="editor-form" style="display:none;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <h3 class="card-title" style="margin:0">Edit Verse <span id="edit-verse-label" style="color:var(--accent)"></span></h3>
+              <button id="btn-save-verse" class="btn-primary" style="width:auto;padding:8px 16px;margin:0">Save Changes</button>
+            </div>
+            <div class="form-group">
+              <label>Arabic Script <span class="hint">(read-only)</span></label>
+              <textarea id="edit-arabic" class="textarea font-arabic" readonly rows="2"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-trans-id">Indonesian Translation (Kemenag)</label>
+              <textarea id="edit-trans-id" class="textarea" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-trans-en">English Translation (Sahih Int.)</label>
+              <textarea id="edit-trans-en" class="textarea" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-tafsir-jalalayn">Tafsir Jalalayn (Indonesian)</label>
+              <textarea id="edit-tafsir-jalalayn" class="textarea" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-tafsir-katsir">Tafsir Ibn Kathir (English)</label>
+              <textarea id="edit-tafsir-katsir" class="textarea" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-nuzul">Asbabun Nuzul (Al-Wahidi)</label>
+              <textarea id="edit-nuzul" class="textarea" rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Tags View -->
+    <!-- 3. SITE SETTINGS VIEW -->
+    <div class="view" id="view-settings">
+      <div class="view-title">Site Settings</div>
+      <div class="view-subtitle">Global branding, hero titles, tagline, and featured ayah rotation</div>
+
+      <div class="card" style="max-width:680px">
+        <form id="config-form">
+          <div class="form-group">
+            <label for="cfg-hero-title">Hero Calligraphy Title (Arabic)</label>
+            <input type="text" id="cfg-hero-title" class="input font-arabic">
+          </div>
+          <div class="form-group">
+            <label for="cfg-hero-subtitle">Hero Subtitle</label>
+            <input type="text" id="cfg-hero-subtitle" class="input">
+          </div>
+          <div class="form-group">
+            <label for="cfg-tagline">App Tagline</label>
+            <input type="text" id="cfg-tagline" class="input" placeholder="Read · Comprehend · Apply">
+          </div>
+          <div class="form-group">
+            <label for="cfg-featured-rotation-mode">Featured Ayah Rotation Mode</label>
+            <select id="cfg-featured-rotation-mode" class="select">
+              <option value="manual">Manual (Use Key Below)</option>
+              <option value="daily_random">Daily Random (Auto-Pick)</option>
+              <option value="daily_playlist">Daily Playlist (Cycle Through Playlist)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cfg-featured-key">Featured Ayah Key (sura:ayah)</label>
+            <input type="text" id="cfg-featured-key" class="input" placeholder="2:255">
+          </div>
+          <div class="form-group">
+            <label for="cfg-featured-note">Featured Ayah Label</label>
+            <input type="text" id="cfg-featured-note" class="input" placeholder="Ayat Kursi">
+          </div>
+          <div class="form-group">
+            <label for="cfg-announcement">Announcement Banner</label>
+            <input type="text" id="cfg-announcement" class="input" placeholder="Leave empty to hide">
+          </div>
+          <div id="config-status" class="success-msg">✓ Settings saved successfully!</div>
+          <button type="submit" class="btn-primary" style="margin-top:12px">Save All Settings</button>
+        </form>
+
+        <div style="margin-top:32px;border-top:1px solid var(--border);padding-top:20px">
+          <div class="card-title">Curated Rotation Playlist</div>
+          <div class="card-subtitle">Verses used when Featured Ayah mode is set to "Daily Playlist"</div>
+          <form id="playlist-add-form" style="display:flex;gap:10px;margin-bottom:14px">
+            <input type="text" id="play-verse-key" required class="input" placeholder="e.g. 2:255" style="width:130px">
+            <input type="text" id="play-note" class="input" placeholder="Description (optional)" style="flex:1">
+            <button type="submit" class="btn-primary" style="width:auto;margin:0">Add</button>
+          </form>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Verse Key</th><th>Note</th><th>Action</th></tr></thead>
+              <tbody id="playlist-tbody"><tr><td colspan="3" style="text-align:center;color:var(--muted)">Loading playlist…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. TAGS MANAGER VIEW -->
     <div class="view" id="view-tags">
       <div class="view-title">Tags Manager</div>
-      <div class="view-subtitle">Manage topic tags and verse associations</div>
-      <p style="color:var(--muted);font-size:0.9rem">Coming soon — tag management interface.</p>
+      <div class="view-subtitle">Manage topic tags and hierarchy</div>
+
+      <div class="split-layout">
+        <div class="card" style="width:300px;min-width:300px">
+          <div class="card-title">Create Topic Tag</div>
+          <form id="tag-create-form">
+            <div class="form-group">
+              <label for="tag-name">Tag Name / Title</label>
+              <input type="text" id="tag-name" required class="input" placeholder="e.g. Sabar, Patience">
+            </div>
+            <div class="form-group">
+              <label for="tag-lang">Language</label>
+              <select id="tag-lang" class="select">
+                <option value="id">Indonesian (id)</option>
+                <option value="en">English (en)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tag-parent">Parent Tag ID <span class="hint">(optional)</span></label>
+              <input type="text" id="tag-parent" class="input" placeholder="Leave empty for top-level">
+            </div>
+            <div id="tag-status" class="success-msg">✓ Tag created!</div>
+            <button type="submit" class="btn-primary" style="margin-top:10px">Add New Tag</button>
+          </form>
+        </div>
+
+        <div class="card" style="flex:1;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px">
+            <div class="card-title" style="margin:0">All Tags</div>
+            <div style="display:flex;gap:10px">
+              <select id="tags-lang-filter" class="select" style="width:auto;padding:6px 10px;font-size:0.8rem">
+                <option value="all">All Languages</option>
+                <option value="id">Indonesian</option>
+                <option value="en">English</option>
+              </select>
+              <input type="text" id="tags-search" class="input" placeholder="Search tags…" style="width:180px;padding:6px 10px;font-size:0.8rem">
+            </div>
+          </div>
+          <div class="table-wrap" style="flex:1">
+            <table class="table">
+              <thead><tr><th>ID</th><th>Name</th><th>Lang</th><th>Parent</th><th>Action</th></tr></thead>
+              <tbody id="tags-tbody"><tr><td colspan="5" style="text-align:center;color:var(--muted)">Loading tags…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Settings View -->
-    <div class="view" id="view-settings">
-      <div class="view-title">Settings</div>
-      <div class="view-subtitle">Site configuration and preferences</div>
-      <p style="color:var(--muted);font-size:0.9rem">Coming soon — settings interface.</p>
+    <!-- 5. DATABASE CSV VIEW -->
+    <div class="view" id="view-database">
+      <div class="view-title">Database CSV Tools</div>
+      <div class="view-subtitle">Bulk import/export CSV datasets to Supabase</div>
+
+      <div class="split-layout">
+        <div style="width:360px;min-width:360px;display:flex;flex-direction:column;gap:16px">
+          <!-- Import -->
+          <div class="card">
+            <div class="card-title">Import CSV Dataset</div>
+            <div class="card-subtitle">Bulk upload translation, tafsir, or nuzul data</div>
+            <div class="form-group">
+              <label for="import-type">Table Type</label>
+              <select id="import-type" class="select">
+                <option value="translations">Translations</option>
+                <option value="tafsirs">Tafsirs</option>
+                <option value="asbabun_nuzul">Asbabun Nuzul</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="import-file">Upload CSV File</label>
+              <input type="file" id="import-file" accept=".csv" class="input">
+            </div>
+            <div id="import-status" style="display:none;margin-top:10px"></div>
+            <button id="btn-start-import" class="btn-primary" style="margin-top:10px">Start Import</button>
+          </div>
+
+          <!-- Export -->
+          <div class="card">
+            <div class="card-title">Export Table to CSV</div>
+            <div class="form-group">
+              <label for="export-type">Select Table</label>
+              <select id="export-type" class="select">
+                <option value="translations">Translations</option>
+                <option value="tafsirs">Tafsirs</option>
+                <option value="asbabun_nuzul">Asbabun Nuzul</option>
+                <option value="tags">Tags</option>
+                <option value="verse_tags">Verse Tags</option>
+              </select>
+            </div>
+            <button id="btn-start-export" class="btn-outline" style="width:100%">Export CSV File</button>
+          </div>
+        </div>
+
+        <!-- Templates -->
+        <div class="card" style="flex:1">
+          <div class="card-title">Blank CSV Templates</div>
+          <div class="card-subtitle">Download 6,236-row blank frames matching Supabase schema</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+            <button class="btn-outline" id="btn-tpl-translations">📥 Translations CSV Template</button>
+            <button class="btn-outline" id="btn-tpl-tafsirs">📥 Tafsirs CSV Template</button>
+            <button class="btn-outline" id="btn-tpl-nuzul">📥 Asbabun Nuzul CSV Template</button>
+          </div>
+          <div class="card-title" style="font-size:0.88rem;margin-bottom:6px">💡 Format Guide</div>
+          <ul style="color:var(--muted);font-size:0.82rem;line-height:1.7;padding-left:1.2rem">
+            <li>All templates have 6,236 rows — one per Quran verse.</li>
+            <li><strong>Translations</strong>: columns <code>verse_id, source_id, text</code></li>
+            <li><strong>Tafsirs</strong>: columns <code>verse_id, tafsir_id, text</code></li>
+            <li><strong>Asbabun Nuzul</strong>: columns <code>verse_id, source, text</code></li>
+          </ul>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -506,16 +764,11 @@
   const SUPABASE_URL     = 'https://zgeygoclduqotqveperx.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik';
 
-  // ── Supabase ─────────────────────────────────────────────
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      detectSessionInUrl: true,
-      persistSession: true,
-      autoRefreshToken: true,
-    }
+    auth: { detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
   });
 
-  // ── DOM refs ──────────────────────────────────────────────
+  // DOM
   const $loading    = document.getElementById('loading');
   const $loginPage  = document.getElementById('login-page');
   const $cmsPage    = document.getElementById('cms-page');
@@ -529,11 +782,11 @@
   const $userEmail  = document.getElementById('user-email');
   const $userAvatar = document.getElementById('user-avatar');
 
-  // ── Helpers ───────────────────────────────────────────────
-  function showError(msg) {
-    $errorMsg.textContent = msg;
-    $errorMsg.style.display = 'block';
-  }
+  let activeSurahId = 1;
+  let activeVerseId = null;
+  let allTags = [];
+
+  function showError(msg) { $errorMsg.textContent = msg; $errorMsg.style.display = 'block'; }
   function hideError() { $errorMsg.style.display = 'none'; }
 
   function showLogin() {
@@ -548,62 +801,35 @@
     $cmsPage.style.display = 'flex';
 
     const name = profile?.display_name || user.email.split('@')[0];
-    $userName.textContent  = name;
-    $userEmail.textContent = user.email;
+    $userName.textContent   = name;
+    $userEmail.textContent  = user.email;
     $userAvatar.textContent = name[0].toUpperCase();
 
-    loadStats();
+    loadDashboardStats();
+    loadSurahsDropdown();
+    loadSiteConfig();
+    loadTags();
   }
 
   async function checkAdmin(user) {
-    // Check profile role
-    const { data: profile } = await sb
-      .from('profiles')
-      .select('display_name, role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const isAdmin =
-      profile?.role === 'admin' ||
-      user.app_metadata?.role === 'admin' ||
-      user.user_metadata?.role === 'admin';
-
+    const { data: profile } = await sb.from('profiles').select('display_name, role').eq('id', user.id).maybeSingle();
+    const isAdmin = profile?.role === 'admin' || user.app_metadata?.role === 'admin' || user.user_metadata?.role === 'admin';
     return { isAdmin, profile };
   }
 
   async function handleSession(session) {
     if (!session) { showLogin(); return; }
-
     const { isAdmin, profile } = await checkAdmin(session.user);
     if (!isAdmin) {
       await sb.auth.signOut();
       showLogin();
-      showError('Access denied. This account does not have admin privileges.');
+      showError('Access denied. Admin role required.');
       return;
     }
     showCMS(session.user, profile);
   }
 
-  async function loadStats() {
-    const [
-      { count: verses },
-      { count: tags },
-      { count: verseTags },
-      { count: translations },
-    ] = await Promise.all([
-      sb.from('verses').select('*', { count: 'exact', head: true }),
-      sb.from('tags').select('*', { count: 'exact', head: true }),
-      sb.from('verse_tags').select('*', { count: 'exact', head: true }),
-      sb.from('verse_translations').select('*', { count: 'exact', head: true }),
-    ]);
-
-    document.getElementById('stat-verses').textContent       = (verses ?? '—').toLocaleString();
-    document.getElementById('stat-tags').textContent         = (tags ?? '—').toLocaleString();
-    document.getElementById('stat-verse-tags').textContent   = (verseTags ?? '—').toLocaleString();
-    document.getElementById('stat-translations').textContent = (translations ?? '—').toLocaleString();
-  }
-
-  // ── View switching ─────────────────────────────────────────
+  // View Switching
   window.switchView = function(name) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -615,57 +841,325 @@
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
 
-  // ── Login: email/password ─────────────────────────────────
-  $btnLogin.addEventListener('click', async () => {
-    hideError();
-    const email    = $email.value.trim();
-    const password = $password.value;
-    if (!email || !password) { showError('Please enter email and password.'); return; }
+  // 1. DASHBOARD STATS
+  async function loadDashboardStats() {
+    const targets = [
+      { id: 'stat-verses', table: 'verses' },
+      { id: 'stat-translations', table: 'translations' },
+      { id: 'stat-tafsirs', table: 'tafsirs' },
+      { id: 'stat-tags', table: 'tags' },
+      { id: 'stat-verse-tags', table: 'verse_tags' },
+      { id: 'stat-nuzul', table: 'asbabun_nuzul' },
+    ];
+    for (const t of targets) {
+      try {
+        const { count } = await sb.from(t.table).select('*', { count: 'exact', head: true });
+        const el = document.getElementById(t.id);
+        if (el && count !== null) el.textContent = count.toLocaleString();
+      } catch (_) {}
+    }
+  }
 
-    $btnLogin.disabled = true;
-    $btnLogin.textContent = 'Signing in…';
+  // 2. VERSE EDITOR
+  async function loadSurahsDropdown() {
+    const select = document.getElementById('select-surah');
+    if (!select) return;
+    try {
+      const { data } = await sb.from('surahs').select('id,name_en,name_id').order('id');
+      select.innerHTML = (data||[]).map(s => `<option value="${s.id}">${s.id}. ${s.name_en} (${s.name_id||''})</option>`).join('');
+      loadVersesList(1);
+    } catch (_) { select.innerHTML = '<option>Error loading surahs</option>'; }
+  }
 
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-
-    $btnLogin.disabled = false;
-    $btnLogin.textContent = 'Sign In';
-
-    if (error) { showError(error.message); }
-    // on success onAuthStateChange fires → handleSession
+  document.getElementById('select-surah')?.addEventListener('change', e => {
+    activeSurahId = parseInt(e.target.value);
+    loadVersesList(activeSurahId);
   });
 
-  // Allow Enter key
+  async function loadVersesList(surahId) {
+    const tbody = document.getElementById('verse-list-body');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--muted);padding:1.5rem">Loading…</td></tr>';
+    try {
+      const { data } = await sb.from('verses').select('id,sura_id,ayah_number,text_ar').eq('sura_id', surahId).order('ayah_number');
+      tbody.innerHTML = '';
+      (data||[]).forEach(v => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${v.ayah_number}</td><td style="font-family:'Noto Naskh Arabic',serif;direction:rtl;font-size:0.95rem">${(v.text_ar||'').substring(0,30)}…</td>`;
+        tr.addEventListener('click', () => {
+          tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+          tr.classList.add('selected');
+          loadVerseDetail(v.id, v.ayah_number);
+        });
+        tbody.appendChild(tr);
+      });
+    } catch(_) { tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--red);padding:1.5rem">Error loading verses</td></tr>'; }
+  }
+
+  async function loadVerseDetail(verseId, ayahNum) {
+    activeVerseId = verseId;
+    document.getElementById('editor-empty').style.display = 'none';
+    document.getElementById('editor-form').style.display = 'flex';
+    document.getElementById('edit-verse-label').textContent = `${activeSurahId}:${ayahNum}`;
+
+    ['edit-arabic','edit-trans-id','edit-trans-en','edit-tafsir-jalalayn','edit-tafsir-katsir','edit-nuzul'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = id === 'edit-arabic' ? 'Loading…' : '';
+    });
+
+    try {
+      const [{ data: verse }, { data: trans }, { data: tafsirs }, { data: nuzul }] = await Promise.all([
+        sb.from('verses').select('text_ar').eq('id', verseId).maybeSingle(),
+        sb.from('translations').select('source_id,text').eq('verse_id', verseId),
+        sb.from('tafsirs').select('tafsir_id,text').eq('verse_id', verseId),
+        sb.from('asbabun_nuzul').select('source,text').eq('verse_id', verseId),
+      ]);
+      document.getElementById('edit-arabic').value = verse?.text_ar || '';
+      const transMap  = Object.fromEntries((trans||[]).map(t => [t.source_id, t.text]));
+      const tafsirMap = Object.fromEntries((tafsirs||[]).map(t => [t.tafsir_id, t.text]));
+      const nuzulMap  = Object.fromEntries((nuzul||[]).map(n => [n.source, n.text]));
+
+      document.getElementById('edit-trans-id').value = transMap['id.kemenag'] || '';
+      document.getElementById('edit-trans-en').value = transMap['en.sahih'] || transMap['en.sahih-international'] || '';
+      document.getElementById('edit-tafsir-jalalayn').value = tafsirMap['id.jalalayn'] || '';
+      document.getElementById('edit-tafsir-katsir').value = tafsirMap['en.katsir'] || tafsirMap['en.ibn-kathir'] || '';
+      document.getElementById('edit-nuzul').value = nuzulMap['en.wahidi'] || nuzulMap['id.wahidi'] || '';
+    } catch (_) {}
+  }
+
+  document.getElementById('btn-save-verse')?.addEventListener('click', async () => {
+    if (!activeVerseId) return;
+    const btn = document.getElementById('btn-save-verse');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+
+    const get = id => document.getElementById(id)?.value?.trim() || '';
+    try {
+      await Promise.all([
+        get('edit-trans-id') ? sb.from('translations').upsert({ verse_id: activeVerseId, source_id: 'id.kemenag', text: get('edit-trans-id') }, { onConflict: 'verse_id,source_id' }) : Promise.resolve(),
+        get('edit-trans-en') ? sb.from('translations').upsert({ verse_id: activeVerseId, source_id: 'en.sahih', text: get('edit-trans-en') }, { onConflict: 'verse_id,source_id' }) : Promise.resolve(),
+        get('edit-tafsir-jalalayn') ? sb.from('tafsirs').upsert({ verse_id: activeVerseId, tafsir_id: 'id.jalalayn', text: get('edit-tafsir-jalalayn') }, { onConflict: 'verse_id,tafsir_id' }) : Promise.resolve(),
+        get('edit-tafsir-katsir') ? sb.from('tafsirs').upsert({ verse_id: activeVerseId, tafsir_id: 'en.katsir', text: get('edit-tafsir-katsir') }, { onConflict: 'verse_id,tafsir_id' }) : Promise.resolve(),
+        get('edit-nuzul') ? sb.from('asbabun_nuzul').upsert({ verse_id: activeVerseId, source: 'en.wahidi', text: get('edit-nuzul') }, { onConflict: 'verse_id,source' }) : Promise.resolve(),
+      ]);
+      btn.textContent = '✓ Saved!';
+      setTimeout(() => { btn.textContent = 'Save Changes'; btn.disabled = false; }, 2000);
+    } catch (_) { btn.textContent = 'Error'; btn.disabled = false; }
+  });
+
+  // 3. SITE SETTINGS & PLAYLIST
+  const CFG_MAP = {
+    home_hero_title: 'cfg-hero-title',
+    home_hero_subtitle: 'cfg-hero-subtitle',
+    app_tagline: 'cfg-tagline',
+    featured_rotation_mode: 'cfg-featured-rotation-mode',
+    featured_ayah_key: 'cfg-featured-key',
+    featured_ayah_note: 'cfg-featured-note',
+    announcement_text: 'cfg-announcement',
+  };
+
+  async function loadSiteConfig() {
+    const { data } = await sb.from('site_config').select('key,value').in('key', Object.keys(CFG_MAP));
+    (data||[]).forEach(({ key, value }) => {
+      const id = CFG_MAP[key];
+      if (id && document.getElementById(id)) document.getElementById(id).value = value || '';
+    });
+    loadPlaylist();
+  }
+
+  document.getElementById('config-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const configs = Object.entries(CFG_MAP).map(([key, id]) => ({
+      key, value: document.getElementById(id)?.value?.trim() || ''
+    }));
+    const { error } = await sb.from('site_config').upsert(configs, { onConflict: 'key' });
+    const status = document.getElementById('config-status');
+    if (!error && status) {
+      status.style.display = 'block';
+      setTimeout(() => status.style.display = 'none', 3000);
+    }
+  });
+
+  async function loadPlaylist() {
+    const tbody = document.getElementById('playlist-tbody');
+    if (!tbody) return;
+    try {
+      const { data } = await sb.from('featured_playlist').select('*').order('id');
+      if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">No playlist entries yet</td></tr>'; return; }
+      tbody.innerHTML = data.map(row => `
+        <tr>
+          <td>${row.verse_key}</td>
+          <td>${row.note||'—'}</td>
+          <td><button class="btn-danger" onclick="deletePlaylistRow(${row.id})">Delete</button></td>
+        </tr>`).join('');
+    } catch (_) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">Playlist table not created</td></tr>'; }
+  }
+
+  window.deletePlaylistRow = async function(id) {
+    await sb.from('featured_playlist').delete().eq('id', id);
+    loadPlaylist();
+  };
+
+  document.getElementById('playlist-add-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const key  = document.getElementById('play-verse-key')?.value?.trim();
+    const note = document.getElementById('play-note')?.value?.trim();
+    if (!key) return;
+    await sb.from('featured_playlist').insert({ verse_key: key, note: note || null });
+    document.getElementById('play-verse-key').value = '';
+    document.getElementById('play-note').value = '';
+    loadPlaylist();
+  });
+
+  // 4. TAGS MANAGER
+  async function loadTags() {
+    const tbody = document.getElementById('tags-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Loading…</td></tr>';
+    const { data } = await sb.from('tags').select('id,name,lang,parent_id').order('id');
+    allTags = data || [];
+    renderTags();
+  }
+
+  function renderTags() {
+    const tbody = document.getElementById('tags-tbody');
+    const filter = document.getElementById('tags-lang-filter')?.value || 'all';
+    const query  = (document.getElementById('tags-search')?.value || '').toLowerCase();
+
+    const filtered = allTags.filter(t =>
+      (filter === 'all' || t.lang === filter) &&
+      (!query || t.name.toLowerCase().includes(query) || (t.id+'').includes(query))
+    );
+
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No tags found</td></tr>'; return; }
+    tbody.innerHTML = filtered.slice(0, 200).map(t => `
+      <tr>
+        <td>${t.id}</td>
+        <td>${t.name}</td>
+        <td><span style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--accent)">${t.lang}</span></td>
+        <td>${t.parent_id||'—'}</td>
+        <td><button class="btn-danger" onclick="deleteTag('${t.id}','${t.lang}')">Delete</button></td>
+      </tr>`).join('');
+  }
+
+  window.deleteTag = async function(id, lang) {
+    if (!confirm(`Delete tag "${id}" (${lang})?`)) return;
+    await sb.from('tags').delete().eq('id', id).eq('lang', lang);
+    loadTags();
+  };
+
+  document.getElementById('tags-lang-filter')?.addEventListener('change', renderTags);
+  document.getElementById('tags-search')?.addEventListener('input', renderTags);
+
+  document.getElementById('tag-create-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const name   = document.getElementById('tag-name')?.value?.trim();
+    const lang   = document.getElementById('tag-lang')?.value;
+    const parent = document.getElementById('tag-parent')?.value?.trim() || null;
+    if (!name) return;
+    const { error } = await sb.from('tags').insert({ name, lang, parent_id: parent });
+    const status = document.getElementById('tag-status');
+    if (!error && status) {
+      status.style.display = 'block';
+      document.getElementById('tag-name').value = '';
+      document.getElementById('tag-parent').value = '';
+      setTimeout(() => status.style.display = 'none', 2000);
+      loadTags();
+    }
+  });
+
+  // 5. DATABASE CSV TOOLS
+  document.getElementById('btn-start-import')?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('import-file');
+    const type      = document.getElementById('import-type')?.value;
+    const statusEl  = document.getElementById('import-status');
+    if (!fileInput?.files[0]) { statusEl.style.display='block'; statusEl.className='error-msg'; statusEl.textContent='Select a CSV file first.'; return; }
+
+    const text    = await fileInput.files[0].text();
+    const lines   = text.split('\n').filter(l => l.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+    const rows    = lines.slice(1).map(l => {
+      const vals = []; let cur='', inQ=false;
+      for (const ch of l) { if(ch==='"') inQ=!inQ; else if(ch===','&&!inQ){vals.push(cur.trim());cur='';} else cur+=ch; }
+      vals.push(cur.trim());
+      return Object.fromEntries(headers.map((h,i) => [h, (vals[i]||'').replace(/^"|"$/g,'')]));
+    });
+
+    statusEl.style.display='block'; statusEl.className='success-msg'; statusEl.textContent = `Uploading ${rows.length} rows…`;
+
+    const BATCH = 50; let done = 0;
+    for (let i=0; i<rows.length; i+=BATCH) {
+      const batch = rows.slice(i, i+BATCH).map(r => ({
+        verse_id: parseInt(r.verse_id||'0'),
+        ...(type==='translations' ? { source_id: r.source_id, text: r.text } : {}),
+        ...(type==='tafsirs' ? { tafsir_id: r.tafsir_id, text: r.text } : {}),
+        ...(type==='asbabun_nuzul' ? { source: r.source, text: r.text } : {}),
+      }));
+      const conflictCol = type==='translations' ? 'verse_id,source_id' : type==='tafsirs' ? 'verse_id,tafsir_id' : 'verse_id,source';
+      await sb.from(type==='asbabun_nuzul'?'asbabun_nuzul':type).upsert(batch, { onConflict: conflictCol });
+      done += batch.length;
+    }
+    statusEl.textContent = `✓ Import complete: ${done} rows processed.`;
+  });
+
+  document.getElementById('btn-start-export')?.addEventListener('click', async () => {
+    const type = document.getElementById('export-type')?.value;
+    if (!type) return;
+    const { data } = await sb.from(type).select('*').limit(100000);
+    if (!data || !data.length) return;
+    const cols = Object.keys(data[0]);
+    const csv = [cols.join(','), ...data.map(row => cols.map(c => {
+      const v = String(row[c]??''); return v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g,'""')}"` : v;
+    }).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a'); a.href=url; a.download=`${type}_export.csv`; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  function generateTemplate(type) {
+    const templates = { translations: 'verse_id,source_id,text', tafsirs: 'verse_id,tafsir_id,text', nuzul: 'verse_id,source,text' };
+    const rows = Array.from({length:6236}, (_,i) => `${i+1},,`).join('\n');
+    const csv  = templates[type]+'\n'+rows;
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a'); a.href=url; a.download=`template_${type}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('btn-tpl-translations')?.addEventListener('click', () => generateTemplate('translations'));
+  document.getElementById('btn-tpl-tafsirs')?.addEventListener('click', () => generateTemplate('tafsirs'));
+  document.getElementById('btn-tpl-nuzul')?.addEventListener('click', () => generateTemplate('nuzul'));
+
+  // Auth Handlers
+  $btnLogin.addEventListener('click', async () => {
+    hideError();
+    const email = $email.value.trim(); const password = $password.value;
+    if (!email || !password) { showError('Please enter email and password.'); return; }
+    $btnLogin.disabled = true; $btnLogin.textContent = 'Signing in…';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    $btnLogin.disabled = false; $btnLogin.textContent = 'Sign In';
+    if (error) showError(error.message);
+  });
+
   [$email, $password].forEach(el => {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') $btnLogin.click(); });
   });
 
-  // ── Login: Google OAuth ───────────────────────────────────
   $btnGoogle.addEventListener('click', async () => {
-    hideError();
-    $btnGoogle.disabled = true;
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.href }
-    });
-    if (error) {
-      showError('Google sign-in failed: ' + error.message);
-      $btnGoogle.disabled = false;
-    }
-    // On success → browser redirects to Google, returns here, onAuthStateChange fires
+    hideError(); $btnGoogle.disabled = true;
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    if (error) { showError('Google sign-in failed: ' + error.message); $btnGoogle.disabled = false; }
   });
 
-  // ── Sign out ──────────────────────────────────────────────
   $btnSignout.addEventListener('click', async () => {
     await sb.auth.signOut();
   });
 
-  // ── Auth state listener ───────────────────────────────────
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT') { showLogin(); return; }
-    if (session) { await handleSession(session); }
+    if (session) await handleSession(session);
   });
 
-  // ── Init: check existing session ─────────────────────────
   (async () => {
     const { data: { session } } = await sb.auth.getSession();
     await handleSession(session);

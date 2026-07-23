@@ -65,15 +65,7 @@ jobs:
         run: flutter pub get
 
       - name: Build release APK
-        run: |
-          flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee apk_output.txt || {
-            echo "================ GRADLE FAIL DIAGNOSTIC ================"
-            grep -i -C 3 -E "error|failed|exception|cause|FAILURE" apk_output.txt | tail -n 80
-            exit 1
-          }
-
-      - name: Build release AAB (Google Play)
-        run: flutter build appbundle --release --android-skip-build-dependency-validation --verbose
+        run: flutter build apk --release --android-skip-build-dependency-validation --verbose
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -81,6 +73,9 @@ jobs:
           name: tafseer-id-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+
+      - name: Build release AAB (Google Play)
+        run: flutter build appbundle --release --android-skip-build-dependency-validation --verbose
 
       - name: Upload AAB artifact (Google Play)
         uses: actions/upload-artifact@v4

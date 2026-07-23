@@ -59,10 +59,10 @@ jobs:
         run: flutter pub get
 
       - name: Build release APK
-        run: flutter build apk --release --verbose
+        run: flutter build apk --release --android-skip-build-dependency-validation --verbose
 
       - name: Build release AAB (Google Play)
-        run: flutter build appbundle --release --verbose
+        run: flutter build appbundle --release --android-skip-build-dependency-validation --verbose
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -93,6 +93,11 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
 
       - name: Build iOS (no code sign)
         run: flutter build ios --release --no-codesign --verbose

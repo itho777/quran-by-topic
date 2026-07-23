@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_last_read_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_rounded"
@@ -14,8 +15,7 @@
         <ImageView
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:src="@android:drawable/ic_menu_agenda"
-            android:tint="@color/widget_gold" />
+            android:src="@android:drawable/ic_menu_agenda" />
         <TextView
             android:id="@+id/tv_last_label"
             android:layout_width="wrap_content"
@@ -51,7 +51,8 @@
         android:layout_width="match_parent"
         android:layout_height="4dp"
         android:layout_marginTop="12dp"
-        android:progressDrawable="@android:drawable/progress_horizontal" />
+        android:max="100"
+        android:progress="0" />
 
     <TextView
         android:id="@+id/tv_progress_text"
@@ -62,13 +63,16 @@
         android:textColor="@color/widget_text_muted"
         android:textSize="10sp" />
 
-    <Button
-        android:id="@+id/btn_continue"
+    <TextView
+        android:id="@+id/widget_last_read_root"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:background="@drawable/widget_btn_gold"
+        android:gravity="center"
+        android:padding="10dp"
         android:text="Lanjutkan ▶"
-        android:textColor="@color/widget_bg"
-        android:textSize="14sp" />
+        android:textColor="#000000"
+        android:textSize="14sp"
+        android:textStyle="bold" />
 </LinearLayout>

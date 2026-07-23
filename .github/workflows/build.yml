@@ -26,7 +26,6 @@ jobs:
       - name: Auto-bump versionCode in pubspec.yaml
         id: bump
         run: |
-          # Read current version line e.g. "version: 3.0.0-beta.15+17"
           CURRENT=$(grep '^version:' pubspec.yaml | head -1)
           NAME=$(echo "$CURRENT" | sed 's/version: //' | cut -d'+' -f1)
           CODE=$(echo "$CURRENT" | cut -d'+' -f2)
@@ -68,15 +67,11 @@ jobs:
           cache: true
 
       - name: Write local.properties (CI override)
-        # The checked-in local.properties has a Windows dev machine path.
-        # Overwrite it with the actual Flutter SDK path on the CI runner.
         run: |
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT"  >> android/local.properties
 
       - name: Decode upload keystore from secret
-        # The keystore is stored as a base64-encoded GitHub Actions secret.
-        # If the secret is not set, fall back to debug signing gracefully.
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode --ignore-garbage > android/app/upload-keystore.jks
@@ -119,28 +114,45 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
+  build-ios:
+    name: Build iOS (.ipa / no-codesign)
+    runs-on: macos-latest
+    needs: bump-version
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
-  # ── iOS build disabled (macos-latest runners have very long queue times) ──
-  # Uncomment the block below to re-enable iOS builds when needed.
-  #
-  # build-ios:
-  #   name: Build iOS App
-  #   runs-on: macos-latest
-  #   needs: bump-version
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ github.ref }}
-  #     - uses: subosito/flutter-action@v2
-  #       with:
-  #         flutter-version: '3.44.4'
-  #         channel: 'stable'
-  #         cache: true
-  #     - run: flutter pub get
-  #     - run: flutter build ios --release --no-codesign
-  #     - run: cd build/ios/iphoneos && zip -r Runner.zip Runner.app
-  #     - uses: actions/upload-artifact@v4
-  #       with:
-  #         name: tafseer-id-release-ios
-  #         path: build/ios/iphoneos/Runner.zip
-  #         retention-days: 30
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install --repo-update
+        env:
+          LANG: en_US.UTF-8
+
+      - name: Build iOS (no code sign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Archive Runner.app as zip
+        run: |
+          cd build/ios/iphoneos
+          zip -r Runner.zip Runner.app
+          echo "Archive created at build/ios/iphoneos/Runner.zip"
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tafseer-id-release-ios
+          path: build/ios/iphoneos/Runner.zip
+          retention-days: 30

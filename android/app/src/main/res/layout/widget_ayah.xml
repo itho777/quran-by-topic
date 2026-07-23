@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_ayah_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_rounded"
@@ -25,8 +26,7 @@
             android:id="@+id/btn_refresh"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_popup_sync"
-            android:tint="@color/widget_text_muted" />
+            android:src="@android:drawable/stat_notify_sync_noanim" />
     </LinearLayout>
 
     <View

@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_prayer_c2_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_rounded"
@@ -49,7 +50,6 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_menu_today"
-                android:tint="@color/widget_text_muted" />
 
             <TextView
                 android:id="@+id/tv_p1_name"
@@ -83,7 +83,6 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_menu_today"
-                android:tint="@color/widget_text_muted" />
 
             <TextView
                 android:id="@+id/tv_p2_name"
@@ -117,7 +116,6 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_menu_today"
-                android:tint="@color/widget_text_muted" />
 
             <TextView
                 android:id="@+id/tv_p3_name"
@@ -151,7 +149,6 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_menu_today"
-                android:tint="@color/widget_text_muted" />
 
             <TextView
                 android:id="@+id/tv_p4_name"
@@ -184,7 +181,6 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_menu_today"
-                android:tint="@color/widget_text_muted" />
 
             <TextView
                 android:id="@+id/tv_p5_name"

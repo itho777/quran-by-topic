@@ -33,6 +33,7 @@ android {
         targetSdk = 35
         versionCode = 80
         versionName = "3.1.0-beta.2"
+        multiDexEnabled = true
     }
 
     if (hasReleaseKeystore) {
@@ -69,4 +70,5 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("androidx.multidex:multidex:2.0.1")
 }

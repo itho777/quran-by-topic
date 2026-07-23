@@ -128,13 +128,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Install CocoaPods
-        run: |
-          cd ios
-          pod install --repo-update
-        env:
-          LANG: en_US.UTF-8
-
       - name: Build iOS (no code sign)
         run: flutter build ios --release --no-codesign
 

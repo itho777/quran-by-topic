@@ -35,24 +35,17 @@ jobs:
       - name: Configure Flutter JDK
         run: flutter config --jdk-dir $JAVA_HOME
 
-      - name: Pre-generate Debug & Release Keystores for CI
+      - name: Setup Keystore & key.properties (if secret available)
         run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA
-          fi
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode --ignore-garbage > android/app/upload-keystore.jks
             echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
             echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
             echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
             echo "storeFile=upload-keystore.jks" >> android/key.properties
+            echo "Release keystore configured from secrets."
           else
-            keytool -genkeypair -alias upload -keypass tafseeridpass -keystore android/app/upload-keystore.jks -storepass tafseeridpass -dname "CN=CI,O=CI,C=US" -validity 10000 -keyalg RSA
-            echo "storePassword=tafseeridpass" > android/key.properties
-            echo "keyPassword=tafseeridpass" >> android/key.properties
-            echo "keyAlias=upload" >> android/key.properties
-            echo "storeFile=upload-keystore.jks" >> android/key.properties
+            echo "KEYSTORE_BASE64 secret not set — using default debug signing for release build."
           fi
 
       - name: Write local.properties

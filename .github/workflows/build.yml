@@ -48,12 +48,13 @@ jobs:
             echo "KEYSTORE_BASE64 secret not set — using default debug signing for release build."
           fi
 
-      - name: Install dependencies & setup local.properties
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Prepare local.properties
         run: |
-          flutter pub get
+          touch android/local.properties
           echo "flutter.minSdkVersion=21" >> android/local.properties
-          echo "flutter.targetSdkVersion=35" >> android/local.properties
-          echo "flutter.compileSdkVersion=35" >> android/local.properties
 
       - name: Build release APK
         run: flutter build apk --release

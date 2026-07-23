@@ -17,7 +17,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "id.tafseer.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "28.0.12674087"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

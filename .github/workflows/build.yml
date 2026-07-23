@@ -9,6 +9,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build-android:
     name: Build Android (APK + AAB)
@@ -62,10 +65,14 @@ jobs:
         run: flutter pub get
 
       - name: Build release APK
-        run: flutter build apk --release --android-skip-build-dependency-validation --verbose
+        run: |
+          flutter build apk --release --android-skip-build-dependency-validation > build_apk.log 2>&1 || (cat build_apk.log | tail -n 120 && exit 1)
+          cat build_apk.log | tail -n 30
 
       - name: Build release AAB (Google Play)
-        run: flutter build appbundle --release --android-skip-build-dependency-validation --verbose
+        run: |
+          flutter build appbundle --release --android-skip-build-dependency-validation > build_aab.log 2>&1 || (cat build_aab.log | tail -n 120 && exit 1)
+          cat build_aab.log | tail -n 30
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -102,8 +109,14 @@ jobs:
           cd ios
           pod install
 
+      - name: Clean Extended Attributes
+        run: |
+          find . -type f \( -name "*.framework" -o -name "*.app" -o -name "*.dylib" \) -exec xattr -cr {} + 2>/dev/null || true
+
       - name: Build iOS (no code sign)
-        run: flutter build ios --release --no-codesign --verbose
+        run: |
+          flutter build ios --release --no-codesign > build_ios.log 2>&1 || (cat build_ios.log | tail -n 150 && exit 1)
+          cat build_ios.log | tail -n 30
 
       - name: Archive Runner.app as zip
         run: |

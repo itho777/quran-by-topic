@@ -7,9 +7,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
+val keystoreProperties = Properties()
+val hasReleaseKeystore = keystorePropertiesFile.exists()
+
+if (hasReleaseKeystore) {
     keystorePropertiesFile.inputStream().use { input ->
         keystoreProperties.load(input)
     }
@@ -34,23 +36,23 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String?
+    if (hasReleaseKeystore) {
+        signingConfigs {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
     buildTypes {
         release {
-            val relConfig = signingConfigs.findByName("release")
-            val dbgConfig = signingConfigs.findByName("debug")
-            signingConfig = if (keystorePropertiesFile.exists() && relConfig != null) {
-                relConfig
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
             } else {
-                dbgConfig
+                signingConfigs.getByName("debug")
             }
         }
     }

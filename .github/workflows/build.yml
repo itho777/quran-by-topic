@@ -65,7 +65,7 @@ jobs:
         run: flutter pub get
 
       - name: Build release APK
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        run: flutter build apk --release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -76,7 +76,7 @@ jobs:
 
       - name: Build release AAB (Google Play)
         continue-on-error: true
-        run: flutter build appbundle --release --android-skip-build-dependency-validation
+        run: flutter build appbundle --release
 
       - name: Upload AAB artifact (Google Play)
         continue-on-error: true

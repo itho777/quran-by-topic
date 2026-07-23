@@ -3,6 +3,9 @@ import 'package:home_widget/home_widget.dart';
 
 /// Service layer for synchronizing Tafseer.id app state with Home Screen Widgets
 /// (Ayah of the Day, Prayer Times C1/C2/C4, Last Read)
+///
+/// Uses home_widget ^0.9.x API — `updateWidget(name:)` only.
+/// The `androidName` parameter was removed in home_widget 0.6.0.
 class HomeWidgetService {
   HomeWidgetService._();
   static final HomeWidgetService instance = HomeWidgetService._();
@@ -25,11 +28,8 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<int>('hw_ayah_surah_no', surahNo);
       await HomeWidget.saveWidgetData<int>('hw_ayah_ayah_no', ayahNo);
 
-      await HomeWidget.updateWidget(
-        name: 'AyahWidgetProvider',
-        androidName: 'AyahWidgetProvider',
-      );
-      debugPrint('✓ Updated AyahWidgetProvider');
+      await HomeWidget.updateWidget(name: 'AyahWidgetProvider');
+      debugPrint('Updated AyahWidgetProvider');
     } catch (e) {
       debugPrint('Error updating AyahWidgetProvider: $e');
     }
@@ -61,19 +61,10 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<String>('hw_location', location);
 
       // Trigger update for all 3 prayer time widget variations
-      await HomeWidget.updateWidget(
-        name: 'PrayerC1WidgetProvider',
-        androidName: 'PrayerC1WidgetProvider',
-      );
-      await HomeWidget.updateWidget(
-        name: 'PrayerC2WidgetProvider',
-        androidName: 'PrayerC2WidgetProvider',
-      );
-      await HomeWidget.updateWidget(
-        name: 'PrayerC4WidgetProvider',
-        androidName: 'PrayerC4WidgetProvider',
-      );
-      debugPrint('✓ Updated Prayer Widget Providers (C1, C2, C4)');
+      await HomeWidget.updateWidget(name: 'PrayerC1WidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC2WidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC4WidgetProvider');
+      debugPrint('Updated Prayer Widget Providers (C1, C2, C4)');
     } catch (e) {
       debugPrint('Error updating Prayer Widget Providers: $e');
     }
@@ -92,11 +83,8 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<int>('hw_last_ayah_no', ayahNo);
       await HomeWidget.saveWidgetData<double>('hw_last_progress', progress);
 
-      await HomeWidget.updateWidget(
-        name: 'LastReadWidgetProvider',
-        androidName: 'LastReadWidgetProvider',
-      );
-      debugPrint('✓ Updated LastReadWidgetProvider');
+      await HomeWidget.updateWidget(name: 'LastReadWidgetProvider');
+      debugPrint('Updated LastReadWidgetProvider');
     } catch (e) {
       debugPrint('Error updating LastReadWidgetProvider: $e');
     }

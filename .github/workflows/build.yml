@@ -57,7 +57,14 @@ jobs:
           echo "flutter.minSdkVersion=21" >> android/local.properties
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release -v 2>&1 | tee /tmp/flutter_build.log || {
+            echo "# ❌ Android Build Error Summary" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -E -C 2 '(error:|FAILURE|Exception|Caused by:|BUILD FAILED|aapt2|Could not|Unable|\[\+\s*ms\])' /tmp/flutter_build.log | tail -80 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

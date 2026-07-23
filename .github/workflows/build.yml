@@ -35,41 +35,37 @@ jobs:
       - name: Configure Flutter JDK
         run: flutter config --jdk-dir $JAVA_HOME
 
-      - name: Write local.properties (CI override)
+      - name: Pre-generate Debug & Release Keystores for CI
         run: |
-          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-          echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
-          echo "flutter.minSdkVersion=21" >> android/local.properties
-
-      - name: Setup Keystore & key.properties
-        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -alias androiddebugkey -keypass android -keystore ~/.android/debug.keystore -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA
+          fi
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode --ignore-garbage > android/app/upload-keystore.jks
             echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
             echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
             echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
             echo "storeFile=upload-keystore.jks" >> android/key.properties
-            echo "Keystore decoded from secret."
           else
-            keytool -genkey -v -keystore android/app/upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload -dname "CN=CI, OU=CI, O=CI, L=CI, S=CI, C=US" -storepass tafseeridpass -keypass tafseeridpass
+            keytool -genkeypair -alias upload -keypass tafseeridpass -keystore android/app/upload-keystore.jks -storepass tafseeridpass -dname "CN=CI,O=CI,C=US" -validity 10000 -keyalg RSA
             echo "storePassword=tafseeridpass" > android/key.properties
             echo "keyPassword=tafseeridpass" >> android/key.properties
             echo "keyAlias=upload" >> android/key.properties
             echo "storeFile=upload-keystore.jks" >> android/key.properties
-            echo "Generated dummy keystore for CI release build."
           fi
+
+      - name: Write local.properties
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
+          echo "flutter.minSdkVersion=21" >> android/local.properties
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build release APK
-        run: |
-          flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee apk.log
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "::error::Build APK failed!"
-            cat apk.log | tail -n 100
-            exit 1
-          fi
+        run: flutter build apk --release --verbose
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -80,7 +76,7 @@ jobs:
 
       - name: Build release AAB (Google Play)
         continue-on-error: true
-        run: flutter build appbundle --release --android-skip-build-dependency-validation
+        run: flutter build appbundle --release --verbose
 
       - name: Upload AAB artifact (Google Play)
         continue-on-error: true

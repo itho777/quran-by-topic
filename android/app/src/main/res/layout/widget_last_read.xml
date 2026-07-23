@@ -64,14 +64,14 @@
         android:textSize="10sp" />
 
     <TextView
-        android:id="@+id/widget_last_read_root"
+        android:id="@+id/btn_continue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:background="@drawable/widget_btn_gold"
         android:gravity="center"
         android:padding="10dp"
-        android:text="Lanjutkan ▶"
+        android:text="Lanjutkan &#9654;"
         android:textColor="#000000"
         android:textSize="14sp"
         android:textStyle="bold" />

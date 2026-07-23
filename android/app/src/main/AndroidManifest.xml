@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="id.tafseer.app">
     <!-- Internet access -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Storage permissions for audio/SVG downloads (Android < 10) -->
@@ -24,7 +25,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
-            android:name=".MainActivity"
+            android:name="id.tafseer.app.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -78,7 +79,7 @@
 
         <!-- 1. Ayah of the Day Widget Provider -->
         <receiver
-            android:name=".AyahWidgetProvider"
+            android:name="id.tafseer.app.AyahWidgetProvider"
             android:exported="true"
             android:label="Ayah Hari Ini (Tafseer.id)">
             <intent-filter>
@@ -91,7 +92,7 @@
 
         <!-- 2. Prayer Times C1 (Circular + List) Provider -->
         <receiver
-            android:name=".PrayerC1WidgetProvider"
+            android:name="id.tafseer.app.PrayerC1WidgetProvider"
             android:exported="true"
             android:label="Waktu Sholat — Ring &amp; List (Tafseer.id)">
             <intent-filter>
@@ -104,7 +105,7 @@
 
         <!-- 3. Prayer Times C2 (Gold Glow Cards) Provider -->
         <receiver
-            android:name=".PrayerC2WidgetProvider"
+            android:name="id.tafseer.app.PrayerC2WidgetProvider"
             android:exported="true"
             android:label="Waktu Sholat — Kartu Emas (Tafseer.id)">
             <intent-filter>
@@ -117,7 +118,7 @@
 
         <!-- 4. Prayer Times C4 (Frosted Glass Cards) Provider -->
         <receiver
-            android:name=".PrayerC4WidgetProvider"
+            android:name="id.tafseer.app.PrayerC4WidgetProvider"
             android:exported="true"
             android:label="Waktu Sholat — Frosted Glass (Tafseer.id)">
             <intent-filter>
@@ -130,7 +131,7 @@
 
         <!-- 5. Last Read & Quick Bookmark Provider -->
         <receiver
-            android:name=".LastReadWidgetProvider"
+            android:name="id.tafseer.app.LastReadWidgetProvider"
             android:exported="true"
             android:label="Terakhir Dibaca (Tafseer.id)">
             <intent-filter>

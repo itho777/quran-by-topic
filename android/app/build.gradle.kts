@@ -3,6 +3,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -44,7 +45,9 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
+            val storeFilePath = keystoreProperties.getProperty("storeFile")
+            val hasValidStoreFile = storeFilePath != null && file(storeFilePath).exists()
+            signingConfig = if (keystorePropertiesFile.exists() && hasValidStoreFile) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")

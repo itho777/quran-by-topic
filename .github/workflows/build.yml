@@ -60,7 +60,13 @@ jobs:
         run: flutter pub get
 
       - name: Build release APK
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        run: |
+          flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee apk.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "::error::Build APK failed!"
+            cat apk.log | tail -n 100
+            exit 1
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

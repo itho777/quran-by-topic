@@ -20,11 +20,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -58,15 +58,7 @@ jobs:
         run: flutter pub get
 
       - name: Build release APK
-        run: |
-          set -o pipefail
-          flutter build apk --release 2>&1 | tee /tmp/flutter_build.log || {
-            echo "## Android Build Error" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -E '(error:|FAILURE|Exception|at |Caused by:|BUILD FAILED|aapt2|Could not|Unable)' /tmp/flutter_build.log | tail -60 >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit 1
-          }
+        run: flutter build apk --release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

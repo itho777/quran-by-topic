@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tafseer-id-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/**/*.apk
           retention-days: 30
 
       - name: Build release AAB (Google Play)
@@ -75,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tafseer-id-release-aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: build/app/outputs/**/*.aab
           retention-days: 30
 
   build-ios:

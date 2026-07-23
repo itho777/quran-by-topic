@@ -50,6 +50,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="io.supabase.tafseerid" android:host="login-callback" />
             </intent-filter>
+            <!-- Deep linking for Widget clicks (tafseer://verse/...) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tafseer" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -67,6 +74,71 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
+        </receiver>
+
+        <!-- 1. Ayah of the Day Widget Provider -->
+        <receiver
+            android:name=".AyahWidgetProvider"
+            android:exported="true"
+            android:label="Ayah Hari Ini (Tafseer.id)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_ayah_info" />
+        </receiver>
+
+        <!-- 2. Prayer Times C1 (Circular + List) Provider -->
+        <receiver
+            android:name=".PrayerC1WidgetProvider"
+            android:exported="true"
+            android:label="Waktu Sholat — Ring &amp; List (Tafseer.id)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_prayer_c1_info" />
+        </receiver>
+
+        <!-- 3. Prayer Times C2 (Gold Glow Cards) Provider -->
+        <receiver
+            android:name=".PrayerC2WidgetProvider"
+            android:exported="true"
+            android:label="Waktu Sholat — Kartu Emas (Tafseer.id)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_prayer_c2_info" />
+        </receiver>
+
+        <!-- 4. Prayer Times C4 (Frosted Glass Cards) Provider -->
+        <receiver
+            android:name=".PrayerC4WidgetProvider"
+            android:exported="true"
+            android:label="Waktu Sholat — Frosted Glass (Tafseer.id)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_prayer_c4_info" />
+        </receiver>
+
+        <!-- 5. Last Read & Quick Bookmark Provider -->
+        <receiver
+            android:name=".LastReadWidgetProvider"
+            android:exported="true"
+            android:label="Terakhir Dibaca (Tafseer.id)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_last_read_info" />
         </receiver>
     </application>
     <!-- Required to query activities that can process text, see:

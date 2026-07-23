@@ -243,7 +243,7 @@ class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
     ref.listen<AsyncValue<void>>(
       _routerRefreshStream,
-      (_, _) => notifyListeners(),
+      (_, __) => notifyListeners(),
     );
   }
 }

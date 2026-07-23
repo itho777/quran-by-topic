@@ -1029,7 +1029,7 @@ class _AnimatedEqualizerState extends State<_AnimatedEqualizer>
       children: List.generate(3, (i) {
         return AnimatedBuilder(
           animation: _ctrls[i],
-          builder: (_, _) => Container(
+          builder: (_, child) => Container(
             width: 3,
             height: 6 + _ctrls[i].value * 10,
             margin: const EdgeInsets.symmetric(horizontal: 1),

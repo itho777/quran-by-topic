@@ -49,7 +49,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: SafeArea(
                   child: profileAsync.when(
                     loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-                    error: (_, _) => Center(child: Icon(Icons.person, color: AppTheme.outline, size: 48)),
+                    error: (err, stack) => Center(child: Icon(Icons.person, color: AppTheme.outline, size: 48)),
                     data: (profile) => Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -325,7 +325,7 @@ class ProfileScreen extends ConsumerWidget {
                 Text(title, style: TextStyle(color: AppTheme.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
                 Text(subtitle, style: TextStyle(color: AppTheme.outline, fontSize: 12)),
               ])),
-              ?trailing,
+              if (trailing != null) trailing,
             ]),
           ),
         ),

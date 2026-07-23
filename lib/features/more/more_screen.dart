@@ -775,7 +775,7 @@ class _OfflineIndexTileState extends State<_OfflineIndexTile> {
   Future<void> _download() async {
     setState(() => _error = null);
     final err = await StaticIndexService.instance.downloadFromGitHub(
-      onProgress: (_, _) { if (mounted) setState(() {}); },
+      onProgress: (p, t) { if (mounted) setState(() {}); },
     );
     if (mounted) {
       setState(() => _error = err);

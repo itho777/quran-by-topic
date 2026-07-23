@@ -118,7 +118,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 const SizedBox(height: 40),
                 profileAsync.when(
                   loading: () => const CircularProgressIndicator(),
-                  error: (_, _) => const SizedBox.shrink(),
+                  error: (err, stack) => const SizedBox.shrink(),
                   data: (profile) => Column(
                     children: [
                       // Signed-in card
@@ -287,7 +287,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               // ── Form fields ─────────────────────────────────────────────
               AnimatedBuilder(
                 animation: _tabController,
-                builder: (_, _) => Column(
+                builder: (_, child) => Column(
                   children: [
                     if (_tabController.index == 1) ...[
                       _buildField(
@@ -354,7 +354,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : AnimatedBuilder(
                           animation: _tabController,
-                          builder: (_, _) => Text(
+                          builder: (_, child) => Text(
                             _tabController.index == 0 ? 'Sign In' : 'Create Account',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),

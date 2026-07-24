@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/home_widget_service.dart';
 import 'admin_cms_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -50,6 +51,9 @@ class _AdminCmsScreenState extends ConsumerState<AdminCmsScreen> {
       onSave: (newText) async {
         await adminUpdateSiteConfig(key, newText);
         setState(() => _config[key] = newText);
+        if (key.startsWith('featured_')) {
+          await HomeWidgetService.instance.syncFeaturedAyah();
+        }
       },
     );
     if (saved == true) {

@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:adhan/adhan.dart';
+import '../../features/qibla/qibla_service.dart';
 
 /// Service layer for synchronizing Tafseer.id app state with Home Screen Widgets
 /// (Ayah of the Day, Prayer Times C1/C2/C4, Last Read)
@@ -110,6 +113,151 @@ class HomeWidgetService {
       debugPrint('Synced widget language: $lang');
     } catch (e) {
       debugPrint('Error syncing widget language: $e');
+    }
+  }
+
+  /// Centralized sync of Featured Ayah of the Day to Home Widget
+  Future<void> syncFeaturedAyah({String lang = 'id'}) async {
+    try {
+      final db = Supabase.instance.client;
+      final cfgRes = await db
+          .from('site_config')
+          .select('key, value')
+          .inFilter('key', [
+            'featured_ayah_key',
+            'featured_ayah_note',
+            'featured_rotation_mode'
+          ]);
+
+      String verseKey = '2:255';
+      String rotationMode = 'manual';
+
+      for (final row in List<Map<String, dynamic>>.from(cfgRes)) {
+        final k = row['key'] as String?;
+        if (k == null) continue;
+        final v = (row['value'] as String?) ?? '';
+        if (k == 'featured_ayah_key') verseKey = v;
+        if (k == 'featured_rotation_mode') rotationMode = v;
+      }
+
+      int suraId = 2;
+      int ayahNum = 255;
+
+      if (rotationMode == 'daily_random') {
+        final now = DateTime.now();
+        final seed = now.year * 365 + now.month * 31 + now.day;
+        final verseDbId = (seed % 6236) + 1;
+        final vRes = await db
+            .from('verses')
+            .select('sura_id, ayah_number, verse_key')
+            .eq('id', verseDbId)
+            .maybeSingle();
+        if (vRes != null) {
+          suraId = vRes['sura_id'] as int;
+          ayahNum = vRes['ayah_number'] as int;
+          verseKey = (vRes['verse_key'] as String?) ?? '$suraId:$ayahNum';
+        }
+      } else if (rotationMode == 'daily_playlist') {
+        final playlistRes = await db
+            .from('featured_playlist')
+            .select('verse_key')
+            .order('id');
+        final playlist = List<Map<String, dynamic>>.from(playlistRes);
+        if (playlist.isNotEmpty) {
+          final now = DateTime.now();
+          final daysSinceEpoch = now.difference(DateTime(1970, 1, 1)).inDays;
+          final item = playlist[daysSinceEpoch % playlist.length];
+          verseKey = (item['verse_key'] as String?) ?? '2:255';
+          final parts = verseKey.split(':');
+          suraId = int.tryParse(parts[0]) ?? 2;
+          ayahNum = int.tryParse(parts.length > 1 ? parts[1] : '255') ?? 255;
+        }
+      } else {
+        final parts = verseKey.split(':');
+        suraId = int.tryParse(parts[0]) ?? 2;
+        ayahNum = int.tryParse(parts.length > 1 ? parts[1] : '255') ?? 255;
+      }
+
+      final verseRes = await db
+          .from('verses')
+          .select('text_ar')
+          .eq('sura_id', suraId)
+          .eq('ayah_number', ayahNum)
+          .maybeSingle();
+      final arabic = (verseRes?['text_ar'] as String?) ?? '';
+
+      final verseIdRes = await db
+          .from('verses')
+          .select('id')
+          .eq('sura_id', suraId)
+          .eq('ayah_number', ayahNum)
+          .maybeSingle();
+
+      String translation = '';
+      if (verseIdRes != null) {
+        final tid = verseIdRes['id'] as int;
+        final sourceId = lang == 'en' ? 'en.sahih' : 'id.kemenag';
+        final tRes = await db
+            .from('translations')
+            .select('text')
+            .eq('verse_id', tid)
+            .eq('source_id', sourceId)
+            .maybeSingle();
+        translation = (tRes?['text'] as String?) ?? '';
+      }
+
+      final suraRes = await db
+          .from('suras')
+          .select('name_en')
+          .eq('id', suraId)
+          .maybeSingle();
+      final sName = (suraRes?['name_en'] as String?) ?? 'Surah $suraId';
+      final surahRef = '$sName: $ayahNum';
+
+      await updateAyahWidget(
+        arabic: arabic,
+        translation: translation,
+        surahRef: surahRef,
+        surahNo: suraId,
+        ayahNo: ayahNum,
+      );
+      debugPrint('Synced featured ayah widget: $surahRef');
+    } catch (e) {
+      debugPrint('Error syncing featured ayah widget: $e');
+    }
+  }
+
+  /// Centralized sync of Device Location and Prayer Times to Home Widgets
+  Future<void> syncDeviceLocationAndPrayerTimes({
+    String calculationMethod = 'kemenag',
+  }) async {
+    try {
+      final position = await QiblaService.getCurrentPosition();
+      final cityName = await QiblaService.getCityName(position.latitude, position.longitude);
+      final pt = QiblaService.getPrayerTimes(
+        position.latitude,
+        position.longitude,
+        calculationMethod,
+      );
+
+      final formatTime = (DateTime dt) =>
+          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+      await updatePrayerTimesWidget(
+        subuh: formatTime(pt.fajr),
+        dzuhur: formatTime(pt.dhuhr),
+        ashar: formatTime(pt.asr),
+        maghrib: formatTime(pt.maghrib),
+        isya: formatTime(pt.isha),
+        nextPrayerName: pt.nextPrayerName,
+        nextPrayerTime: formatTime(pt.nextPrayer == Prayer.fajr ? pt.fajr : pt.dhuhr),
+        countdown: '${pt.timeUntilNext.inHours}h ${pt.timeUntilNext.inMinutes % 60}m',
+        hijriDate: '14 Muharram 1447H',
+        location: cityName,
+      );
+      debugPrint('Synced device location ($cityName) & prayer times to widget');
+    } catch (e) {
+      debugPrint('Error syncing device location to widget: $e');
     }
   }
 }

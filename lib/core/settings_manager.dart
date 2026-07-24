@@ -258,6 +258,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     await prefs.setString('default_translation_source', defaultSource);
     // Propagate language change to home-screen widgets immediately
     await HomeWidgetService.instance.syncLanguage(lang);
+    await HomeWidgetService.instance.syncFeaturedAyah(lang: lang);
   }
 
   Future<void> setSelectedReciter(String reciter) async {

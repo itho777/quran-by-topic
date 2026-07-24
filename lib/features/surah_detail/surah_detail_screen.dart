@@ -235,6 +235,18 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       _bookmarkedKeys = bookmarkedKeys;
       _loading = false;
     });
+
+    // Save Last Read to sync immediately with Home Widget
+    final initialAyahNum = widget.initialAyah ?? 1;
+    final sName = surahRes != null ? (surahRes['name_en'] as String? ?? 'Surah ${widget.surahId}') : 'Surah ${widget.surahId}';
+    final totalAyahs = versesList.isNotEmpty ? versesList.length : 50;
+    await BookmarksManager.saveLastRead(
+      surahId: widget.surahId,
+      ayahNumber: initialAyahNum,
+      surahName: sName,
+      maxAyahs: totalAyahs,
+    );
+
     await _loadTranslations();
   }
 

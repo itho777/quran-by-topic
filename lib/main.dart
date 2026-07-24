@@ -41,8 +41,8 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
   @override
   void initState() {
     super.initState();
-    // Sync last read to home widget on app startup
-    _syncLastReadOnStartup();
+    // Sync all widgets (Last Read, Featured Ayah, Device Location) on startup
+    _syncWidgetsOnStartup();
 
     // If a session is already active on startup, pull cloud preferences
     final user = Supabase.instance.client.auth.currentUser;
@@ -51,8 +51,13 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
     }
   }
 
-  Future<void> _syncLastReadOnStartup() async {
+  Future<void> _syncWidgetsOnStartup() async {
+    if (kIsWeb) return;
     try {
+      final lang = ref.read(settingsProvider).appLanguage;
+      await HomeWidgetService.instance.syncLanguage(lang);
+      
+      // 1. Sync Last Read
       final lr = await BookmarksManager.getLastRead();
       if (lr != null) {
         final surahId = lr['surahId'] as int? ?? 1;
@@ -65,6 +70,13 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
           progress: (ayahNumber / 50.0).clamp(0.0, 1.0) * 100.0,
         );
       }
+
+      // 2. Sync Featured Ayah
+      await HomeWidgetService.instance.syncFeaturedAyah(lang: lang);
+
+      // 3. Sync Device Location & Prayer Times
+      final method = ref.read(settingsProvider).prayerCalculationMethod;
+      await HomeWidgetService.instance.syncDeviceLocationAndPrayerTimes(calculationMethod: method);
     } catch (_) {}
   }
 

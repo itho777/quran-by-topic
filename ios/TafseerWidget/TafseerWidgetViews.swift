@@ -120,11 +120,12 @@ struct PrayerEntry: TimelineEntry {
     let nextTime: String
     let countdown: String
     let hijriDate: String
+    let location: String
 }
 
 struct PrayerProvider: TimelineProvider {
     func placeholder(in context: Context) -> PrayerEntry {
-        PrayerEntry(date: Date(), subuh: "04:32", dzuhur: "11:58", ashar: "15:12", maghrib: "17:55", isya: "19:15", nextName: "Maghrib", nextTime: "17:55", countdown: "00:47:22", hijriDate: "14 Muharram 1447H")
+        PrayerEntry(date: Date(), subuh: "04:32", dzuhur: "11:58", ashar: "15:12", maghrib: "17:55", isya: "19:15", nextName: "Maghrib", nextTime: "17:55", countdown: "00:47:22", hijriDate: "14 Muharram 1447H", location: "Jakarta")
     }
 
     func getSnapshot(in context: Context, completion: @escaping (PrayerEntry) -> Void) {
@@ -149,7 +150,8 @@ struct PrayerProvider: TimelineProvider {
             nextName: defaults?.string(forKey: "hw_next_prayer_name") ?? "Maghrib",
             nextTime: defaults?.string(forKey: "hw_next_prayer_time") ?? "17:55",
             countdown: defaults?.string(forKey: "hw_countdown") ?? "00:47:22",
-            hijriDate: defaults?.string(forKey: "hw_hijri_date") ?? "14 Muharram 1447H"
+            hijriDate: defaults?.string(forKey: "hw_hijri_date") ?? "14 Muharram 1447H",
+            location: defaults?.string(forKey: "hw_location") ?? "Jakarta"
         )
     }
 }
@@ -160,10 +162,15 @@ struct PrayerC1View: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Text(entry.hijriDate)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundColor(colorGold)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack {
+                Text(entry.hijriDate)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(colorGold)
+                Spacer()
+                Text("📍 \(entry.location)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.gray)
+            }
 
             HStack(spacing: 12) {
                 // Circular Ring Left
@@ -247,11 +254,11 @@ struct PrayerC2View: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("14 Muharram 1447H")
+                Text(entry.hijriDate)
                     .font(.system(size: 10))
                     .foregroundColor(colorGold)
                 Spacer()
-                Text("📍 Jakarta")
+                Text("📍 \(entry.location)")
                     .font(.system(size: 10))
                     .foregroundColor(.gray)
             }

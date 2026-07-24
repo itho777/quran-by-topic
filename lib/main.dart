@@ -41,8 +41,10 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
   @override
   void initState() {
     super.initState();
-    // Sync all widgets (Last Read, Featured Ayah, Device Location) on startup
-    _syncWidgetsOnStartup();
+    // Sync all widgets (Last Read, Featured Ayah, Device Location) after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncWidgetsOnStartup();
+    });
 
     // If a session is already active on startup, pull cloud preferences
     final user = Supabase.instance.client.auth.currentUser;

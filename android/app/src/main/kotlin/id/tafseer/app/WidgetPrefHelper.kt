@@ -6,11 +6,13 @@ import android.util.Log
 
 object WidgetPrefHelper {
     private const val TAG = "WidgetPrefHelper"
+    private const val HOME_WIDGET_PREFS = "HomeWidgetPreferences"
     private const val APP_GROUP = "group.id.tafseer.app"
     private const val FLUTTER_PREFS = "FlutterSharedPreferences"
 
     private fun getPrefsList(context: Context): List<SharedPreferences> {
         return listOf(
+            context.getSharedPreferences(HOME_WIDGET_PREFS, Context.MODE_PRIVATE),
             context.getSharedPreferences(APP_GROUP, Context.MODE_PRIVATE),
             context.getSharedPreferences(FLUTTER_PREFS, Context.MODE_PRIVATE)
         )
@@ -65,6 +67,11 @@ object WidgetPrefHelper {
                 try {
                     val raw = prefs.all[k]
                     if (raw != null) {
+                        if (raw is Long && prefs.getBoolean("home_widget.double.$k", false)) {
+                            val dVal = java.lang.Double.longBitsToDouble(raw)
+                            Log.d(TAG, "getDouble '$k' = $dVal (bits)")
+                            return dVal
+                        }
                         val parsed = raw.toString().toDoubleOrNull()
                         if (parsed != null) {
                             Log.d(TAG, "getDouble '$k' = $parsed")

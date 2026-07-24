@@ -144,7 +144,7 @@ class StaticIndexService extends ChangeNotifier {
 
   // ─── Download from GitHub with progress ──────────────────────────────────
 
-  /// Downloads the latest search index from GitHub raw URL and stores it locally.
+  /// Downloads the latest search index from GitHub raw URL (with Supabase fallback) and stores it locally.
   /// Calls [onProgress] with (received, total) bytes. Returns null on success,
   /// or an error message on failure.
   Future<String?> downloadFromGitHub({
@@ -165,13 +165,30 @@ class StaticIndexService extends ChangeNotifier {
         return 'Cannot access local storage';
       }
 
-      final request = http.Request('GET', Uri.parse(_githubIndexUrl));
-      final response = await http.Client().send(request).timeout(const Duration(seconds: 300));
+      // Try GitHub primary URL first, fall back to Supabase Storage if GitHub returns error
+      final urlsToTry = [_githubIndexUrl, _supabaseIndexUrl];
+      http.StreamedResponse? response;
+      String? lastError;
 
-      if (response.statusCode != 200) {
+      for (final url in urlsToTry) {
+        try {
+          final request = http.Request('GET', Uri.parse(url));
+          final res = await http.Client().send(request).timeout(const Duration(seconds: 300));
+          if (res.statusCode == 200) {
+            response = res;
+            break;
+          } else {
+            lastError = 'HTTP ${res.statusCode} ($url)';
+          }
+        } catch (e) {
+          lastError = e.toString();
+        }
+      }
+
+      if (response == null) {
         _isDownloading = false;
         notifyListeners();
-        return 'HTTP ${response.statusCode}';
+        return lastError ?? 'Failed to download index data';
       }
 
       _totalBytes = response.contentLength ?? 0;

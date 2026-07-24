@@ -57,7 +57,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // ── Main app shell (with bottom nav) ──────────────────────────────────
+      // ── Widget deeplink: tafseer://verse/:surahNo/:ayahNo ─────────────────
+      GoRoute(
+        path: '/verse/:surahNo/:ayahNo',
+        redirect: (context, state) {
+          final surahNo = state.pathParameters['surahNo'] ?? '1';
+          final ayahNo = state.pathParameters['ayahNo'] ?? '1';
+          return '/surahs/$surahNo/ayahs/$ayahNo';
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) => ShellScaffold(child: child),
         routes: [

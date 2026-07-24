@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:home_widget/home_widget.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'core/settings_manager.dart';
+import 'core/widgets/home_widget_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_web_plugins/url_strategy.dart';
 
@@ -15,6 +17,11 @@ Future<void> main() async {
     url: 'https://zgeygoclduqotqveperx.supabase.co',
     publishableKey: 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik',
   );
+
+  // Initialize home_widget with correct app group ID (iOS AppGroup / Android SharedPrefs)
+  if (!kIsWeb) {
+    await HomeWidget.setAppGroupId(HomeWidgetService.appGroupId);
+  }
 
   // Use path-based URLs on web (no #) so Supabase OAuth token fragment
   // doesn't collide with go_router's hash routing.

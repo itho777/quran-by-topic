@@ -21,17 +21,16 @@ class PrayerC1WidgetProvider : AppWidgetProvider() {
             val lang = WidgetStrings.resolveLanguage(prefs)
             val names = WidgetStrings.prayerNames(lang)
 
-            val nextName = getSafeString(prefs, "flutter.hw_next_prayer_name", names[3])
-            val nextTime = getSafeString(prefs, "flutter.hw_next_prayer_time", "17:55")
-            val countdown = getSafeString(prefs, "flutter.hw_countdown", "00:47:22")
-            val hijriDate = getSafeString(prefs, "flutter.hw_hijri_date",
-                if (lang == "en") "14 Muharram 1447H" else "14 Muharram 1447H")
+            val hijriDate = getSafeString(prefs, "flutter.hw_hijri_date", "14 Muharram 1447H")
 
             val p1 = getSafeString(prefs, "flutter.hw_prayer_subuh", "04:32")
             val p2 = getSafeString(prefs, "flutter.hw_prayer_dzuhur", "11:58")
             val p3 = getSafeString(prefs, "flutter.hw_prayer_ashar", "15:12")
             val p4 = getSafeString(prefs, "flutter.hw_prayer_maghrib", "17:55")
             val p5 = getSafeString(prefs, "flutter.hw_prayer_isya", "19:15")
+
+            // Dynamic next prayer info
+            val info = PrayerHelper.calculateNextPrayer(p1, p2, p3, p4, p5, lang)
 
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -40,14 +39,17 @@ class PrayerC1WidgetProvider : AppWidgetProvider() {
                 PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             }
 
+            val rows = listOf(R.id.row_p1, R.id.row_p2, R.id.row_p3, R.id.row_p4, R.id.row_p5)
+            val dots = listOf(R.id.dot_p1, R.id.dot_p2, R.id.dot_p3, R.id.dot_p4, R.id.dot_p5)
+
             for (appWidgetId in appWidgetIds) {
                 val views = RemoteViews(context.packageName, R.layout.widget_prayer_c1)
                 views.setTextViewText(R.id.tv_hijri_date, hijriDate)
-                views.setTextViewText(R.id.tv_next_prayer_name, nextName)
-                views.setTextViewText(R.id.tv_next_prayer_time, nextTime)
-                views.setTextViewText(R.id.tv_countdown, countdown)
+                views.setTextViewText(R.id.tv_next_prayer_name, info.nextName)
+                views.setTextViewText(R.id.tv_next_prayer_time, info.nextTime)
+                views.setTextViewText(R.id.tv_countdown, info.countdownText)
 
-                // Language-aware prayer name labels
+                // Prayer names & times
                 views.setTextViewText(R.id.tv_p1_name, names[0])
                 views.setTextViewText(R.id.tv_p1_time, p1)
                 views.setTextViewText(R.id.tv_p2_name, names[1])
@@ -58,6 +60,16 @@ class PrayerC1WidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.tv_p4_time, p4)
                 views.setTextViewText(R.id.tv_p5_name, names[4])
                 views.setTextViewText(R.id.tv_p5_time, p5)
+
+                // Highlight active prayer row
+                for (i in 0..4) {
+                    val isCurrent = (i == info.nextIndex)
+                    val bgDrawable = if (isCurrent) R.drawable.widget_card_active_emerald else 0
+                    val dotColor = if (isCurrent) 0xFF10B981.toInt() else 0xFFD4A843.toInt()
+
+                    views.setInt(rows[i], "setBackgroundResource", bgDrawable)
+                    views.setTextColor(dots[i], dotColor)
+                }
 
                 if (pendingIntent != null) {
                     views.setOnClickPendingIntent(R.id.widget_prayer_c1_root, pendingIntent)

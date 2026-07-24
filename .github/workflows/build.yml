@@ -64,10 +64,14 @@ jobs:
         id: build_apk
         run: flutter build apk --release 2>&1 | tee /tmp/flutter_build.log; exit ${PIPESTATUS[0]}
 
+      - name: Build release AAB (App Bundle)
+        id: build_aab
+        run: flutter build appbundle --release 2>&1 | tee -a /tmp/flutter_build.log; exit ${PIPESTATUS[0]}
+
       - name: Dump build log on failure
-        if: failure() && steps.build_apk.outcome == 'failure'
+        if: failure()
         run: |
-          echo "## ❌ Flutter Build APK Error" >> $GITHUB_STEP_SUMMARY
+          echo "## ❌ Flutter Build Error" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           grep -E -A3 "(error:|FAILURE|Exception|Caused by|BUILD FAILED|What went wrong|> Task|aapt2 error|Could not|linker|undefined)" /tmp/flutter_build.log | tail -120 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -85,24 +89,31 @@ jobs:
           path: /tmp/flutter_build.log
           retention-days: 7
 
-      - name: Show APK path
-        if: steps.build_apk.outcome == 'success'
-        run: ls -lh build/app/outputs/flutter-apk/ || true
-
-      - name: Verify APK exists
+      - name: Verify APK & AAB exist
         run: |
           if [ ! -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
             echo "ERROR: APK not found at build/app/outputs/flutter-apk/app-release.apk"
-            find build/ -name "*.apk" 2>/dev/null || echo "No APKs found anywhere in build/"
+            exit 1
+          fi
+          if [ ! -f "build/app/outputs/bundle/release/app-release.aab" ]; then
+            echo "ERROR: AAB not found at build/app/outputs/bundle/release/app-release.aab"
             exit 1
           fi
           echo "APK found: $(du -sh build/app/outputs/flutter-apk/app-release.apk)"
+          echo "AAB found: $(du -sh build/app/outputs/bundle/release/app-release.aab)"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: tafseer-id-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tafseer-id-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
   build-ios:

@@ -29,7 +29,7 @@ android {
 
     defaultConfig {
         applicationId = "id.tafseer.app"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = 80
         versionName = "3.1.0-beta.2"

@@ -907,6 +907,64 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
+  /// Called from the murajaah listener in build() whenever the playing verse changes.
+  /// Navigates the PageView to the correct mushaf page if needed, highlights the
+  /// verse, and scrolls the study panel list to bring it into view.
+  Future<void> _handleMurajaahVerseChange(String verseKey, int globalVerseId) async {
+    if (!mounted) return;
+
+    // Look up this verse's page in the current page's verse list first (fast path).
+    final isOnCurrentPage = _pageVerses.any((v) => v['verse_key'] == verseKey);
+
+    if (isOnCurrentPage) {
+      // Highlight + scroll — the verse is already on screen.
+      if (mounted) {
+        setState(() {
+          _selectedVerseId = globalVerseId;
+          _selectedVerseKey = verseKey;
+        });
+      }
+      _scrollToActiveVerse(globalVerseId, alignment: 0.0);
+      return;
+    }
+
+    // The verse is on a different page: look up the page number from Supabase.
+    try {
+      final res = await Supabase.instance.client
+          .from('verses')
+          .select('page_number')
+          .eq('verse_key', verseKey)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (res != null && res['page_number'] != null) {
+        final targetPage = (res['page_number'] as num).toInt();
+
+        setState(() {
+          _currentPage = targetPage;
+          _selectedVerseId = globalVerseId;
+          _selectedVerseKey = verseKey;
+        });
+
+        // Jump PageView to the new page.
+        _pageController.animateToPage(
+          targetPage - 1,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+
+        // Load the page's verse data, then scroll.
+        await _loadPageData(targetPage);
+
+        if (!mounted) return;
+        _scrollToActiveVerse(globalVerseId, alignment: 0.0);
+      }
+    } catch (e) {
+      debugPrint('_handleMurajaahVerseChange error: $e');
+    }
+  }
+
   void _scrollToActiveVerse(int vId, {double alignment = 0.0}) {
 
     // Note: study panel open/close is controlled manually by user only.
@@ -2190,6 +2248,18 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   @override
 
   Widget build(BuildContext context) {
+
+    // Listen to murajaah state changes: navigate to the correct mushaf page
+    // and scroll the study panel to show the newly active verse.
+    ref.listen<MurajaahState>(murajaahProvider, (previous, next) {
+      if (!next.sessionActive || !next.isPlaying) return;
+      final verse = next.currentVerse;
+      if (verse == null) return;
+      // Only act if the verse actually changed
+      if (previous?.currentVerse?.verseKey == verse.verseKey) return;
+
+      _handleMurajaahVerseChange(verse.verseKey, verse.globalId);
+    });
 
 
     final mediaQuery = MediaQuery.of(context);

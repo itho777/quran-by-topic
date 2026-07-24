@@ -734,6 +734,21 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     context.go('/surahs/$surahId');
   }
 
+  // ── Scroll to ayah in list ─────────────────────────────────────────────
+  void _scrollToAyah(int ayahNumber) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final key = _ayahKeys[ayahNumber];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+          alignment: 0.2,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -742,6 +757,19 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       _selectedSource = settings.defaultTranslationSource;
       Future.microtask(() => _loadTranslations());
     }
+
+    // Listen to murajaah state changes and auto-scroll to the active verse
+    // when this surah is being played via the Murajaah module.
+    ref.listen<MurajaahState>(murajaahProvider, (previous, next) {
+      if (!next.sessionActive || !next.isPlaying) return;
+      final verse = next.currentVerse;
+      if (verse == null) return;
+      // Only act if the currently playing verse belongs to THIS surah
+      if (verse.surahId != widget.surahId) return;
+      // Avoid re-scrolling if the verse hasn't changed
+      if (previous?.currentVerse?.verseKey == verse.verseKey) return;
+      _scrollToAyah(verse.ayahNumber);
+    });
 
     if (_loading) {
       return Scaffold(

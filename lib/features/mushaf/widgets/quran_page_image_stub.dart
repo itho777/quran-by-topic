@@ -184,6 +184,7 @@ Widget buildQuranPageImage(
   int? playingVerseId,
   bool fullWidth = false,
   double? viewportWidth,
+  double panelHeight = 0.0,
 }) {
   // In fullWidth mode we size the widget to the SVG's true aspect ratio so that
   // Flutter's InteractiveViewer can pan the entire page natively — no gesture

@@ -44,16 +44,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       // GoRouter may receive the full URI string (not just path) when Android
       // launches the app via a custom-scheme intent (tafseer://...).
       final location = state.uri.toString();
-      if (location.startsWith('tafseer://verse/')) {
+      if (location.startsWith('tafseer://')) {
         final uri = Uri.tryParse(location);
         if (uri != null) {
-          final segments = uri.pathSegments; // ['verse', '18', '10']
-          // pathSegments for tafseer://verse/18/10 → ['verse', '18', '10']
-          if (segments.length >= 3) {
-            return '/surahs/${segments[1]}/ayahs/${segments[2]}';
-          } else if (segments.length == 2) {
-            // tafseer://verse/18 — no ayah, go to surah
-            return '/surahs/${segments[1]}';
+          // For tafseer://verse/18/10: host is 'verse', path is '/18/10'
+          // pathSegments are ['18', '10']. Filter out any empty or 'verse' segment.
+          final parts = uri.pathSegments.where((s) => s.isNotEmpty && s != 'verse').toList();
+          if (parts.length >= 2) {
+            return '/surahs/${parts[0]}/ayahs/${parts[1]}';
+          } else if (parts.length == 1) {
+            return '/surahs/${parts[0]}';
           }
         }
       }

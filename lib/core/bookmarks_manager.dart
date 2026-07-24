@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'widgets/home_widget_service.dart';
 
 class BookmarksManager {
   static const String _key = 'bookmarks';
@@ -63,6 +64,7 @@ class BookmarksManager {
     required int surahId,
     required int ayahNumber,
     required String surahName,
+    int maxAyahs = 50,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final data = {
@@ -72,6 +74,17 @@ class BookmarksManager {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
     await prefs.setString(_lastReadKey, json.encode(data));
+
+    // Propagate live update to Home Screen Widget
+    try {
+      final double progress = maxAyahs > 0 ? ((ayahNumber / maxAyahs) * 100.0).clamp(0.0, 100.0) : 0.0;
+      await HomeWidgetService.instance.updateLastReadWidget(
+        surahName: surahName,
+        surahNo: surahId,
+        ayahNo: ayahNumber,
+        progress: progress,
+      );
+    } catch (_) {}
   }
 
   // Get Last Read

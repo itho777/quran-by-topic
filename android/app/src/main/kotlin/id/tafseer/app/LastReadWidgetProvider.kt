@@ -64,13 +64,16 @@ class LastReadWidgetProvider : AppWidgetProvider() {
 
     private fun getSafeLong(prefs: SharedPreferences, key: String, default: Long): Long {
         return try {
-            prefs.getLong(key, default)
-        } catch (e: Exception) {
-            try { prefs.getInt(key, default.toInt()).toLong() }
-            catch (e2: Exception) {
-                try { prefs.getString(key, null)?.toLongOrNull() ?: default }
-                catch (e3: Exception) { default }
+            val raw = prefs.all[key]
+            when (raw) {
+                is Long -> raw
+                is Int -> raw.toLong()
+                is Number -> raw.toLong()
+                is String -> raw.toLongOrNull() ?: default
+                else -> default
             }
+        } catch (e: Exception) {
+            default
         }
     }
 

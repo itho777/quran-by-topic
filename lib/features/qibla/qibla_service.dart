@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:adhan/adhan.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -88,6 +90,35 @@ class QiblaService {
         timeLimit: Duration(seconds: 15),
       ),
     );
+  }
+
+  /// Reverse geocode city/district name from latitude and longitude.
+  static Future<String> getCityName(double lat, double lng) async {
+    try {
+      final uri = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=10');
+      final req = await http.get(uri, headers: {'User-Agent': 'TafseerApp/1.0'});
+      if (req.statusCode == 200) {
+        final data = req.body;
+        // Parse city/town/county/state
+        if (data.contains('"city":')) {
+          final match = RegExp(r'"city":\s*"([^"]+)"').firstMatch(data);
+          if (match != null) return match.group(1)!;
+        }
+        if (data.contains('"town":')) {
+          final match = RegExp(r'"town":\s*"([^"]+)"').firstMatch(data);
+          if (match != null) return match.group(1)!;
+        }
+        if (data.contains('"county":')) {
+          final match = RegExp(r'"county":\s*"([^"]+)"').firstMatch(data);
+          if (match != null) return match.group(1)!;
+        }
+        if (data.contains('"state":')) {
+          final match = RegExp(r'"state":\s*"([^"]+)"').firstMatch(data);
+          if (match != null) return match.group(1)!;
+        }
+      }
+    } catch (_) {}
+    return 'Jakarta';
   }
 
   // ── Prayer Times ─────────────────────────────────────────────────────────────

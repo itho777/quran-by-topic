@@ -60,6 +60,7 @@ final prayerTimesProvider = FutureProvider<PrayerTimesResult>((ref) async {
   try {
     final formatTime = (DateTime dt) =>
         '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    final cityName = await QiblaService.getCityName(position.latitude, position.longitude);
     HomeWidgetService.instance.updatePrayerTimesWidget(
       subuh: formatTime(pt.fajr),
       dzuhur: formatTime(pt.dhuhr),
@@ -70,7 +71,7 @@ final prayerTimesProvider = FutureProvider<PrayerTimesResult>((ref) async {
       nextPrayerTime: formatTime(pt.nextPrayer == Prayer.fajr ? pt.fajr : pt.dhuhr),
       countdown: '${pt.timeUntilNext.inHours}h ${pt.timeUntilNext.inMinutes % 60}m',
       hijriDate: '14 Muharram 1447H',
-      location: 'Jakarta',
+      location: cityName,
     );
   } catch (_) {}
 

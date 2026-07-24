@@ -184,9 +184,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       // Sync with Home Screen Widget
       try {
+        final suraRes = await db
+            .from('suras')
+            .select('name_en')
+            .eq('id', suraId)
+            .maybeSingle();
+        final sName = (suraRes?['name_en'] as String?) ?? 'Surah $suraId';
+
         final currentLang = ref.read(settingsProvider).appLanguage;
         final translation = currentLang == 'en' ? translationEn : translationId;
-        final surahRef = 'Surah $suraId: $ayahNum';
+        final surahRef = '$sName: $ayahNum';
         await HomeWidgetService.instance.updateAyahWidget(
           arabic: arabic,
           translation: translation,

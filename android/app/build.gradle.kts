@@ -19,7 +19,7 @@ if (hasReleaseKeystore) {
 
 android {
     namespace = "id.tafseer.app"
-    compileSdk = 36
+    compileSdk = 35
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
@@ -72,6 +72,13 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.core:core:1.15.0")
+        force("androidx.core:core-ktx:1.15.0")
+    }
 }
 
 dependencies {

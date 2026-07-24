@@ -22,11 +22,14 @@
             android:textSize="10sp"
             android:textStyle="bold" />
 
-        <ImageView
+        <TextView
             android:id="@+id/btn_refresh"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/stat_notify_sync_noanim" />
+            android:gravity="center"
+            android:text="&#8635;"
+            android:textColor="@color/widget_text_muted"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <View
@@ -52,7 +55,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:layout_weight="1"
         android:maxLines="2"
         android:textColor="#C8B97A"
         android:textSize="12sp"

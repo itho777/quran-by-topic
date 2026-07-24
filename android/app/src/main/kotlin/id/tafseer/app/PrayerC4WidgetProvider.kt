@@ -45,6 +45,7 @@ class PrayerC4WidgetProvider : AppWidgetProvider() {
 
             for (appWidgetId in appWidgetIds) {
                 val views = RemoteViews(context.packageName, R.layout.widget_prayer_c4)
+                views.setTextViewText(R.id.tv_header, WidgetStrings.prayerHeader(lang))
                 views.setTextViewText(R.id.tv_countdown_badge, countdown)
                 views.setTextViewText(R.id.tv_footer_label, footerLabel)
 

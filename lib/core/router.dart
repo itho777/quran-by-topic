@@ -40,6 +40,24 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refreshListenable,
     redirect: (context, state) {
+      // ── Widget deeplink: intercept tafseer://verse/:surahNo/:ayahNo ────────
+      // GoRouter may receive the full URI string (not just path) when Android
+      // launches the app via a custom-scheme intent (tafseer://...).
+      final location = state.uri.toString();
+      if (location.startsWith('tafseer://verse/')) {
+        final uri = Uri.tryParse(location);
+        if (uri != null) {
+          final segments = uri.pathSegments; // ['verse', '18', '10']
+          // pathSegments for tafseer://verse/18/10 → ['verse', '18', '10']
+          if (segments.length >= 3) {
+            return '/surahs/${segments[1]}/ayahs/${segments[2]}';
+          } else if (segments.length == 2) {
+            // tafseer://verse/18 — no ayah, go to surah
+            return '/surahs/${segments[1]}';
+          }
+        }
+      }
+
       final user = Supabase.instance.client.auth.currentUser;
       final path = state.uri.path;
 

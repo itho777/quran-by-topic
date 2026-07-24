@@ -57,14 +57,26 @@ jobs:
           echo "flutter.minSdkVersion=21" >> android/local.properties
 
       - name: Build release APK
+        id: build_apk
+        run: flutter build apk --release 2>&1 | tee /tmp/flutter_build.log; exit ${PIPESTATUS[0]}
+
+      - name: Dump build log on failure
+        if: failure() && steps.build_apk.outcome == 'failure'
         run: |
-          set -eo pipefail
-          flutter build apk --release 2>&1 | tee /tmp/flutter_build.log
-          echo "# ✅ APK Build Output (last 30 lines)" >> $GITHUB_STEP_SUMMARY
+          echo "## ❌ Flutter Build APK Error" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -30 /tmp/flutter_build.log >> $GITHUB_STEP_SUMMARY
+          grep -E -A3 "(error:|FAILURE|Exception|Caused by|BUILD FAILED|What went wrong|> Task|aapt2 error|Could not|linker|undefined)" /tmp/flutter_build.log | tail -120 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ls -lh build/app/outputs/flutter-apk/ || true
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Last 50 lines of raw log:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -50 /tmp/flutter_build.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: Show APK path
+        if: steps.build_apk.outcome == 'success'
+        run: ls -lh build/app/outputs/flutter-apk/ || true
 
       - name: Verify APK exists
         run: |

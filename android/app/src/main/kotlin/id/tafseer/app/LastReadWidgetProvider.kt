@@ -19,11 +19,17 @@ class LastReadWidgetProvider : AppWidgetProvider() {
     ) {
         try {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val lang = WidgetStrings.resolveLanguage(prefs)
 
             val surahName = getSafeString(prefs, "flutter.hw_last_surah_name", "Al-Kahf")
             val surahNo = getSafeLong(prefs, "flutter.hw_last_surah_no", 18L)
             val ayahNo = getSafeLong(prefs, "flutter.hw_last_ayah_no", 10L)
             val progressDouble = getSafeDouble(prefs, "flutter.hw_last_progress", 37.0)
+
+            // Language-aware labels
+            val lastReadLabel = WidgetStrings.lastReadLabel(lang)
+            val continueBtn = WidgetStrings.continueBtn(lang)
+            val ayahLabel = if (lang == "en") "Verse $ayahNo" else "Ayat $ayahNo"
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse("tafseer://verse/$surahNo/$ayahNo")
@@ -31,20 +37,20 @@ class LastReadWidgetProvider : AppWidgetProvider() {
             }
 
             val pendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                intent,
+                context, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
             for (appWidgetId in appWidgetIds) {
                 val views = RemoteViews(context.packageName, R.layout.widget_last_read)
+                views.setTextViewText(R.id.tv_last_label, lastReadLabel)
                 views.setTextViewText(R.id.tv_surah_name, surahName)
-                views.setTextViewText(R.id.tv_ayah_number, "Ayat $ayahNo")
+                views.setTextViewText(R.id.tv_ayah_number, ayahLabel)
                 views.setTextViewText(R.id.tv_progress_text, "${progressDouble.toInt()}%")
+                views.setTextViewText(R.id.btn_continue, continueBtn)
                 views.setProgressBar(R.id.pb_progress, 100, progressDouble.toInt(), false)
                 views.setOnClickPendingIntent(R.id.widget_last_read_root, pendingIntent)
-
+                views.setOnClickPendingIntent(R.id.btn_continue, pendingIntent)
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             }
         } catch (e: Exception) {
@@ -53,25 +59,17 @@ class LastReadWidgetProvider : AppWidgetProvider() {
     }
 
     private fun getSafeString(prefs: SharedPreferences, key: String, default: String): String {
-        return try {
-            prefs.getString(key, default) ?: default
-        } catch (e: Exception) {
-            default
-        }
+        return try { prefs.getString(key, default) ?: default } catch (e: Exception) { default }
     }
 
     private fun getSafeLong(prefs: SharedPreferences, key: String, default: Long): Long {
         return try {
             prefs.getLong(key, default)
         } catch (e: Exception) {
-            try {
-                prefs.getInt(key, default.toInt()).toLong()
-            } catch (e2: Exception) {
-                try {
-                    prefs.getString(key, null)?.toLongOrNull() ?: default
-                } catch (e3: Exception) {
-                    default
-                }
+            try { prefs.getInt(key, default.toInt()).toLong() }
+            catch (e2: Exception) {
+                try { prefs.getString(key, null)?.toLongOrNull() ?: default }
+                catch (e3: Exception) { default }
             }
         }
     }
@@ -87,8 +85,6 @@ class LastReadWidgetProvider : AppWidgetProvider() {
                 is String -> raw.toDoubleOrNull() ?: default
                 else -> default
             }
-        } catch (e: Exception) {
-            default
-        }
+        } catch (e: Exception) { default }
     }
 }

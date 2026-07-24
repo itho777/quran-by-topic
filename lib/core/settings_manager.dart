@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'widgets/home_widget_service.dart';
 
 class SettingsState {
   final double arabicFontSize;
@@ -217,6 +218,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         customSoundUri: customUri,
         customSoundTitle: customTitle,
       );
+      // Keep widget language in sync with loaded setting
+      HomeWidgetService.instance.syncLanguage(lang);
     } catch (_) {}
   }
 
@@ -253,6 +256,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_language', lang);
     await prefs.setString('default_translation_source', defaultSource);
+    // Propagate language change to home-screen widgets immediately
+    await HomeWidgetService.instance.syncLanguage(lang);
   }
 
   Future<void> setSelectedReciter(String reciter) async {

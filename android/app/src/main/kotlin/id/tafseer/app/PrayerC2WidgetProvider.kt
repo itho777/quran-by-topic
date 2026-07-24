@@ -18,8 +18,10 @@ class PrayerC2WidgetProvider : AppWidgetProvider() {
     ) {
         try {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val lang = WidgetStrings.resolveLanguage(prefs)
+            val names = WidgetStrings.prayerNames(lang)
 
-            val nextName = getSafeString(prefs, "flutter.hw_next_prayer_name", "Maghrib")
+            val nextName = getSafeString(prefs, "flutter.hw_next_prayer_name", names[3])
             val countdown = getSafeString(prefs, "flutter.hw_countdown", "00:47:22")
             val hijriDate = getSafeString(prefs, "flutter.hw_hijri_date", "14 Muharram 1447H")
             val location = getSafeString(prefs, "flutter.hw_location", "Jakarta")
@@ -29,6 +31,12 @@ class PrayerC2WidgetProvider : AppWidgetProvider() {
             val p3 = getSafeString(prefs, "flutter.hw_prayer_ashar", "15:12")
             val p4 = getSafeString(prefs, "flutter.hw_prayer_maghrib", "17:55")
             val p5 = getSafeString(prefs, "flutter.hw_prayer_isya", "19:15")
+
+            // Countdown label: "⏱ 00:47 menuju Maghrib" or "⏱ 00:47 to Maghrib"
+            val countdownLabel = if (lang == "en")
+                "⏱ $countdown to $nextName"
+            else
+                "⏱ $countdown menuju $nextName"
 
             val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -41,23 +49,23 @@ class PrayerC2WidgetProvider : AppWidgetProvider() {
                 val views = RemoteViews(context.packageName, R.layout.widget_prayer_c2)
                 views.setTextViewText(R.id.tv_hijri_date, hijriDate)
                 views.setTextViewText(R.id.tv_location, "📍 $location")
-                views.setTextViewText(R.id.tv_countdown_label, "⏱ $countdown menuju $nextName")
+                views.setTextViewText(R.id.tv_countdown_label, countdownLabel)
 
-                views.setTextViewText(R.id.tv_p1_name, "Subuh")
+                // Language-aware prayer name labels
+                views.setTextViewText(R.id.tv_p1_name, names[0])
                 views.setTextViewText(R.id.tv_p1_time, p1)
-                views.setTextViewText(R.id.tv_p2_name, "Dzuhur")
+                views.setTextViewText(R.id.tv_p2_name, names[1])
                 views.setTextViewText(R.id.tv_p2_time, p2)
-                views.setTextViewText(R.id.tv_p3_name, "Ashar")
+                views.setTextViewText(R.id.tv_p3_name, names[2])
                 views.setTextViewText(R.id.tv_p3_time, p3)
-                views.setTextViewText(R.id.tv_p4_name, "Maghrib")
+                views.setTextViewText(R.id.tv_p4_name, names[3])
                 views.setTextViewText(R.id.tv_p4_time, p4)
-                views.setTextViewText(R.id.tv_p5_name, "Isya")
+                views.setTextViewText(R.id.tv_p5_name, names[4])
                 views.setTextViewText(R.id.tv_p5_time, p5)
 
                 if (pendingIntent != null) {
                     views.setOnClickPendingIntent(R.id.widget_prayer_c2_root, pendingIntent)
                 }
-
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             }
         } catch (e: Exception) {
@@ -66,10 +74,6 @@ class PrayerC2WidgetProvider : AppWidgetProvider() {
     }
 
     private fun getSafeString(prefs: SharedPreferences, key: String, default: String): String {
-        return try {
-            prefs.getString(key, default) ?: default
-        } catch (e: Exception) {
-            default
-        }
+        return try { prefs.getString(key, default) ?: default } catch (e: Exception) { default }
     }
 }

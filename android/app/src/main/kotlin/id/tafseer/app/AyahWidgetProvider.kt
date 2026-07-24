@@ -19,12 +19,15 @@ class AyahWidgetProvider : AppWidgetProvider() {
     ) {
         try {
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+            val lang = WidgetStrings.resolveLanguage(prefs)
 
-            val arabic = getSafeString(prefs, "flutter.hw_ayah_arabic", "وَعَسَىٰ أَن تَكْرَهُوا شَيْئًا وَهُوَ خَيْرٌ لَّكُمْ")
-            val translation = getSafeString(prefs, "flutter.hw_ayah_translation", "Dan boleh jadi kamu membenci sesuatu, padahal ia baik bagimu.")
-            val ref = getSafeString(prefs, "flutter.hw_ayah_surah_ref", "Al-Baqarah: 216")
-            val surahNo = getSafeLong(prefs, "flutter.hw_ayah_surah_no", 2L)
-            val ayahNo = getSafeLong(prefs, "flutter.hw_ayah_ayah_no", 216L)
+            val arabic = getSafeString(prefs, "flutter.hw_ayah_arabic", "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+            val translation = getSafeString(prefs, "flutter.hw_ayah_translation",
+                if (lang == "en") "In the name of Allah, the Most Gracious, the Most Merciful."
+                else "Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.")
+            val ref = getSafeString(prefs, "flutter.hw_ayah_surah_ref", "Al-Fatihah: 1")
+            val surahNo = getSafeLong(prefs, "flutter.hw_ayah_surah_no", 1L)
+            val ayahNo = getSafeLong(prefs, "flutter.hw_ayah_ayah_no", 1L)
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse("tafseer://verse/$surahNo/$ayahNo")
@@ -32,19 +35,18 @@ class AyahWidgetProvider : AppWidgetProvider() {
             }
 
             val pendingIntent = PendingIntent.getActivity(
-                context,
-                0,
-                intent,
+                context, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
             for (appWidgetId in appWidgetIds) {
                 val views = RemoteViews(context.packageName, R.layout.widget_ayah)
+                // Language-aware label
+                views.setTextViewText(R.id.tv_ayah_label, WidgetStrings.ayahLabel(lang))
                 views.setTextViewText(R.id.tv_arabic, arabic)
                 views.setTextViewText(R.id.tv_translation, translation)
                 views.setTextViewText(R.id.tv_surah_ref, ref)
                 views.setOnClickPendingIntent(R.id.widget_ayah_root, pendingIntent)
-
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             }
         } catch (e: Exception) {
@@ -53,25 +55,17 @@ class AyahWidgetProvider : AppWidgetProvider() {
     }
 
     private fun getSafeString(prefs: SharedPreferences, key: String, default: String): String {
-        return try {
-            prefs.getString(key, default) ?: default
-        } catch (e: Exception) {
-            default
-        }
+        return try { prefs.getString(key, default) ?: default } catch (e: Exception) { default }
     }
 
     private fun getSafeLong(prefs: SharedPreferences, key: String, default: Long): Long {
         return try {
             prefs.getLong(key, default)
         } catch (e: Exception) {
-            try {
-                prefs.getInt(key, default.toInt()).toLong()
-            } catch (e2: Exception) {
-                try {
-                    prefs.getString(key, null)?.toLongOrNull() ?: default
-                } catch (e3: Exception) {
-                    default
-                }
+            try { prefs.getInt(key, default.toInt()).toLong() }
+            catch (e2: Exception) {
+                try { prefs.getString(key, null)?.toLongOrNull() ?: default }
+                catch (e3: Exception) { default }
             }
         }
     }

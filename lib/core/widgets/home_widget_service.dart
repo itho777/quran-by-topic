@@ -13,6 +13,9 @@ class HomeWidgetService {
   /// Group ID for iOS AppGroup / Android SharedPrefs
   static const String appGroupId = 'group.id.tafseer.app';
 
+  /// Shared prefs key that widgets read to determine UI language ('id' or 'en')
+  static const String langKey = 'hw_language';
+
   /// Update "Ayah of the Day" Widget Payload
   Future<void> updateAyahWidget({
     required String arabic,
@@ -87,6 +90,23 @@ class HomeWidgetService {
       debugPrint('Updated LastReadWidgetProvider');
     } catch (e) {
       debugPrint('Error updating LastReadWidgetProvider: $e');
+    }
+  }
+
+  /// Sync the app language to home-screen widgets.
+  /// Call this on startup and whenever the user changes language in settings.
+  Future<void> syncLanguage(String lang) async {
+    try {
+      await HomeWidget.saveWidgetData<String>(langKey, lang);
+      // Refresh all widget types so labels update immediately
+      await HomeWidget.updateWidget(name: 'AyahWidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC1WidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC2WidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC4WidgetProvider');
+      await HomeWidget.updateWidget(name: 'LastReadWidgetProvider');
+      debugPrint('Synced widget language: $lang');
+    } catch (e) {
+      debugPrint('Error syncing widget language: $e');
     }
   }
 }

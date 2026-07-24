@@ -3,14 +3,28 @@ package id.tafseer.app
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
 import android.widget.RemoteViews
 
 class LastReadWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, LastReadWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds != null && appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        } catch (e: Exception) {
+            Log.e("LastReadWidgetProvider", "Error in onReceive: ${e.message}", e)
+        }
+    }
 
     override fun onUpdate(
         context: Context,
@@ -25,7 +39,6 @@ class LastReadWidgetProvider : AppWidgetProvider() {
             val ayahNo = WidgetPrefHelper.getLong(context, "hw_last_ayah_no", 10L)
             val progressDouble = WidgetPrefHelper.getDouble(context, "hw_last_progress", 37.0)
 
-            // Language-aware labels
             val lastReadLabel = WidgetStrings.lastReadLabel(lang)
             val continueBtn = WidgetStrings.continueBtn(lang)
             val ayahLabel = if (lang == "en") "Verse $ayahNo" else "Ayat $ayahNo"
@@ -55,38 +68,5 @@ class LastReadWidgetProvider : AppWidgetProvider() {
         } catch (e: Exception) {
             Log.e("LastReadWidgetProvider", "Error updating widget: ${e.message}", e)
         }
-    }
-
-    private fun getSafeString(prefs: SharedPreferences, key: String, default: String): String {
-        return try { prefs.getString(key, default) ?: default } catch (e: Exception) { default }
-    }
-
-    private fun getSafeLong(prefs: SharedPreferences, key: String, default: Long): Long {
-        return try {
-            val raw = prefs.all[key]
-            when (raw) {
-                is Long -> raw
-                is Int -> raw.toLong()
-                is Number -> raw.toLong()
-                is String -> raw.toLongOrNull() ?: default
-                else -> default
-            }
-        } catch (e: Exception) {
-            default
-        }
-    }
-
-    private fun getSafeDouble(prefs: SharedPreferences, key: String, default: Double): Double {
-        return try {
-            val raw = prefs.all[key]
-            when (raw) {
-                is Double -> raw
-                is Float -> raw.toDouble()
-                is Long -> raw.toDouble()
-                is Int -> raw.toDouble()
-                is String -> raw.toDoubleOrNull() ?: default
-                else -> default
-            }
-        } catch (e: Exception) { default }
     }
 }

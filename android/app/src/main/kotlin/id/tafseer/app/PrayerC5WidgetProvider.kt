@@ -3,14 +3,28 @@ package id.tafseer.app
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
 import android.widget.RemoteViews
 
 class PrayerC5WidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, PrayerC5WidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds != null && appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        } catch (e: Exception) {
+            Log.e("PrayerC5WidgetProvider", "Error in onReceive: ${e.message}", e)
+        }
+    }
 
     override fun onUpdate(
         context: Context,
@@ -30,13 +44,11 @@ class PrayerC5WidgetProvider : AppWidgetProvider() {
             val p4 = WidgetPrefHelper.getString(context, "hw_prayer_maghrib", "17:55")
             val p5 = WidgetPrefHelper.getString(context, "hw_prayer_isya", "19:15")
 
-            // Last Read data
             val surahName = WidgetPrefHelper.getString(context, "hw_last_surah_name", "Al-Kahf")
             val surahNo = WidgetPrefHelper.getLong(context, "hw_last_surah_no", 18L)
             val ayahNo = WidgetPrefHelper.getLong(context, "hw_last_ayah_no", 10L)
             val ayahLabel = if (lang == "en") "Verse $ayahNo" else "Ayat $ayahNo"
 
-            // Dynamic next prayer info
             val info = PrayerHelper.calculateNextPrayer(p1, p2, p3, p4, p5, lang)
 
             val deeplinkIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -62,14 +74,12 @@ class PrayerC5WidgetProvider : AppWidgetProvider() {
                 val views = RemoteViews(context.packageName, R.layout.widget_prayer_c5)
                 views.setTextViewText(R.id.tv_hijri_date, "$hijriDate • 📍 $location")
 
-                // Left panel: Last Read
                 views.setTextViewText(R.id.tv_last_label, WidgetStrings.lastReadLabel(lang))
                 views.setTextViewText(R.id.tv_surah_name, surahName)
                 views.setTextViewText(R.id.tv_ayah_number, ayahLabel)
                 views.setTextViewText(R.id.btn_continue, WidgetStrings.continueBtn(lang))
                 views.setOnClickPendingIntent(R.id.card_last_read, lastReadPendingIntent)
 
-                // Right panel: Prayer names & times
                 views.setTextViewText(R.id.tv_p1_name, names[0])
                 views.setTextViewText(R.id.tv_p1_time, p1)
                 views.setTextViewText(R.id.tv_p2_name, names[1])
@@ -81,7 +91,6 @@ class PrayerC5WidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.tv_p5_name, names[4])
                 views.setTextViewText(R.id.tv_p5_time, p5)
 
-                // Highlight active prayer row
                 for (i in 0..4) {
                     val isCurrent = (i == info.nextIndex)
                     val bgColor = if (isCurrent) 0x2010B981.toInt() else 0x00000000
@@ -98,25 +107,6 @@ class PrayerC5WidgetProvider : AppWidgetProvider() {
             }
         } catch (e: Exception) {
             Log.e("PrayerC5WidgetProvider", "Error updating widget: ${e.message}", e)
-        }
-    }
-
-    private fun getSafeString(prefs: SharedPreferences, key: String, default: String): String {
-        return try { prefs.getString(key, default) ?: default } catch (e: Exception) { default }
-    }
-
-    private fun getSafeLong(prefs: SharedPreferences, key: String, default: Long): Long {
-        return try {
-            val raw = prefs.all[key]
-            when (raw) {
-                is Long -> raw
-                is Int -> raw.toLong()
-                is Number -> raw.toLong()
-                is String -> raw.toLongOrNull() ?: default
-                else -> default
-            }
-        } catch (e: Exception) {
-            default
         }
     }
 }

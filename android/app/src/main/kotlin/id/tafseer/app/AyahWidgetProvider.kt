@@ -3,14 +3,28 @@ package id.tafseer.app
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.util.Log
 import android.widget.RemoteViews
 
 class AyahWidgetProvider : AppWidgetProvider() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, AyahWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            if (appWidgetIds != null && appWidgetIds.isNotEmpty()) {
+                onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        } catch (e: Exception) {
+            Log.e("AyahWidgetProvider", "Error in onReceive: ${e.message}", e)
+        }
+    }
 
     override fun onUpdate(
         context: Context,
@@ -40,7 +54,6 @@ class AyahWidgetProvider : AppWidgetProvider() {
 
             for (appWidgetId in appWidgetIds) {
                 val views = RemoteViews(context.packageName, R.layout.widget_ayah)
-                // Language-aware label
                 views.setTextViewText(R.id.tv_ayah_label, WidgetStrings.ayahLabel(lang))
                 views.setTextViewText(R.id.tv_arabic, arabic)
                 views.setTextViewText(R.id.tv_translation, translation)
@@ -50,25 +63,6 @@ class AyahWidgetProvider : AppWidgetProvider() {
             }
         } catch (e: Exception) {
             Log.e("AyahWidgetProvider", "Error updating widget: ${e.message}", e)
-        }
-    }
-
-    private fun getSafeString(prefs: SharedPreferences, key: String, default: String): String {
-        return try { prefs.getString(key, default) ?: default } catch (e: Exception) { default }
-    }
-
-    private fun getSafeLong(prefs: SharedPreferences, key: String, default: Long): Long {
-        return try {
-            val raw = prefs.all[key]
-            when (raw) {
-                is Long -> raw
-                is Int -> raw.toLong()
-                is Number -> raw.toLong()
-                is String -> raw.toLongOrNull() ?: default
-                else -> default
-            }
-        } catch (e: Exception) {
-            default
         }
     }
 }

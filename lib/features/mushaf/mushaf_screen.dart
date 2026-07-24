@@ -874,9 +874,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 
   Future<void> _selectVerse(Map<String, dynamic> verse, {bool fetchDetails = true}) async {
-
-    _onUserInteraction();
-
     final vId = verse['id'] as int;
 
     final vKey = (verse['verse_key'] as String?) ?? '';
@@ -1254,7 +1251,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       _isZoomed = false;
     });
 
-    _onUserInteraction();
     _loadPageData(pageNum);
   }
 

@@ -65,10 +65,10 @@ class PrayerC1WidgetProvider : AppWidgetProvider() {
                 // Highlight active prayer row
                 for (i in 0..4) {
                     val isCurrent = (i == info.nextIndex)
-                    val bgDrawable = if (isCurrent) R.drawable.widget_card_active_emerald else 0
+                    val bgColor = if (isCurrent) 0x2010B981.toInt() else 0x00000000
                     val dotColor = if (isCurrent) 0xFF10B981.toInt() else 0xFFD4A843.toInt()
 
-                    views.setInt(rows[i], "setBackgroundResource", bgDrawable)
+                    views.setInt(rows[i], "setBackgroundColor", bgColor)
                     views.setTextColor(dots[i], dotColor)
                 }
 

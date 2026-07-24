@@ -21,15 +21,16 @@ object WidgetPrefHelper {
         for (prefs in getPrefsList(context)) {
             for (k in keysToTry) {
                 try {
-                    if (prefs.contains(k)) {
-                        val valStr = prefs.getString(k, null)
-                        if (valStr != null) {
-                            Log.d(TAG, "Found string for key '$k': $valStr")
-                            return valStr
+                    val raw = prefs.all[k]
+                    if (raw != null) {
+                        val str = raw.toString()
+                        if (str.isNotEmpty()) {
+                            Log.d(TAG, "getString '$k' = '$str'")
+                            return str
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error reading string for key '$k': ${e.message}")
+                    Log.e(TAG, "getString error for '$k': ${e.message}")
                 }
             }
         }
@@ -41,22 +42,16 @@ object WidgetPrefHelper {
         for (prefs in getPrefsList(context)) {
             for (k in keysToTry) {
                 try {
-                    if (prefs.contains(k)) {
-                        val raw = prefs.all[k]
-                        val parsed = when (raw) {
-                            is Long -> raw
-                            is Int -> raw.toLong()
-                            is Number -> raw.toLong()
-                            is String -> raw.toLongOrNull()
-                            else -> null
-                        }
+                    val raw = prefs.all[k]
+                    if (raw != null) {
+                        val parsed = raw.toString().toLongOrNull()
                         if (parsed != null) {
-                            Log.d(TAG, "Found long for key '$k': $parsed")
+                            Log.d(TAG, "getLong '$k' = $parsed")
                             return parsed
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error reading long for key '$k': ${e.message}")
+                    Log.e(TAG, "getLong error for '$k': ${e.message}")
                 }
             }
         }
@@ -68,23 +63,16 @@ object WidgetPrefHelper {
         for (prefs in getPrefsList(context)) {
             for (k in keysToTry) {
                 try {
-                    if (prefs.contains(k)) {
-                        val raw = prefs.all[k]
-                        val parsed = when (raw) {
-                            is Double -> raw
-                            is Float -> raw.toDouble()
-                            is Long -> raw.toDouble()
-                            is Int -> raw.toDouble()
-                            is String -> raw.toDoubleOrNull()
-                            else -> null
-                        }
+                    val raw = prefs.all[k]
+                    if (raw != null) {
+                        val parsed = raw.toString().toDoubleOrNull()
                         if (parsed != null) {
-                            Log.d(TAG, "Found double for key '$k': $parsed")
+                            Log.d(TAG, "getDouble '$k' = $parsed")
                             return parsed
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error reading double for key '$k': ${e.message}")
+                    Log.e(TAG, "getDouble error for '$k': ${e.message}")
                 }
             }
         }

@@ -68,10 +68,10 @@ class PrayerC2WidgetProvider : AppWidgetProvider() {
                 // Highlight active card
                 for (i in 0..4) {
                     val isCurrent = (i == info.nextIndex)
-                    val bgDrawable = if (isCurrent) R.drawable.widget_card_active_gold else R.drawable.widget_card_inactive
+                    val bgColor = if (isCurrent) 0x35D4A843.toInt() else 0x15FFFFFF.toInt()
                     val iconColor = if (isCurrent) 0xFFD4A843.toInt() else 0xFF8B9BAD.toInt()
 
-                    views.setInt(cards[i], "setBackgroundResource", bgDrawable)
+                    views.setInt(cards[i], "setBackgroundColor", bgColor)
                     views.setTextColor(icons[i], iconColor)
                 }
 

@@ -70,11 +70,11 @@ class PrayerC4WidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.tv_fp5_name, names[4])
                 views.setTextViewText(R.id.tv_fp5_time, p5)
 
-                // Highlight active card with emerald border shape
+                // Highlight active card with emerald background
                 for (i in 0..4) {
                     val isCurrent = (i == info.nextIndex)
-                    val bgDrawable = if (isCurrent) R.drawable.widget_card_active_emerald else R.drawable.widget_card_inactive
-                    views.setInt(frostCards[i], "setBackgroundResource", bgDrawable)
+                    val bgColor = if (isCurrent) 0x3010B981.toInt() else 0x0FFFFFFF.toInt()
+                    views.setInt(frostCards[i], "setBackgroundColor", bgColor)
                 }
 
                 if (pendingIntent != null) {

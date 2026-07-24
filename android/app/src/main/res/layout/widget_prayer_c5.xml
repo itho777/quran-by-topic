@@ -146,7 +146,7 @@
                     android:id="@+id/ring_p1"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/widget_card_active_emerald"
+                    android:src="@drawable/widget_row_active_emerald"
                     android:visibility="gone"
                     android:scaleType="fitXY" />
             </FrameLayout>
@@ -199,7 +199,7 @@
                     android:id="@+id/ring_p2"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/widget_card_active_emerald"
+                    android:src="@drawable/widget_row_active_emerald"
                     android:visibility="gone"
                     android:scaleType="fitXY" />
             </FrameLayout>
@@ -252,7 +252,7 @@
                     android:id="@+id/ring_p3"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/widget_card_active_emerald"
+                    android:src="@drawable/widget_row_active_emerald"
                     android:visibility="gone"
                     android:scaleType="fitXY" />
             </FrameLayout>
@@ -305,7 +305,7 @@
                     android:id="@+id/ring_p4"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/widget_card_active_emerald"
+                    android:src="@drawable/widget_row_active_emerald"
                     android:visibility="gone"
                     android:scaleType="fitXY" />
             </FrameLayout>
@@ -357,7 +357,7 @@
                     android:id="@+id/ring_p5"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:src="@drawable/widget_card_active_emerald"
+                    android:src="@drawable/widget_row_active_emerald"
                     android:visibility="gone"
                     android:scaleType="fitXY" />
             </FrameLayout>

@@ -17,15 +17,15 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="@color/widget_text_muted"
-            android:textSize="12sp" />
+            android:textColor="@color/widget_gold"
+            android:textSize="11sp" />
 
         <TextView
             android:id="@+id/tv_location"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/widget_text_muted"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -49,7 +49,7 @@
                 android:id="@+id/ic_p1"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:src="@android:drawable/ic_menu_today"
+                android:src="@android:drawable/ic_menu_today" />
 
             <TextView
                 android:id="@+id/tv_p1_name"
@@ -82,7 +82,7 @@
                 android:id="@+id/ic_p2"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:src="@android:drawable/ic_menu_today"
+                android:src="@android:drawable/ic_menu_today" />
 
             <TextView
                 android:id="@+id/tv_p2_name"
@@ -115,7 +115,7 @@
                 android:id="@+id/ic_p3"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:src="@android:drawable/ic_menu_today"
+                android:src="@android:drawable/ic_menu_today" />
 
             <TextView
                 android:id="@+id/tv_p3_name"
@@ -148,7 +148,7 @@
                 android:id="@+id/ic_p4"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:src="@android:drawable/ic_menu_today"
+                android:src="@android:drawable/ic_menu_today" />
 
             <TextView
                 android:id="@+id/tv_p4_name"
@@ -180,7 +180,7 @@
                 android:id="@+id/ic_p5"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
-                android:src="@android:drawable/ic_menu_today"
+                android:src="@android:drawable/ic_menu_today" />
 
             <TextView
                 android:id="@+id/tv_p5_name"

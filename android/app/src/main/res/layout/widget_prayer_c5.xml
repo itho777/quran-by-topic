@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_prayer_c1_root"
+    android:id="@+id/widget_prayer_c5_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_rounded"
@@ -22,7 +22,9 @@
         android:weightSum="5"
         android:orientation="horizontal">
 
+        <!-- LEFT PANEL: Last Read Ayah -->
         <LinearLayout
+            android:id="@+id/card_last_read"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="2"
@@ -34,30 +36,47 @@
             android:padding="6dp">
 
             <TextView
-                android:id="@+id/tv_next_prayer_name"
+                android:id="@+id/tv_last_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="15sp"
+                android:text="📖 LAST READ"
+                android:textColor="@color/widget_gold"
+                android:textSize="9sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tv_next_prayer_time"
+                android:id="@+id/tv_surah_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:textColor="@color/widget_gold"
-                android:textSize="13sp" />
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tv_countdown"
+                android:id="@+id/tv_ayah_number"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/widget_gold"
+                android:layout_marginTop="1dp"
+                android:textColor="@color/widget_text_primary"
                 android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/btn_continue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/widget_btn_gold"
+                android:gravity="center"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:text="Continue ▶"
+                android:textColor="#000000"
+                android:textSize="10sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- RIGHT PANEL: Prayer Times List -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"

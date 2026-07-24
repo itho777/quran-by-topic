@@ -140,6 +140,19 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_last_read_info" />
         </receiver>
+
+        <!-- 6. Prayer Times C5 (Terakhir Dibaca + Daftar Sholat) Provider -->
+        <receiver
+            android:name="id.tafseer.app.PrayerC5WidgetProvider"
+            android:exported="true"
+            android:label="Waktu Sholat &amp; Terakhir Dibaca (Tafseer.id)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_prayer_c5_info" />
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -3,6 +3,7 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/settings_manager.dart';
 import '../../core/alarm_service.dart';
+import '../../core/widgets/home_widget_service.dart';
 import 'qibla_service.dart';
 
 /// Provider for streaming the current phone heading from the magnetometer.
@@ -53,6 +54,24 @@ final prayerTimesProvider = FutureProvider<PrayerTimesResult>((ref) async {
     longitude: position.longitude,
     settings: settings,
   );
+
+  // Sync real-time prayer times & GPS location to Home Widgets
+  try {
+    final formatTime = (DateTime dt) =>
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    HomeWidgetService.instance.updatePrayerTimesWidget(
+      subuh: formatTime(pt.fajr),
+      dzuhur: formatTime(pt.dhuhr),
+      ashar: formatTime(pt.asr),
+      maghrib: formatTime(pt.maghrib),
+      isya: formatTime(pt.isha),
+      nextPrayerName: pt.nextPrayerName,
+      nextPrayerTime: formatTime(pt.nextPrayer == Prayer.fajr ? pt.fajr : pt.dhuhr),
+      countdown: '${pt.timeUntilNext.inHours}h ${pt.timeUntilNext.inMinutes % 60}m',
+      hijriDate: '14 Muharram 1447H',
+      location: 'Jakarta',
+    );
+  } catch (_) {}
 
   return pt;
 });

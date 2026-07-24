@@ -63,11 +63,12 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<String>('hw_hijri_date', hijriDate);
       await HomeWidget.saveWidgetData<String>('hw_location', location);
 
-      // Trigger update for all 3 prayer time widget variations
+      // Trigger update for all prayer time widget variations
       await HomeWidget.updateWidget(name: 'PrayerC1WidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC2WidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC4WidgetProvider');
-      debugPrint('Updated Prayer Widget Providers (C1, C2, C4)');
+      await HomeWidget.updateWidget(name: 'PrayerC5WidgetProvider');
+      debugPrint('Updated Prayer Widget Providers (C1, C2, C4, C5)');
     } catch (e) {
       debugPrint('Error updating Prayer Widget Providers: $e');
     }
@@ -87,7 +88,8 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<double>('hw_last_progress', progress);
 
       await HomeWidget.updateWidget(name: 'LastReadWidgetProvider');
-      debugPrint('Updated LastReadWidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC5WidgetProvider');
+      debugPrint('Updated LastReadWidgetProvider & PrayerC5WidgetProvider');
     } catch (e) {
       debugPrint('Error updating LastReadWidgetProvider: $e');
     }
@@ -103,6 +105,7 @@ class HomeWidgetService {
       await HomeWidget.updateWidget(name: 'PrayerC1WidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC2WidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC4WidgetProvider');
+      await HomeWidget.updateWidget(name: 'PrayerC5WidgetProvider');
       await HomeWidget.updateWidget(name: 'LastReadWidgetProvider');
       debugPrint('Synced widget language: $lang');
     } catch (e) {

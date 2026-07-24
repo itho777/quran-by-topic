@@ -180,6 +180,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _loadingFeatured = false;
         });
       }
+
+      // Sync with Home Screen Widget
+      try {
+        final currentLang = ref.read(settingsProvider).appLanguage;
+        final translation = currentLang == 'en' ? translationEn : translationId;
+        final surahRef = 'Surah $suraId: $ayahNum';
+        await HomeWidgetService.instance.updateAyahWidget(
+          arabic: arabic,
+          translation: translation,
+          surahRef: surahRef,
+          surahNo: suraId,
+          ayahNo: ayahNum,
+        );
+      } catch (_) {}
     } catch (_) {
       if (mounted) setState(() => _loadingFeatured = false);
     }

@@ -34,13 +34,14 @@ class AyahWidgetProvider : AppWidgetProvider() {
         try {
             val lang = WidgetPrefHelper.resolveLanguage(context)
 
-            val arabic = WidgetPrefHelper.getString(context, "hw_ayah_arabic", "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+            val arabic = WidgetPrefHelper.getString(context, "hw_ayah_arabic",
+                "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ")
             val translation = WidgetPrefHelper.getString(context, "hw_ayah_translation",
-                if (lang == "en") "In the name of Allah, the Most Gracious, the Most Merciful."
-                else "Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.")
-            val ref = WidgetPrefHelper.getString(context, "hw_ayah_surah_ref", "Al-Fatihah: 1")
-            val surahNo = WidgetPrefHelper.getLong(context, "hw_ayah_surah_no", 1L)
-            val ayahNo = WidgetPrefHelper.getLong(context, "hw_ayah_ayah_no", 1L)
+                if (lang == "en") "Allah - there is no deity except Him, the Ever-Living, the Sustainer of [all] existence."
+                else "Allah, tidak ada Tuhan melainkan Dia Yang Hidup kekal lagi terus menerus mengurus (makhluk-Nya); tidak mengantuk dan tidak tidur.")
+            val ref = WidgetPrefHelper.getString(context, "hw_ayah_surah_ref", "Al-Baqarah: 255")
+            val surahNo = WidgetPrefHelper.getLong(context, "hw_ayah_surah_no", 2L)
+            val ayahNo = WidgetPrefHelper.getLong(context, "hw_ayah_ayah_no", 255L)
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse("tafseer://verse/$surahNo/$ayahNo")

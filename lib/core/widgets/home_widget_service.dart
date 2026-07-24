@@ -28,20 +28,28 @@ class HomeWidgetService {
     required int ayahNo,
   }) async {
     try {
-      await HomeWidget.saveWidgetData<String>('hw_ayah_arabic', arabic);
-      await HomeWidget.saveWidgetData<String>('hw_ayah_translation', translation);
-      await HomeWidget.saveWidgetData<String>('hw_ayah_surah_ref', surahRef);
+      final finalArabic = arabic.trim().isNotEmpty
+          ? arabic
+          : 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ';
+      final finalTranslation = translation.trim().isNotEmpty
+          ? translation
+          : 'Allah, tidak ada Tuhan melainkan Dia Yang Hidup kekal lagi terus menerus mengurus (makhluk-Nya); tidak mengantuk dan tidak tidur.';
+      final finalRef = surahRef.trim().isNotEmpty ? surahRef : 'Al-Baqarah: 255';
+
+      await HomeWidget.saveWidgetData<String>('hw_ayah_arabic', finalArabic);
+      await HomeWidget.saveWidgetData<String>('hw_ayah_translation', finalTranslation);
+      await HomeWidget.saveWidgetData<String>('hw_ayah_surah_ref', finalRef);
       await HomeWidget.saveWidgetData<int>('hw_ayah_surah_no', surahNo);
       await HomeWidget.saveWidgetData<int>('hw_ayah_ayah_no', ayahNo);
 
-      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_arabic', arabic);
-      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_translation', translation);
-      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_surah_ref', surahRef);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_arabic', finalArabic);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_translation', finalTranslation);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_surah_ref', finalRef);
       await HomeWidget.saveWidgetData<int>('flutter.hw_ayah_surah_no', surahNo);
       await HomeWidget.saveWidgetData<int>('flutter.hw_ayah_ayah_no', ayahNo);
 
       await HomeWidget.updateWidget(name: 'AyahWidgetProvider');
-      debugPrint('Updated AyahWidgetProvider');
+      debugPrint('Updated AyahWidgetProvider: $finalRef');
     } catch (e) {
       debugPrint('Error updating AyahWidgetProvider: $e');
     }
@@ -141,6 +149,12 @@ class HomeWidgetService {
 
   /// Centralized sync of Featured Ayah of the Day to Home Widget
   Future<void> syncFeaturedAyah({String lang = 'id'}) async {
+    String arabic = '';
+    String translation = '';
+    String surahRef = 'Al-Baqarah: 255';
+    int suraId = 2;
+    int ayahNum = 255;
+
     try {
       final db = Supabase.instance.client;
       final cfgRes = await db
@@ -162,9 +176,6 @@ class HomeWidgetService {
         if (k == 'featured_ayah_key') verseKey = v;
         if (k == 'featured_rotation_mode') rotationMode = v;
       }
-
-      int suraId = 2;
-      int ayahNum = 255;
 
       if (rotationMode == 'daily_random') {
         final now = DateTime.now();
@@ -207,7 +218,7 @@ class HomeWidgetService {
           .eq('sura_id', suraId)
           .eq('ayah_number', ayahNum)
           .maybeSingle();
-      final arabic = (verseRes?['text_ar'] as String?) ?? '';
+      arabic = (verseRes?['text_ar'] as String?) ?? '';
 
       final verseIdRes = await db
           .from('verses')
@@ -216,7 +227,6 @@ class HomeWidgetService {
           .eq('ayah_number', ayahNum)
           .maybeSingle();
 
-      String translation = '';
       if (verseIdRes != null) {
         final tid = verseIdRes['id'] as int;
         final sourceId = lang == 'en' ? 'en.sahih' : 'id.kemenag';
@@ -235,19 +245,20 @@ class HomeWidgetService {
           .eq('id', suraId)
           .maybeSingle();
       final sName = (suraRes?['name_en'] as String?) ?? 'Surah $suraId';
-      final surahRef = '$sName: $ayahNum';
-
-      await updateAyahWidget(
-        arabic: arabic,
-        translation: translation,
-        surahRef: surahRef,
-        surahNo: suraId,
-        ayahNo: ayahNum,
-      );
-      debugPrint('Synced featured ayah widget: $surahRef');
+      surahRef = '$sName: $ayahNum';
     } catch (e) {
-      debugPrint('Error syncing featured ayah widget: $e');
+      debugPrint('Error syncing featured ayah widget from Supabase: $e');
     }
+
+    // Always update widget even if network fails
+    await updateAyahWidget(
+      arabic: arabic,
+      translation: translation,
+      surahRef: surahRef,
+      surahNo: suraId,
+      ayahNo: ayahNum,
+    );
+    debugPrint('Synced featured ayah widget: $surahRef');
   }
 
   /// Centralized sync of Device Location and Prayer Times to Home Widgets

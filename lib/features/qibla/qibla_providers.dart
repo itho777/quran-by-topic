@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:adhan/adhan.dart';
 import '../../core/settings_manager.dart';
 import '../../core/alarm_service.dart';
 import '../../core/widgets/home_widget_service.dart';

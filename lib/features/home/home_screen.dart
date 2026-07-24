@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../core/settings_manager.dart';
 import '../../core/auth_provider.dart';
+import '../../core/widgets/home_widget_service.dart';
 import '../admin/admin_cms_widgets.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {

@@ -29,6 +29,7 @@ import '../../core/bookmarks_manager.dart';
 import '../../core/quran_sources.dart';
 
 import '../../core/quran_coords.dart';
+import '../../core/quran_verse_utils.dart';
 
 import '../../shared/widgets/reciter_picker_sheet.dart';
 
@@ -125,12 +126,28 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   // Zoom state for Mushaf page
   final Map<int, TransformationController> _transformControllers = {};
   bool _isZoomed = false;
+  String? _lastSyncedMurajaahVerseKey;
 
   // Scrolling reference
 
   final Map<int, GlobalKey> _verseKeys = {};
 
   final ScrollController _studyPanelScrollController = ScrollController();
+  final ScrollController _fullWidthScrollController = ScrollController();
+
+  /// GlobalKey on the study panel so we can measure its actual rendered height.
+  final GlobalKey _studyPanelKey = GlobalKey();
+
+  /// Returns the actual rendered height of the study panel, or a safe default.
+  double get _actualPanelHeight {
+    final ctx = _studyPanelKey.currentContext;
+    if (ctx != null) {
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box != null && box.hasSize) return box.size.height;
+    }
+    // Fallback: match the AnimatedContainer heights + a small buffer
+    return (_studyMenuBarVisible ? 270.0 : 220.0) + 16.0;
+  }
 
   // Pre-indexed: page Ã¢â€ â€™ list of (globalAyahId, x, y) tuples, built once from the static coords.
 
@@ -286,6 +303,15 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (mounted) hideNavNotifier.state = true;
 
+      final murajaah = ref.read(murajaahProvider);
+      if (murajaah.sessionActive && murajaah.currentVerse != null) {
+        _handleMurajaahVerseChange(
+          murajaah.currentVerse!.verseKey,
+          murajaah.currentVerse!.globalId,
+          murajaah.currentVerse!.svgVerseId,
+        );
+      }
+
     });
 
     // Bind AudioPlayer Listeners
@@ -381,8 +407,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     _audioPlayer.dispose();
 
     _pageController.dispose();
-
     _studyPanelScrollController.dispose();
+    _fullWidthScrollController.dispose();
 
     _jumpAyahController.dispose();
 
@@ -907,61 +933,113 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
+  /// Looks up the mushaf page for a verse using the SVG sequential ID (1–6236).
+  int? _getPageForSvgVerseId(int svgVerseId) {
+    for (int i = 0; i < quranCoordsData.length; i += 4) {
+      if (quranCoordsData[i + 1].toInt() == svgVerseId) {
+        return quranCoordsData[i].toInt();
+      }
+    }
+    return null;
+  }
+
+  /// In full-width mode, scrolls the SingleChildScrollView so the active SVG
+  /// verse (identified by its sequential ID) is centred in the visible area
+  /// above the study panel. Uses quranCoordsData Y coordinate (SVG space
+  /// 0–550) converted to pixel offset.
+  void _scrollFullWidthToSvgVerse(int svgVerseId, double pageH, double panelH) {
+    // Find verse Y coordinate in SVG viewBox space (0–550)
+    double? verseY;
+    for (int i = 0; i < quranCoordsData.length; i += 4) {
+      if (quranCoordsData[i + 1].toInt() == svgVerseId) {
+        verseY = quranCoordsData[i + 3]; // Y value
+        break;
+      }
+    }
+    if (verseY == null || !_fullWidthScrollController.hasClients) return;
+
+    // Convert SVG Y (0–550) to pixel offset in the rendered page
+    final pixelY = (verseY / 550.0) * pageH;
+    // Visible height above the panel
+    final visibleH = _fullWidthScrollController.position.viewportDimension;
+    // Centre the verse in visible area
+    final targetOffset = (pixelY - (visibleH - panelH) / 2).clamp(
+      0.0,
+      _fullWidthScrollController.position.maxScrollExtent,
+    );
+    _fullWidthScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  /// Converts a Supabase DB verse ID to the SVG sequential verse ID (1–6236)
+  /// by looking up (sura_id, ayah_number) from the currently loaded page verses.
+  /// Returns null if the verse is not found in _pageVerses.
+  int? _svgIdForDbId(int? dbId) {
+    if (dbId == null) return null;
+    final verse = _pageVerses.where((v) => v['id'] == dbId).firstOrNull;
+    if (verse == null) return null;
+    final suraId = verse['sura_id'] as int?;
+    final ayahNum = verse['ayah_number'] as int?;
+    if (suraId == null || ayahNum == null) return null;
+    return quranSvgVerseId(suraId, ayahNum);
+  }
+
   /// Called from the murajaah listener in build() whenever the playing verse changes.
   /// Navigates the PageView to the correct mushaf page if needed, highlights the
   /// verse, and scrolls the study panel list to bring it into view.
-  Future<void> _handleMurajaahVerseChange(String verseKey, int globalVerseId) async {
+  Future<void> _handleMurajaahVerseChange(
+      String verseKey, int globalVerseId, int svgVerseId) async {
     if (!mounted) return;
 
-    // Look up this verse's page in the current page's verse list first (fast path).
-    final isOnCurrentPage = _pageVerses.any((v) => v['verse_key'] == verseKey);
+    // Fast path: find target page from local coords using the sequential SVG verse ID (1–6236)
+    int? targetPage = _getPageForSvgVerseId(svgVerseId);
 
-    if (isOnCurrentPage) {
-      // Highlight + scroll — the verse is already on screen.
+    // Fallback to Supabase if not found (shouldn't happen for valid verse)
+    if (targetPage == null) {
+      try {
+        final res = await Supabase.instance.client
+            .from('verses')
+            .select('page_number')
+            .eq('verse_key', verseKey)
+            .maybeSingle();
+
+        if (res != null && res['page_number'] != null) {
+          targetPage = (res['page_number'] as num).toInt();
+        }
+      } catch (e) {
+        debugPrint('Fallback page lookup error: $e');
+      }
+    }
+
+    if (targetPage == null) return;
+
+    if (targetPage != _currentPage) {
+      if (mounted) {
+        setState(() {
+          _currentPage = targetPage!;
+          _selectedVerseId = globalVerseId;
+          _selectedVerseKey = verseKey;
+        });
+      }
+
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(targetPage - 1);
+      }
+      await _loadPageData(targetPage);
+    } else {
       if (mounted) {
         setState(() {
           _selectedVerseId = globalVerseId;
           _selectedVerseKey = verseKey;
         });
       }
-      _scrollToActiveVerse(globalVerseId, alignment: 0.0);
-      return;
     }
 
-    // The verse is on a different page: look up the page number from Supabase.
-    try {
-      final res = await Supabase.instance.client
-          .from('verses')
-          .select('page_number')
-          .eq('verse_key', verseKey)
-          .maybeSingle();
-
-      if (!mounted) return;
-
-      if (res != null && res['page_number'] != null) {
-        final targetPage = (res['page_number'] as num).toInt();
-
-        setState(() {
-          _currentPage = targetPage;
-          _selectedVerseId = globalVerseId;
-          _selectedVerseKey = verseKey;
-        });
-
-        // Jump PageView to the new page.
-        _pageController.animateToPage(
-          targetPage - 1,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-
-        // Load the page's verse data, then scroll.
-        await _loadPageData(targetPage);
-
-        if (!mounted) return;
-        _scrollToActiveVerse(globalVerseId, alignment: 0.0);
-      }
-    } catch (e) {
-      debugPrint('_handleMurajaahVerseChange error: $e');
+    if (mounted) {
+      _scrollToActiveVerse(globalVerseId, alignment: 0.0);
     }
   }
 
@@ -1092,7 +1170,20 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 
   Future<void> _toggleAudio() async {
+    // Check if Murajaah is active — if so, pause/resume Murajaah instead
+    final murajaahState = ref.read(murajaahProvider);
+    if (murajaahState.sessionActive) {
+      if (murajaahState.isPlaying || murajaahState.isPaused) {
+        if (murajaahState.isPlaying) {
+          ref.read(murajaahProvider.notifier).pause();
+        } else {
+          ref.read(murajaahProvider.notifier).resume();
+        }
+        return;
+      }
+    }
 
+    // Normal mushaf audio toggle
     if (_isPlaying) {
 
       _audioPlayer.pause();
@@ -2249,17 +2340,21 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   Widget build(BuildContext context) {
 
-    // Listen to murajaah state changes: navigate to the correct mushaf page
-    // and scroll the study panel to show the newly active verse.
-    ref.listen<MurajaahState>(murajaahProvider, (previous, next) {
-      if (!next.sessionActive || !next.isPlaying) return;
-      final verse = next.currentVerse;
-      if (verse == null) return;
-      // Only act if the verse actually changed
-      if (previous?.currentVerse?.verseKey == verse.verseKey) return;
-
-      _handleMurajaahVerseChange(verse.verseKey, verse.globalId);
-    });
+    // Auto-navigate to correct page and scroll study panel when Murajaah audio plays
+    final murajaahState = ref.watch(murajaahProvider);
+    if (murajaahState.sessionActive && murajaahState.isPlaying && murajaahState.currentVerse != null) {
+      final verse = murajaahState.currentVerse!;
+      if (_lastSyncedMurajaahVerseKey != verse.verseKey) {
+        _lastSyncedMurajaahVerseKey = verse.verseKey;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _handleMurajaahVerseChange(verse.verseKey, verse.globalId, verse.svgVerseId);
+          }
+        });
+      }
+    } else if (!murajaahState.sessionActive) {
+      _lastSyncedMurajaahVerseKey = null;
+    }
 
 
     final mediaQuery = MediaQuery.of(context);
@@ -2346,13 +2441,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                           curve: Curves.easeInOut,
 
-
                           padding: EdgeInsets.only(
                             top: _menusVisible ? 90.0 : 0.0,
                             // Fixed padding when study panel is open Ã¢â‚¬â€ avoids blank space on menu-bar auto-hide
                             bottom: showStudyPanel
-                                ? (_studyMenuBarVisible ? 280.0 : 230.0)
-                                : 20.0,
+                                ? (_actualPanelHeight + mediaQuery.padding.bottom)
+                                : (20.0 + mediaQuery.padding.bottom),
                           ),
 
 
@@ -2379,6 +2473,34 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 }
                               }
 
+                              final murajaahState = ref.watch(murajaahProvider);
+                              final isMurajaahActive = murajaahState.sessionActive && murajaahState.isPlaying;
+                              final murajaahVerse = murajaahState.currentVerse;
+
+                              // Use svgVerseId (sequential 1–6236) for SVG element highlighting.
+                              // The SVG uses id="verse-N" based on sequential verse order, which
+                              // may differ from the Supabase DB primary key (globalId).
+                              final effectivePlayingVerseId = isMurajaahActive
+                                  ? murajaahVerse?.svgVerseId
+                                  : (_isPlaying ? _svgIdForDbId(_playingVerseId) : null);
+
+                              final effectiveSelectedVerseId = isMurajaahActive
+                                  ? (murajaahVerse?.svgVerseId ?? _svgIdForDbId(_selectedVerseId))
+                                  : _svgIdForDbId(_selectedVerseId);
+
+                              // Pass the panel height so the SVG auto-scroll
+                              // centres the verse in the visible area above the panel.
+                              final panelHeightPx = showStudyPanel
+                                  ? (_actualPanelHeight + mediaQuery.padding.bottom)
+                                  : 0.0;
+
+                              final activeSvgId = effectivePlayingVerseId ?? effectiveSelectedVerseId;
+                              if (fullWidth && activeSvgId != null) {
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  _scrollFullWidthToSvgVerse(activeSvgId, pageH, panelHeightPx);
+                                });
+                              }
+
                               // Build the page image widget
                               final pageImage = buildQuranPageImage(
                                 context,
@@ -2386,10 +2508,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 onTap: _onUserInteraction,
                                 onTapWithPosition: _onImageTapped,
                                 onVerseTapped: _onVerseSelectedBySurahAyah,
-                                selectedVerseId: _selectedVerseId,
-                                playingVerseId: _playingVerseId,
+                                selectedVerseId: effectiveSelectedVerseId,
+                                playingVerseId: effectivePlayingVerseId,
                                 fullWidth: fullWidth,
                                 viewportWidth: pageW,
+                                panelHeight: panelHeightPx,
                               );
 
                               final pageDecorationBox = Container(
@@ -2444,6 +2567,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 width: pageW,
                                 height: availH,
                                 child: SingleChildScrollView(
+                                  controller: _fullWidthScrollController,
                                   physics: const ClampingScrollPhysics(),
                                   scrollDirection: Axis.vertical,
                                   child: Container(
@@ -2606,14 +2730,29 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 1. Play / Pause
-                          IconButton(
-                            icon: Icon(
-                              _isPlaying ? Icons.pause_circle : Icons.play_circle,
-                              color: AppTheme.primary,
-                              size: 28,
-                            ),
-                            onPressed: _toggleAudio,
+                          // 1. Play / Pause — handles both Murajaah and normal playback
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final mState = ref.watch(murajaahProvider);
+                              final isMurajaahPlaying =
+                                  mState.sessionActive && mState.isPlaying;
+                              final showPause = isMurajaahPlaying || _isPlaying;
+                              return IconButton(
+                                icon: Icon(
+                                  showPause
+                                      ? Icons.pause_circle
+                                      : Icons.play_circle,
+                                  color: isMurajaahPlaying
+                                      ? AppTheme.secondary
+                                      : AppTheme.primary,
+                                  size: 28,
+                                ),
+                                tooltip: isMurajaahPlaying
+                                    ? 'Pause Murajaah'
+                                    : (showPause ? 'Pause' : 'Play'),
+                                onPressed: _toggleAudio,
+                              );
+                            },
                           ),
 
                           // 2. Bookmark
@@ -2847,6 +2986,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             left: 0,
             right: 0,
             child: AnimatedContainer(
+              key: _studyPanelKey,
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
               height: _studyMenuBarVisible ? 270.0 : 220.0,

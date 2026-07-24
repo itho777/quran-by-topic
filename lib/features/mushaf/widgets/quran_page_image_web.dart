@@ -15,6 +15,7 @@ class _SvgPageState {
   VoidCallback? onTap;
   int? selectedVerseId;
   int? playingVerseId;
+  double panelHeight = 0.0; // Height of the bottom panel overlay (px)
 }
 
 String _buildPageCss(int? selectedId, int? playingId) {
@@ -57,6 +58,7 @@ Widget buildQuranPageImage(
   int? playingVerseId,
   bool fullWidth = false,
   double? viewportWidth,
+  double panelHeight = 0.0,
 }) {
   final viewType = 'quran-svg-page-$pageNum-$fullWidth';
 
@@ -66,6 +68,7 @@ Widget buildQuranPageImage(
   state.onVerseTapped = onVerseTapped;
   state.selectedVerseId = selectedVerseId;
   state.playingVerseId = playingVerseId;
+  state.panelHeight = panelHeight;
 
   // Dynamically update highlights if container style is already rendered
   if (state.container != null) {
@@ -74,14 +77,11 @@ Widget buildQuranPageImage(
       style.text = _buildPageCss(selectedVerseId, playingVerseId);
     }
     
-    // Auto-scroll the active verse (playing or selected) into view (centered)
+    // Auto-scroll the active verse into the visible area above the panel
     final activeId = playingVerseId ?? selectedVerseId;
     if (activeId != null) {
       html.window.animationFrame.then((_) {
-        final element = state.container!.querySelector('#verse-$activeId');
-        if (element != null) {
-          element.scrollIntoView(html.ScrollAlignment.CENTER);
-        }
+        _scrollVerseIntoView(state, activeId);
       });
     }
   }
@@ -230,14 +230,11 @@ void _loadSvgIntoContainer(
     container.append(style);
     container.append(svgWrapper);
 
-    // Auto-scroll the active verse (playing or selected) into view (centered) after load
+    // Auto-scroll the active verse into the visible area above the panel after load
     final activeId = state.playingVerseId ?? state.selectedVerseId;
     if (activeId != null) {
-      Future.delayed(const Duration(milliseconds: 150), () {
-        final element = container.querySelector('#verse-$activeId');
-        if (element != null) {
-          element.scrollIntoView(html.ScrollAlignment.CENTER);
-        }
+      Future.delayed(const Duration(milliseconds: 200), () {
+        _scrollVerseIntoView(state, activeId);
       });
     }
 
@@ -275,4 +272,32 @@ void _loadSvgIntoContainer(
       ..style.objectFit = 'contain';
     container.append(fallback);
   });
+}
+
+/// Scrolls the browser window so the verse element is visible above the
+/// bottom panel overlay. Uses [getBoundingClientRect] to get the verse's
+/// screen position, then scrolls if needed so it is centered in the
+/// visible area above the panel.
+void _scrollVerseIntoView(_SvgPageState state, int verseId) {
+  final element = state.container?.querySelector('#verse-$verseId');
+  if (element == null) return;
+
+  final rect = element.getBoundingClientRect();
+  final viewportHeight = html.window.innerHeight?.toDouble() ?? 0.0;
+  final panelH = state.panelHeight;
+  // Visible height of the viewport above the panel
+  final visibleH = viewportHeight - panelH;
+
+  // Centre of the verse element in viewport coordinates
+  final verseCenter = (rect.top + rect.bottom) / 2;
+  // Desired centre: middle of the visible area above the panel
+  final targetCenter = visibleH / 2;
+  final scrollDelta = verseCenter - targetCenter;
+
+  if (scrollDelta.abs() > 8) {
+    html.window.scrollBy({
+      'top': scrollDelta,
+      'behavior': 'smooth',
+    });
+  }
 }

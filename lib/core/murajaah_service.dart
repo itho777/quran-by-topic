@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'web_audio_player.dart';
 import 'quran_sources.dart';
 import 'settings_manager.dart';
+import 'quran_verse_utils.dart';
 
 class MurajaahVerseEntry {
   final int surahId;
   final int ayahNumber;
-  final int globalId;
+  final int globalId; // Supabase DB primary key (may differ from sequential verse number)
   final String verseKey;
   final String textAr;
 
@@ -18,6 +19,10 @@ class MurajaahVerseEntry {
     required this.verseKey,
     required this.textAr,
   });
+
+  /// Sequential verse number (1–6236) used as the SVG element ID `verse-N`.
+  /// This matches the quranCoordsData globalAyah field and the SVG `id="verse-N"`.
+  int get svgVerseId => quranSvgVerseId(surahId, ayahNumber);
 }
 
 class MurajaahState {

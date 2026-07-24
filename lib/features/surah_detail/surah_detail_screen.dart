@@ -54,6 +54,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   late StreamSubscription _playerCompleteSubscription;
 
   // Scrolling reference
+  final ScrollController _scrollController = ScrollController();
   final Map<int, GlobalKey> _ayahKeys = {};
 
   // Go to Ayah feature state
@@ -62,6 +63,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   List<Map<String, dynamic>> _dropdownSurahs = [];
   Set<String> _bookmarkedKeys = {};
   String? _lastLang;
+  String? _lastSyncedMurajaahVerseKey;
 
   String get _currentLang => ref.watch(settingsProvider).appLanguage;
 
@@ -74,16 +76,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       if (widget.autoplay && mounted) {
         _playAudioForVerse(1);
       } else if (widget.initialAyah != null && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final key = _ayahKeys[widget.initialAyah];
-          if (key?.currentContext != null) {
-            Scrollable.ensureVisible(
-              key!.currentContext!,
-              duration: const Duration(milliseconds: 300),
-              alignment: 0.2,
-            );
-          }
-        });
+        _scrollToAyah(widget.initialAyah!);
       }
     });
     _loadSurahsList();
@@ -123,6 +116,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _playerStateSubscription.cancel();
     _playerCompleteSubscription.cancel();
     _audioPlayer.dispose();
@@ -142,6 +136,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
           _playAudioForVerse(1);
         }
       });
+    } else if (widget.initialAyah != null && widget.initialAyah != oldWidget.initialAyah) {
+      _scrollToAyah(widget.initialAyah!);
     }
   }
 
@@ -248,6 +244,13 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
     );
 
     await _loadTranslations();
+
+    final murajaah = ref.read(murajaahProvider);
+    if (murajaah.sessionActive && murajaah.currentVerse != null && murajaah.currentVerse!.surahId == widget.surahId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToAyah(murajaah.currentVerse!.ayahNumber);
+      });
+    }
   }
 
   Future<void> _loadTranslations() async {
@@ -736,16 +739,36 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
 
   // ── Scroll to ayah in list ─────────────────────────────────────────────
   void _scrollToAyah(int ayahNumber) {
+    if (_verses.isEmpty) return;
+    final idx = _verses.indexWhere((v) => (v['ayah_number'] as int) == ayahNumber);
+    if (idx < 0) return;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final key = _ayahKeys[ayahNumber];
-      if (key?.currentContext != null) {
-        Scrollable.ensureVisible(
-          key!.currentContext!,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-          alignment: 0.2,
-        );
-      }
+      if (!_scrollController.hasClients) return;
+
+      const double headerHeight = 280.0;
+      const double approxCardHeight = 180.0;
+      final approxOffset = (headerHeight + idx * approxCardHeight).clamp(
+        0.0,
+        _scrollController.position.maxScrollExtent,
+      );
+
+      _scrollController.animateTo(
+        approxOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      ).then((_) {
+        if (!mounted) return;
+        final key = _ayahKeys[ayahNumber];
+        if (key?.currentContext != null) {
+          Scrollable.ensureVisible(
+            key!.currentContext!,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            alignment: 0.2,
+          );
+        }
+      });
     });
   }
 
@@ -758,18 +781,24 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
       Future.microtask(() => _loadTranslations());
     }
 
-    // Listen to murajaah state changes and auto-scroll to the active verse
-    // when this surah is being played via the Murajaah module.
-    ref.listen<MurajaahState>(murajaahProvider, (previous, next) {
-      if (!next.sessionActive || !next.isPlaying) return;
-      final verse = next.currentVerse;
-      if (verse == null) return;
-      // Only act if the currently playing verse belongs to THIS surah
-      if (verse.surahId != widget.surahId) return;
-      // Avoid re-scrolling if the verse hasn't changed
-      if (previous?.currentVerse?.verseKey == verse.verseKey) return;
-      _scrollToAyah(verse.ayahNumber);
-    });
+    // Auto-scroll to active verse or navigate to new surah when Murajaah audio plays
+    final murajaahState = ref.watch(murajaahProvider);
+    if (murajaahState.sessionActive && murajaahState.isPlaying && murajaahState.currentVerse != null) {
+      final verse = murajaahState.currentVerse!;
+      if (_lastSyncedMurajaahVerseKey != verse.verseKey) {
+        _lastSyncedMurajaahVerseKey = verse.verseKey;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (verse.surahId != widget.surahId) {
+            context.go('/surahs/${verse.surahId}?ayah=${verse.ayahNumber}');
+          } else {
+            _scrollToAyah(verse.ayahNumber);
+          }
+        });
+      }
+    } else if (!murajaahState.sessionActive) {
+      _lastSyncedMurajaahVerseKey = null;
+    }
 
     if (_loading) {
       return Scaffold(
@@ -833,6 +862,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
           }
         },
         child: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           SliverAppBar(
             expandedHeight: 220,

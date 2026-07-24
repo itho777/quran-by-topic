@@ -17,17 +17,16 @@ class PrayerC1WidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         try {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val lang = WidgetStrings.resolveLanguage(prefs)
+            val lang = WidgetPrefHelper.resolveLanguage(context)
             val names = WidgetStrings.prayerNames(lang)
 
-            val hijriDate = getSafeString(prefs, "flutter.hw_hijri_date", "14 Muharram 1447H")
+            val hijriDate = WidgetPrefHelper.getString(context, "hw_hijri_date", "14 Muharram 1447H")
 
-            val p1 = getSafeString(prefs, "flutter.hw_prayer_subuh", "04:32")
-            val p2 = getSafeString(prefs, "flutter.hw_prayer_dzuhur", "11:58")
-            val p3 = getSafeString(prefs, "flutter.hw_prayer_ashar", "15:12")
-            val p4 = getSafeString(prefs, "flutter.hw_prayer_maghrib", "17:55")
-            val p5 = getSafeString(prefs, "flutter.hw_prayer_isya", "19:15")
+            val p1 = WidgetPrefHelper.getString(context, "hw_prayer_subuh", "04:32")
+            val p2 = WidgetPrefHelper.getString(context, "hw_prayer_dzuhur", "11:58")
+            val p3 = WidgetPrefHelper.getString(context, "hw_prayer_ashar", "15:12")
+            val p4 = WidgetPrefHelper.getString(context, "hw_prayer_maghrib", "17:55")
+            val p5 = WidgetPrefHelper.getString(context, "hw_prayer_isya", "19:15")
 
             // Dynamic next prayer info
             val info = PrayerHelper.calculateNextPrayer(p1, p2, p3, p4, p5, lang)
@@ -42,7 +41,7 @@ class PrayerC1WidgetProvider : AppWidgetProvider() {
             val rows = listOf(R.id.row_p1, R.id.row_p2, R.id.row_p3, R.id.row_p4, R.id.row_p5)
             val dots = listOf(R.id.dot_p1, R.id.dot_p2, R.id.dot_p3, R.id.dot_p4, R.id.dot_p5)
 
-            val location = getSafeString(prefs, "flutter.hw_location", "Jakarta")
+            val location = WidgetPrefHelper.getString(context, "hw_location", "Jakarta")
 
             for (appWidgetId in appWidgetIds) {
                 val views = RemoteViews(context.packageName, R.layout.widget_prayer_c1)

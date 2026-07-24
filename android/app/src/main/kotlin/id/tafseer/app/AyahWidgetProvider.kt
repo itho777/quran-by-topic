@@ -18,16 +18,15 @@ class AyahWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         try {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val lang = WidgetStrings.resolveLanguage(prefs)
+            val lang = WidgetPrefHelper.resolveLanguage(context)
 
-            val arabic = getSafeString(prefs, "flutter.hw_ayah_arabic", "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
-            val translation = getSafeString(prefs, "flutter.hw_ayah_translation",
+            val arabic = WidgetPrefHelper.getString(context, "hw_ayah_arabic", "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
+            val translation = WidgetPrefHelper.getString(context, "hw_ayah_translation",
                 if (lang == "en") "In the name of Allah, the Most Gracious, the Most Merciful."
                 else "Dengan nama Allah Yang Maha Pengasih, Maha Penyayang.")
-            val ref = getSafeString(prefs, "flutter.hw_ayah_surah_ref", "Al-Fatihah: 1")
-            val surahNo = getSafeLong(prefs, "flutter.hw_ayah_surah_no", 1L)
-            val ayahNo = getSafeLong(prefs, "flutter.hw_ayah_ayah_no", 1L)
+            val ref = WidgetPrefHelper.getString(context, "hw_ayah_surah_ref", "Al-Fatihah: 1")
+            val surahNo = WidgetPrefHelper.getLong(context, "hw_ayah_surah_no", 1L)
+            val ayahNo = WidgetPrefHelper.getLong(context, "hw_ayah_ayah_no", 1L)
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse("tafseer://verse/$surahNo/$ayahNo")

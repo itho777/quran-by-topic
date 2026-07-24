@@ -34,6 +34,12 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<int>('hw_ayah_surah_no', surahNo);
       await HomeWidget.saveWidgetData<int>('hw_ayah_ayah_no', ayahNo);
 
+      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_arabic', arabic);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_translation', translation);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_ayah_surah_ref', surahRef);
+      await HomeWidget.saveWidgetData<int>('flutter.hw_ayah_surah_no', surahNo);
+      await HomeWidget.saveWidgetData<int>('flutter.hw_ayah_ayah_no', ayahNo);
+
       await HomeWidget.updateWidget(name: 'AyahWidgetProvider');
       debugPrint('Updated AyahWidgetProvider');
     } catch (e) {
@@ -66,6 +72,17 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<String>('hw_hijri_date', hijriDate);
       await HomeWidget.saveWidgetData<String>('hw_location', location);
 
+      await HomeWidget.saveWidgetData<String>('flutter.hw_prayer_subuh', subuh);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_prayer_dzuhur', dzuhur);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_prayer_ashar', ashar);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_prayer_maghrib', maghrib);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_prayer_isya', isya);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_next_prayer_name', nextPrayerName);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_next_prayer_time', nextPrayerTime);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_countdown', countdown);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_hijri_date', hijriDate);
+      await HomeWidget.saveWidgetData<String>('flutter.hw_location', location);
+
       // Trigger update for all prayer time widget variations
       await HomeWidget.updateWidget(name: 'PrayerC1WidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC2WidgetProvider');
@@ -90,6 +107,11 @@ class HomeWidgetService {
       await HomeWidget.saveWidgetData<int>('hw_last_ayah_no', ayahNo);
       await HomeWidget.saveWidgetData<double>('hw_last_progress', progress);
 
+      await HomeWidget.saveWidgetData<String>('flutter.hw_last_surah_name', surahName);
+      await HomeWidget.saveWidgetData<int>('flutter.hw_last_surah_no', surahNo);
+      await HomeWidget.saveWidgetData<int>('flutter.hw_last_ayah_no', ayahNo);
+      await HomeWidget.saveWidgetData<double>('flutter.hw_last_progress', progress);
+
       await HomeWidget.updateWidget(name: 'LastReadWidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC5WidgetProvider');
       debugPrint('Updated LastReadWidgetProvider & PrayerC5WidgetProvider');
@@ -103,6 +125,7 @@ class HomeWidgetService {
   Future<void> syncLanguage(String lang) async {
     try {
       await HomeWidget.saveWidgetData<String>(langKey, lang);
+      await HomeWidget.saveWidgetData<String>('flutter.$langKey', lang);
       // Refresh all widget types so labels update immediately
       await HomeWidget.updateWidget(name: 'AyahWidgetProvider');
       await HomeWidget.updateWidget(name: 'PrayerC1WidgetProvider');

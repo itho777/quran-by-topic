@@ -45,10 +45,13 @@ object WidgetStrings {
      * Returns "en" if the saved pref is "en", otherwise "id".
      * Also respects system locale as a fallback when no pref is saved.
      */
+    fun resolveLanguage(context: android.content.Context): String {
+        return WidgetPrefHelper.resolveLanguage(context)
+    }
+
     fun resolveLanguage(prefs: android.content.SharedPreferences): String {
-        val saved = try { prefs.getString("flutter.hw_language", null) } catch (e: Exception) { null }
+        val saved = try { prefs.getString("hw_language", null) ?: prefs.getString("flutter.hw_language", null) } catch (e: Exception) { null }
         if (saved != null) return saved
-        // Fallback: use system locale
         val systemLang = java.util.Locale.getDefault().language
         return if (systemLang == "en") "en" else "id"
     }

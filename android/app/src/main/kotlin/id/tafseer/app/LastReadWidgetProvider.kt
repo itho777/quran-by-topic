@@ -18,13 +18,12 @@ class LastReadWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         try {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val lang = WidgetStrings.resolveLanguage(prefs)
+            val lang = WidgetPrefHelper.resolveLanguage(context)
 
-            val surahName = getSafeString(prefs, "flutter.hw_last_surah_name", "Al-Kahf")
-            val surahNo = getSafeLong(prefs, "flutter.hw_last_surah_no", 18L)
-            val ayahNo = getSafeLong(prefs, "flutter.hw_last_ayah_no", 10L)
-            val progressDouble = getSafeDouble(prefs, "flutter.hw_last_progress", 37.0)
+            val surahName = WidgetPrefHelper.getString(context, "hw_last_surah_name", "Al-Kahf")
+            val surahNo = WidgetPrefHelper.getLong(context, "hw_last_surah_no", 18L)
+            val ayahNo = WidgetPrefHelper.getLong(context, "hw_last_ayah_no", 10L)
+            val progressDouble = WidgetPrefHelper.getDouble(context, "hw_last_progress", 37.0)
 
             // Language-aware labels
             val lastReadLabel = WidgetStrings.lastReadLabel(lang)

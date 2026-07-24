@@ -18,23 +18,22 @@ class PrayerC5WidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         try {
-            val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-            val lang = WidgetStrings.resolveLanguage(prefs)
+            val lang = WidgetPrefHelper.resolveLanguage(context)
             val names = WidgetStrings.prayerNames(lang)
 
-            val hijriDate = getSafeString(prefs, "flutter.hw_hijri_date", "14 Muharram 1447H")
-            val location = getSafeString(prefs, "flutter.hw_location", "Jakarta")
+            val hijriDate = WidgetPrefHelper.getString(context, "hw_hijri_date", "14 Muharram 1447H")
+            val location = WidgetPrefHelper.getString(context, "hw_location", "Jakarta")
 
-            val p1 = getSafeString(prefs, "flutter.hw_prayer_subuh", "04:32")
-            val p2 = getSafeString(prefs, "flutter.hw_prayer_dzuhur", "11:58")
-            val p3 = getSafeString(prefs, "flutter.hw_prayer_ashar", "15:12")
-            val p4 = getSafeString(prefs, "flutter.hw_prayer_maghrib", "17:55")
-            val p5 = getSafeString(prefs, "flutter.hw_prayer_isya", "19:15")
+            val p1 = WidgetPrefHelper.getString(context, "hw_prayer_subuh", "04:32")
+            val p2 = WidgetPrefHelper.getString(context, "hw_prayer_dzuhur", "11:58")
+            val p3 = WidgetPrefHelper.getString(context, "hw_prayer_ashar", "15:12")
+            val p4 = WidgetPrefHelper.getString(context, "hw_prayer_maghrib", "17:55")
+            val p5 = WidgetPrefHelper.getString(context, "hw_prayer_isya", "19:15")
 
             // Last Read data
-            val surahName = getSafeString(prefs, "flutter.hw_last_surah_name", "Al-Kahf")
-            val surahNo = getSafeLong(prefs, "flutter.hw_last_surah_no", 18L)
-            val ayahNo = getSafeLong(prefs, "flutter.hw_last_ayah_no", 10L)
+            val surahName = WidgetPrefHelper.getString(context, "hw_last_surah_name", "Al-Kahf")
+            val surahNo = WidgetPrefHelper.getLong(context, "hw_last_surah_no", 18L)
+            val ayahNo = WidgetPrefHelper.getLong(context, "hw_last_ayah_no", 10L)
             val ayahLabel = if (lang == "en") "Verse $ayahNo" else "Ayat $ayahNo"
 
             // Dynamic next prayer info

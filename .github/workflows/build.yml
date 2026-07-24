@@ -35,6 +35,10 @@ jobs:
       - name: Configure Flutter JDK
         run: flutter config --jdk-dir $JAVA_HOME
 
+      - name: Install Android SDK 36
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" || true
+
       - name: Setup Keystore & key.properties (if secret available)
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
@@ -68,11 +72,18 @@ jobs:
           grep -E -A3 "(error:|FAILURE|Exception|Caused by|BUILD FAILED|What went wrong|> Task|aapt2 error|Could not|linker|undefined)" /tmp/flutter_build.log | tail -120 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Last 50 lines of raw log:" >> $GITHUB_STEP_SUMMARY
+          echo "### Last 100 lines of raw log:" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -50 /tmp/flutter_build.log >> $GITHUB_STEP_SUMMARY
+          tail -100 /tmp/flutter_build.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          exit 1
+
+      - name: Upload build log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-log
+          path: /tmp/flutter_build.log
+          retention-days: 7
 
       - name: Show APK path
         if: steps.build_apk.outcome == 'success'

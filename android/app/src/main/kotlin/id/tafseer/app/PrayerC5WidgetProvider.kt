@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import android.view.View
 import android.widget.RemoteViews
 
 class PrayerC5WidgetProvider : AppWidgetProvider() {
@@ -91,12 +92,12 @@ class PrayerC5WidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.tv_p5_name, names[4])
                 views.setTextViewText(R.id.tv_p5_time, p5)
 
+                val rings = listOf(R.id.ring_p1, R.id.ring_p2, R.id.ring_p3, R.id.ring_p4, R.id.ring_p5)
+
                 for (i in 0..4) {
                     val isCurrent = (i == info.nextIndex)
-                    val bgColor = if (isCurrent) 0x2010B981.toInt() else 0x00000000
                     val dotColor = if (isCurrent) 0xFF10B981.toInt() else 0xFFD4A843.toInt()
-
-                    views.setInt(rows[i], "setBackgroundColor", bgColor)
+                    views.setViewVisibility(rings[i], if (isCurrent) View.VISIBLE else View.GONE)
                     views.setTextColor(dots[i], dotColor)
                 }
 

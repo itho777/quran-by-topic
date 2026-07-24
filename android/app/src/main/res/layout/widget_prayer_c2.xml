@@ -35,184 +35,255 @@
         android:layout_weight="1"
         android:orientation="horizontal">
 
-        <LinearLayout
-            android:id="@+id/card_p1"
+        <!-- Card P1 -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:background="@drawable/widget_card_inactive"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_marginEnd="4dp">
 
-            <TextView
-                android:id="@+id/ic_p1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="&#9733;"
-                android:textColor="@color/widget_text_muted"
-                android:textSize="14sp"
-                android:gravity="center" />
+            <LinearLayout
+                android:id="@+id/card_p1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_card_inactive"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_p1_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/ic_p1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="&#9733;"
+                    android:textColor="@color/widget_text_muted"
+                    android:textSize="14sp"
+                    android:gravity="center" />
 
-            <TextView
-                android:id="@+id/tv_p1_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tv_p1_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
 
-        <LinearLayout
-            android:id="@+id/card_p2"
+                <TextView
+                    android:id="@+id/tv_p1_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Ring overlay for active state -->
+            <ImageView
+                android:id="@+id/ring_p1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_card_active_gold"
+                android:visibility="gone"
+                android:scaleType="fitXY" />
+        </FrameLayout>
+
+        <!-- Card P2 -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:background="@drawable/widget_card_inactive"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_marginEnd="4dp">
 
-            <TextView
-                android:id="@+id/ic_p2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="&#9728;"
-                android:textColor="@color/widget_text_muted"
-                android:textSize="14sp"
-                android:gravity="center" />
+            <LinearLayout
+                android:id="@+id/card_p2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_card_inactive"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_p2_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/ic_p2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="&#9728;"
+                    android:textColor="@color/widget_text_muted"
+                    android:textSize="14sp"
+                    android:gravity="center" />
 
-            <TextView
-                android:id="@+id/tv_p2_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tv_p2_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
 
-        <LinearLayout
-            android:id="@+id/card_p3"
+                <TextView
+                    android:id="@+id/tv_p2_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ring_p2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_card_active_gold"
+                android:visibility="gone"
+                android:scaleType="fitXY" />
+        </FrameLayout>
+
+        <!-- Card P3 -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:background="@drawable/widget_card_inactive"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_marginEnd="4dp">
 
-            <TextView
-                android:id="@+id/ic_p3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="&#9681;"
-                android:textColor="@color/widget_text_muted"
-                android:textSize="14sp"
-                android:gravity="center" />
+            <LinearLayout
+                android:id="@+id/card_p3"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_card_inactive"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_p3_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/ic_p3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="&#9681;"
+                    android:textColor="@color/widget_text_muted"
+                    android:textSize="14sp"
+                    android:gravity="center" />
 
-            <TextView
-                android:id="@+id/tv_p3_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tv_p3_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
 
-        <LinearLayout
-            android:id="@+id/card_p4"
+                <TextView
+                    android:id="@+id/tv_p3_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ring_p3"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_card_active_gold"
+                android:visibility="gone"
+                android:scaleType="fitXY" />
+        </FrameLayout>
+
+        <!-- Card P4 -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:background="@drawable/widget_card_inactive"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_marginEnd="4dp">
 
-            <TextView
-                android:id="@+id/ic_p4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="&#9675;"
-                android:textColor="@color/widget_gold"
-                android:textSize="14sp"
-                android:gravity="center" />
+            <LinearLayout
+                android:id="@+id/card_p4"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_card_inactive"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_p4_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/ic_p4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="&#9675;"
+                    android:textColor="@color/widget_gold"
+                    android:textSize="14sp"
+                    android:gravity="center" />
 
-            <TextView
-                android:id="@+id/tv_p4_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tv_p4_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
 
-        <LinearLayout
-            android:id="@+id/card_p5"
+                <TextView
+                    android:id="@+id/tv_p4_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ring_p4"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_card_active_gold"
+                android:visibility="gone"
+                android:scaleType="fitXY" />
+        </FrameLayout>
+
+        <!-- Card P5 -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="@drawable/widget_card_inactive"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_weight="1">
 
-            <TextView
-                android:id="@+id/ic_p5"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="&#9790;"
-                android:textColor="@color/widget_text_muted"
-                android:textSize="14sp"
-                android:gravity="center" />
+            <LinearLayout
+                android:id="@+id/card_p5"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_card_inactive"
+                android:gravity="center"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_p5_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/ic_p5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="&#9790;"
+                    android:textColor="@color/widget_text_muted"
+                    android:textSize="14sp"
+                    android:gravity="center" />
 
-            <TextView
-                android:id="@+id/tv_p5_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tv_p5_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tv_p5_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ring_p5"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_card_active_gold"
+                android:visibility="gone"
+                android:scaleType="fitXY" />
+        </FrameLayout>
     </LinearLayout>
 
     <LinearLayout

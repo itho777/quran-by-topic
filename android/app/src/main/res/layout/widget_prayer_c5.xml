@@ -22,59 +22,73 @@
         android:weightSum="5"
         android:orientation="horizontal">
 
-        <!-- LEFT PANEL: Last Read Ayah -->
-        <LinearLayout
-            android:id="@+id/card_last_read"
+        <!-- LEFT PANEL: Last Read Ayah with ring -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="2"
             android:layout_marginEnd="6dp"
-            android:layout_marginRight="6dp"
-            android:background="@drawable/widget_card_inactive"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="6dp">
+            android:layout_marginRight="6dp">
 
-            <TextView
-                android:id="@+id/tv_last_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📖 LAST READ"
-                android:textColor="@color/widget_gold"
-                android:textSize="9sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_surah_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/widget_gold"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_ayah_number"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/btn_continue"
+            <LinearLayout
+                android:id="@+id/card_last_read"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/widget_btn_gold"
+                android:layout_height="match_parent"
+                android:background="@drawable/widget_card_inactive"
                 android:gravity="center"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:text="Continue ▶"
-                android:textColor="#000000"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                android:orientation="vertical"
+                android:padding="6dp">
+
+                <TextView
+                    android:id="@+id/tv_last_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📖 LAST READ"
+                    android:textColor="@color/widget_gold"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_surah_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/widget_gold"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_ayah_number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btn_continue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/widget_btn_gold"
+                    android:gravity="center"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:text="Continue ▶"
+                    android:textColor="#000000"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Static gold ring on Last Read panel -->
+            <ImageView
+                android:id="@+id/ring_last_read"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/widget_card_active_gold"
+                android:visibility="visible"
+                android:scaleType="fitXY" />
+        </FrameLayout>
 
         <!-- RIGHT PANEL: Prayer Times List -->
         <LinearLayout
@@ -84,199 +98,269 @@
             android:gravity="center_vertical"
             android:orientation="vertical">
 
-            <LinearLayout
-                android:id="@+id/row_p1"
+            <!-- Row P1 -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
+                android:layout_marginBottom="2dp">
 
-                <TextView
-                    android:id="@+id/dot_p1"
-                    android:layout_width="12dp"
+                <LinearLayout
+                    android:id="@+id/row_p1"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="•"
-                    android:textColor="@color/widget_gold"
-                    android:textSize="14sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
 
-                <TextView
-                    android:id="@+id/tv_p1_name"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/dot_p1"
+                        android:layout_width="12dp"
+                        android:layout_height="wrap_content"
+                        android:text="•"
+                        android:textColor="@color/widget_gold"
+                        android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/tv_p1_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_p1_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp" />
 
-            <LinearLayout
-                android:id="@+id/row_p2"
+                    <TextView
+                        android:id="@+id/tv_p1_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ring_p1"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_card_active_emerald"
+                    android:visibility="gone"
+                    android:scaleType="fitXY" />
+            </FrameLayout>
+
+            <!-- Row P2 -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
+                android:layout_marginBottom="2dp">
 
-                <TextView
-                    android:id="@+id/dot_p2"
-                    android:layout_width="12dp"
+                <LinearLayout
+                    android:id="@+id/row_p2"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="•"
-                    android:textColor="@color/widget_gold"
-                    android:textSize="14sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
 
-                <TextView
-                    android:id="@+id/tv_p2_name"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/dot_p2"
+                        android:layout_width="12dp"
+                        android:layout_height="wrap_content"
+                        android:text="•"
+                        android:textColor="@color/widget_gold"
+                        android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/tv_p2_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_p2_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp" />
 
-            <LinearLayout
-                android:id="@+id/row_p3"
+                    <TextView
+                        android:id="@+id/tv_p2_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ring_p2"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_card_active_emerald"
+                    android:visibility="gone"
+                    android:scaleType="fitXY" />
+            </FrameLayout>
+
+            <!-- Row P3 -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
+                android:layout_marginBottom="2dp">
 
-                <TextView
-                    android:id="@+id/dot_p3"
-                    android:layout_width="12dp"
+                <LinearLayout
+                    android:id="@+id/row_p3"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="•"
-                    android:textColor="@color/widget_gold"
-                    android:textSize="14sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
 
-                <TextView
-                    android:id="@+id/tv_p3_name"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/dot_p3"
+                        android:layout_width="12dp"
+                        android:layout_height="wrap_content"
+                        android:text="•"
+                        android:textColor="@color/widget_gold"
+                        android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/tv_p3_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_p3_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp" />
 
-            <LinearLayout
-                android:id="@+id/row_p4"
+                    <TextView
+                        android:id="@+id/tv_p3_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ring_p3"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_card_active_emerald"
+                    android:visibility="gone"
+                    android:scaleType="fitXY" />
+            </FrameLayout>
+
+            <!-- Row P4 -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="2dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
+                android:layout_marginBottom="2dp">
 
-                <TextView
-                    android:id="@+id/dot_p4"
-                    android:layout_width="12dp"
+                <LinearLayout
+                    android:id="@+id/row_p4"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="•"
-                    android:textColor="@color/widget_gold"
-                    android:textSize="14sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
 
-                <TextView
-                    android:id="@+id/tv_p4_name"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/dot_p4"
+                        android:layout_width="12dp"
+                        android:layout_height="wrap_content"
+                        android:text="•"
+                        android:textColor="@color/widget_gold"
+                        android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/tv_p4_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_p4_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp" />
 
-            <LinearLayout
-                android:id="@+id/row_p5"
+                    <TextView
+                        android:id="@+id/tv_p4_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ring_p4"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_card_active_emerald"
+                    android:visibility="gone"
+                    android:scaleType="fitXY" />
+            </FrameLayout>
+
+            <!-- Row P5 -->
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp">
+                android:layout_height="wrap_content">
 
-                <TextView
-                    android:id="@+id/dot_p5"
-                    android:layout_width="12dp"
+                <LinearLayout
+                    android:id="@+id/row_p5"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="•"
-                    android:textColor="@color/widget_gold"
-                    android:textSize="14sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingLeft="6dp"
+                    android:paddingRight="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp">
 
-                <TextView
-                    android:id="@+id/tv_p5_name"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp" />
+                    <TextView
+                        android:id="@+id/dot_p5"
+                        android:layout_width="12dp"
+                        android:layout_height="wrap_content"
+                        android:text="•"
+                        android:textColor="@color/widget_gold"
+                        android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/tv_p5_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/tv_p5_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tv_p5_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ring_p5"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/widget_card_active_emerald"
+                    android:visibility="gone"
+                    android:scaleType="fitXY" />
+            </FrameLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

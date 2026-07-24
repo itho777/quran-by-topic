@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.view.View
 import android.widget.RemoteViews
 
 class PrayerC4WidgetProvider : AppWidgetProvider() {
@@ -80,10 +81,11 @@ class PrayerC4WidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.tv_fp5_name, names[4])
                 views.setTextViewText(R.id.tv_fp5_time, p5)
 
+                val rings = listOf(R.id.ring_fp1, R.id.ring_fp2, R.id.ring_fp3, R.id.ring_fp4, R.id.ring_fp5)
+
                 for (i in 0..4) {
                     val isCurrent = (i == info.nextIndex)
-                    val bgColor = if (isCurrent) 0x3010B981.toInt() else 0x0FFFFFFF.toInt()
-                    views.setInt(frostCards[i], "setBackgroundColor", bgColor)
+                    views.setViewVisibility(rings[i], if (isCurrent) View.VISIBLE else View.GONE)
                 }
 
                 if (pendingIntent != null) {

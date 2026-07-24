@@ -230,7 +230,7 @@ class HomeWidgetService {
       }
 
       final suraRes = await db
-          .from('suras')
+          .from('surahs')
           .select('name_en')
           .eq('id', suraId)
           .maybeSingle();

@@ -182,14 +182,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         });
       }
 
-      // Sync with Home Screen Widget
+      // Sync with Home Screen Widget — uses data already fetched above
       try {
-        final suraRes = await db
-            .from('suras')
-            .select('name_en')
-            .eq('id', suraId)
-            .maybeSingle();
-        final sName = (suraRes?['name_en'] as String?) ?? 'Surah $suraId';
+        String sName = 'Surah $suraId';
+        try {
+          final suraRes = await db
+              .from('surahs')
+              .select('name_en')
+              .eq('id', suraId)
+              .maybeSingle();
+          sName = (suraRes?['name_en'] as String?) ?? sName;
+        } catch (_) {}
 
         final currentLang = ref.read(settingsProvider).appLanguage;
         final translation = currentLang == 'en' ? translationEn : translationId;

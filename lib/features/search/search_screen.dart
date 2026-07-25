@@ -363,7 +363,7 @@ class _SearchScreenState extends State<SearchScreen> {
         'ro.grigore':      'Grigore (Romanian)',
       };
 
-      void _addExcerpt(String vk, String sid, String txt, List<String> qWords) {
+      void addExcerpt(String vk, String sid, String txt, List<String> qWords) {
         final lowerTxt = txt.toLowerCase();
         if (!qWords.any((w) => lowerTxt.contains(w))) return;
         final name = sourceNames[sid] ?? sid;
@@ -396,7 +396,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 .inFilter('verse_key', keys)
                 .ilike('text', '%$firstWord%');
             for (final row in List<Map<String, dynamic>>.from(dbRows)) {
-              _addExcerpt(
+              addExcerpt(
                 row['verse_key'] as String? ?? '',
                 row['source_id'] as String? ?? '',
                 row['text']      as String? ?? '',
@@ -411,7 +411,7 @@ class _SearchScreenState extends State<SearchScreen> {
           final cachedHits = cdn.searchLoaded(keys, firstWord);
           for (final entry in cachedHits.entries) {
             for (final vkEntry in entry.value.entries) {
-              _addExcerpt(vkEntry.key, entry.key, vkEntry.value, queryWords);
+              addExcerpt(vkEntry.key, entry.key, vkEntry.value, queryWords);
             }
           }
 
@@ -456,7 +456,7 @@ class _SearchScreenState extends State<SearchScreen> {
             final cdnHits = await cdn.searchCdnSources(cdnSources, keys, firstWord);
             for (final entry in cdnHits.entries) {
               for (final vkEntry in entry.value.entries) {
-                _addExcerpt(vkEntry.key, entry.key, vkEntry.value, queryWords);
+                addExcerpt(vkEntry.key, entry.key, vkEntry.value, queryWords);
               }
             }
           }

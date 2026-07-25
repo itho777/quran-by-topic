@@ -347,7 +347,11 @@ begin
 
                 -- All matching asbabun nuzul
                 select json_build_object(
-                    'source_name', 'Asbabun Nuzul (al-Wahidi)',
+                    'source_name', case an2.source_id
+                        when 'id.kemenag_nuzul' then 'Asbabun Nuzul Kemenag RI (ID)'
+                        when 'en.wahidi'        then 'Asbabun Nuzul (al-Wahidi)'
+                        else an2.source_id
+                    end,
                     'source_type', 'Asbabun Nuzul',
                     'text', (
                         select substring(an2.text from greatest(1,

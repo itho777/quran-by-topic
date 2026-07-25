@@ -20,7 +20,7 @@ if (hasReleaseKeystore) {
 android {
     namespace = "id.tafseer.app"
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -31,8 +31,8 @@ android {
         applicationId = "id.tafseer.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 80
+        versionName = "3.1.0-beta.2"
         multiDexEnabled = true
     }
 

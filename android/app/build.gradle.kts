@@ -31,8 +31,8 @@ android {
         applicationId = "id.tafseer.app"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 80
-        versionName = "3.1.0-beta.2"
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
         multiDexEnabled = true
     }
 

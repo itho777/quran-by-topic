@@ -233,7 +233,11 @@ BEGIN
                 -- Match in asbabun nuzul (centered on first keyword)
                 SELECT
                     json_build_object(
-                        'source_name', 'Asbabun Nuzul (al-Wahidi)',
+                        'source_name', CASE an.source_id
+                            WHEN 'id.kemenag_nuzul' THEN 'Asbabun Nuzul Kemenag RI (ID)'
+                            WHEN 'en.wahidi'        THEN 'Asbabun Nuzul (al-Wahidi)'
+                            ELSE an.source_id
+                        END,
                         'source_type', 'Asbabun Nuzul',
                         'text', (
                             SELECT substring(an.text from greatest(1,

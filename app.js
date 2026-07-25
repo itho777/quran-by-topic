@@ -1400,6 +1400,8 @@ function getSearchExcerpts(verseKey, query) {
     return highlightSnippet(text, q);
   }
 
+  const renderedSources = new Set();
+
   if (searchContextSnippets && searchContextSnippets[verseKey]) {
     let snippets = [];
     try {
@@ -1410,6 +1412,7 @@ function getSearchExcerpts(verseKey, query) {
     if (Array.isArray(snippets) && snippets.length > 0) {
       snippets.forEach(s => {
         if (s && s.text) {
+          if (s.source_id) renderedSources.add(s.source_id);
           const highlighted = highlightText(s.text, query);
           const typeClass = s.source_type === 'Tafsir' ? 'tafsir-source' : 
                             s.source_type === 'Asbabun Nuzul' ? 'nuzul-source' : 'translation-source';
@@ -1426,10 +1429,12 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all translations
   db.registry.translations.forEach(t => {
+    if (renderedSources.has(t.id)) return;
     const data = db.cache.get(t.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
       if (textMatchesQuery(text, query)) {
+        renderedSources.add(t.id);
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source translation-source search-excerpt-source-link" href="#" title="Open ayah with this translation" onclick="return goToVerseWithSource('${t.id}','translations','${verseKey}')">${t.name}</a>
@@ -1442,10 +1447,12 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all tafsirs
   db.registry.tafsirs.forEach(t => {
+    if (renderedSources.has(t.id)) return;
     const data = getTafsirData(t);
     if (data) {
       const text = resolveTafsirText(data, verseKey);
       if (textMatchesQuery(text, query)) {
+        renderedSources.add(t.id);
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source tafsir-source search-excerpt-source-link" href="#" title="Open ayah with this tafsir" onclick="return goToVerseWithSource('${t.id}','tafsirs','${verseKey}')">${t.name}</a>
@@ -1458,10 +1465,12 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all asbabun nuzul
   db.registry.asbabun_nuzul.forEach(n => {
+    if (renderedSources.has(n.id)) return;
     const data = db.cache.get(n.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
       if (textMatchesQuery(text, query)) {
+        renderedSources.add(n.id);
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source nuzul-source search-excerpt-source-link" href="#" title="Open ayah with this asbabun nuzul" onclick="return goToVerseWithSource('${n.id}','asbabun_nuzul','${verseKey}')">${n.name}</a>

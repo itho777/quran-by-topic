@@ -145,7 +145,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       final box = ctx.findRenderObject() as RenderBox?;
       if (box != null && box.hasSize) return box.size.height;
     }
-    return 286.0;
+    return _studyMenuBarVisible ? 270.0 : 220.0;
   }
 
   // Pre-indexed: page Ã¢â€ â€™ list of (globalAyahId, x, y) tuples, built once from the static coords.
@@ -2991,7 +2991,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
               key: _studyPanelKey,
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
-              height: 270.0,
+              height: _studyMenuBarVisible ? 270.0 : 220.0,
 
 
               decoration: BoxDecoration(

@@ -2434,173 +2434,184 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       int pageNum = index + 1;
                       final fullWidth = ref.watch(settingsProvider).mushafFullWidth;
                       const aspectRatio = 345.0 / 550.0;
-                      final maxW = mediaQuery.size.width;
-                      final fullAvailH = mediaQuery.size.height - (20.0 + mediaQuery.padding.bottom);
-                      final testW = fullWidth ? (maxW > 650.0 ? 650.0 : maxW) : (fullAvailH * aspectRatio);
-                      final testH = testW / aspectRatio;
-                      final isSufficientWithoutMenus = !showStudyPanel && (testH <= fullAvailH);
 
-                      return Center(
+                      // ── KEY FIX: compute page size from stable screen dimensions,
+                      //    NOT from LayoutBuilder constraints that shrink whenever
+                      //    AnimatedPadding changes.  The top menu is an AnimatedPositioned
+                      //    overlay in the outer Stack and must NOT affect layout at all.
+                      final screenW = mediaQuery.size.width;
+                      final screenH = mediaQuery.size.height;
+                      final bottomInset = showStudyPanel
+                          ? (_actualPanelHeight + mediaQuery.padding.bottom)
+                          : (20.0 + mediaQuery.padding.bottom);
+                      final stableH = screenH - bottomInset;
 
-                        child: AnimatedPadding(
+                      double pageW, pageH;
+                      if (fullWidth) {
+                        pageW = screenW > 650.0 ? 650.0 : screenW;
+                        pageH = pageW / aspectRatio;
+                      } else {
+                        if (stableH.isFinite && stableH * aspectRatio <= screenW) {
+                          pageH = stableH;
+                          pageW = stableH * aspectRatio;
+                        } else {
+                          pageW = screenW.isFinite ? screenW : 400;
+                          pageH = pageW / aspectRatio;
+                        }
+                      }
 
-                          duration: const Duration(milliseconds: 300),
+                      // Does the page fit without needing to scroll or nudge for menu?
+                      final fitsVertically = !showStudyPanel && pageH <= stableH;
 
-                          curve: Curves.easeInOut,
+                      final murajaahState = ref.watch(murajaahProvider);
+                      final isMurajaahActive = murajaahState.sessionActive && murajaahState.isPlaying;
+                      final murajaahVerse = murajaahState.currentVerse;
 
-                          padding: EdgeInsets.only(
-                            top: isSufficientWithoutMenus
-                                ? 0.0
-                                : (_menusVisible ? 90.0 : 0.0),
-                            // Fixed padding when study panel is open — avoids blank space on menu-bar auto-hide
-                            bottom: showStudyPanel
-                                ? (_actualPanelHeight + mediaQuery.padding.bottom)
-                                : (20.0 + mediaQuery.padding.bottom),
-                          ),
+                      // Use svgVerseId (sequential 1–6236) for SVG element highlighting.
+                      final effectivePlayingVerseId = isMurajaahActive
+                          ? murajaahVerse?.svgVerseId
+                          : (_isPlaying ? _svgIdForDbId(_playingVerseId) : null);
 
+                      final effectiveSelectedVerseId = isMurajaahActive
+                          ? (murajaahVerse?.svgVerseId ?? _svgIdForDbId(_selectedVerseId))
+                          : _svgIdForDbId(_selectedVerseId);
 
-                        child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final fullWidth = ref.watch(settingsProvider).mushafFullWidth;
-                              // Calculate constrained size respecting the mushaf aspect ratio
-                              // so the HtmlElementView always gets a concrete size.
-                              final availH = constraints.maxHeight;
-                              final availW = constraints.maxWidth;
-                              const aspectRatio = 345.0 / 550.0;
-                              double pageW, pageH;
-                              if (fullWidth) {
-                                pageW = availW > 650.0 ? 650.0 : availW;
-                                pageH = pageW / aspectRatio;
-                              } else {
-                                // Fit within available space, maintaining aspect ratio
-                                if (availH.isFinite && availH * aspectRatio <= availW) {
-                                  pageH = availH;
-                                  pageW = availH * aspectRatio;
-                                } else {
-                                  pageW = availW.isFinite ? availW : 400;
-                                  pageH = pageW / aspectRatio;
-                                }
-                              }
+                      final panelHeightPx = showStudyPanel
+                          ? (_actualPanelHeight + mediaQuery.padding.bottom)
+                          : 0.0;
 
-                              final murajaahState = ref.watch(murajaahProvider);
-                              final isMurajaahActive = murajaahState.sessionActive && murajaahState.isPlaying;
-                              final murajaahVerse = murajaahState.currentVerse;
+                      final activeSvgId = effectivePlayingVerseId ?? effectiveSelectedVerseId;
+                      if (fullWidth && activeSvgId != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _scrollFullWidthToSvgVerse(activeSvgId, pageH, panelHeightPx);
+                        });
+                      }
 
-                              // Use svgVerseId (sequential 1–6236) for SVG element highlighting.
-                              // The SVG uses id="verse-N" based on sequential verse order, which
-                              // may differ from the Supabase DB primary key (globalId).
-                              final effectivePlayingVerseId = isMurajaahActive
-                                  ? murajaahVerse?.svgVerseId
-                                  : (_isPlaying ? _svgIdForDbId(_playingVerseId) : null);
+                      final pageImage = buildQuranPageImage(
+                        context,
+                        pageNum,
+                        onTap: _onUserInteraction,
+                        onTapWithPosition: _onImageTapped,
+                        onVerseTapped: _onVerseSelectedBySurahAyah,
+                        selectedVerseId: effectiveSelectedVerseId,
+                        playingVerseId: effectivePlayingVerseId,
+                        fullWidth: fullWidth,
+                        viewportWidth: pageW,
+                        panelHeight: panelHeightPx,
+                      );
 
-                              final effectiveSelectedVerseId = isMurajaahActive
-                                  ? (murajaahVerse?.svgVerseId ?? _svgIdForDbId(_selectedVerseId))
-                                  : _svgIdForDbId(_selectedVerseId);
+                      final pageDecorationBox = Container(
+                        width: pageW,
+                        height: pageH,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFBF9F1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: pageImage,
+                      );
 
-                              // Pass the panel height so the SVG auto-scroll
-                              // centres the verse in the visible area above the panel.
-                              final panelHeightPx = showStudyPanel
-                                  ? (_actualPanelHeight + mediaQuery.padding.bottom)
-                                  : 0.0;
-
-                              final activeSvgId = effectivePlayingVerseId ?? effectiveSelectedVerseId;
-                              if (fullWidth && activeSvgId != null) {
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  _scrollFullWidthToSvgVerse(activeSvgId, pageH, panelHeightPx);
-                                });
-                              }
-
-                              // Build the page image widget
-                              final pageImage = buildQuranPageImage(
-                                context,
-                                pageNum,
-                                onTap: _onUserInteraction,
-                                onTapWithPosition: _onImageTapped,
-                                onVerseTapped: _onVerseSelectedBySurahAyah,
-                                selectedVerseId: effectiveSelectedVerseId,
-                                playingVerseId: effectivePlayingVerseId,
-                                fullWidth: fullWidth,
-                                viewportWidth: pageW,
-                                panelHeight: panelHeightPx,
-                              );
-
-                              final pageDecorationBox = Container(
-                                width: pageW,
-                                height: pageH,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFBF9F1),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.08),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ],
+                      // ── STATIONARY PATH: page fits vertically, study closed.
+                      //    No AnimatedPadding — the menu is a floating overlay and
+                      //    must not displace the page at all.
+                      if (fitsVertically) {
+                        if (fullWidth) {
+                          return SizedBox.expand(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: bottomInset),
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  controller: _fullWidthScrollController,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  child: pageDecorationBox,
                                 ),
-                                child: pageImage,
-                              );
+                              ),
+                            ),
+                          );
+                        } else {
+                          final controller = _transformControllers.putIfAbsent(
+                            pageNum,
+                            () => TransformationController()
+                              ..addListener(() {
+                                if (pageNum == _currentPage) {
+                                  final zoomed = _transformControllers[pageNum]!.value.getMaxScaleOnAxis() > 1.01;
+                                  if (zoomed != _isZoomed && mounted) {
+                                    setState(() => _isZoomed = zoomed);
+                                  }
+                                }
+                              }),
+                          );
+                          return SizedBox.expand(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: bottomInset),
+                              child: InteractiveViewer(
+                                key: ValueKey('iv_fit_$pageNum'),
+                                transformationController: controller,
+                                maxScale: 4.0,
+                                minScale: 1.0,
+                                panEnabled: true,
+                                scaleEnabled: true,
+                                child: Center(child: pageDecorationBox),
+                              ),
+                            ),
+                          );
+                        }
+                      }
 
-                              if (!fullWidth) {
-                                final controller = _transformControllers.putIfAbsent(
-                                  pageNum,
-                                  () => TransformationController()
-                                    ..addListener(() {
-                                      if (pageNum == _currentPage) {
-                                        final zoomed = _transformControllers[pageNum]!.value.getMaxScaleOnAxis() > 1.01;
-                                        if (zoomed != _isZoomed && mounted) {
-                                          setState(() => _isZoomed = zoomed);
+                      // ── SCROLL PATH: page is taller than visible area (small screen
+                      //    or study panel open).  Use AnimatedPadding so the menu
+                      //    nudges the page down to avoid overlap.
+                      return Center(
+                        child: AnimatedPadding(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          padding: EdgeInsets.only(
+                            top: _menusVisible ? 90.0 : 0.0,
+                            bottom: bottomInset,
+                          ),
+                          child: fullWidth
+                              ? SizedBox(
+                                  width: pageW,
+                                  child: SingleChildScrollView(
+                                    controller: _fullWidthScrollController,
+                                    physics: const ClampingScrollPhysics(),
+                                    scrollDirection: Axis.vertical,
+                                    child: pageDecorationBox,
+                                  ),
+                                )
+                              : Builder(builder: (ctx) {
+                                  final controller = _transformControllers.putIfAbsent(
+                                    pageNum,
+                                    () => TransformationController()
+                                      ..addListener(() {
+                                        if (pageNum == _currentPage) {
+                                          final zoomed = _transformControllers[pageNum]!.value.getMaxScaleOnAxis() > 1.01;
+                                          if (zoomed != _isZoomed && mounted) {
+                                            setState(() => _isZoomed = zoomed);
+                                          }
                                         }
-                                      }
-                                    }),
-                                );
-                                return SizedBox(
-                                  width: availW,
-                                  height: availH,
-                                  child: InteractiveViewer(
+                                      }),
+                                  );
+                                  return InteractiveViewer(
                                     key: ValueKey('iv_fit_$pageNum'),
                                     transformationController: controller,
                                     maxScale: 4.0,
                                     minScale: 1.0,
                                     panEnabled: true,
                                     scaleEnabled: true,
-                                    child: Center(
-                                      child: pageDecorationBox,
-                                    ),
-                                  ),
-                                );
-                              }
+                                    child: Center(child: pageDecorationBox),
+                                  );
+                                }),
+                        ),
+                      );
+                    },
 
-                              // ── Full-width mode: zoom disabled, vertical scrolling via SingleChildScrollView.
-                              //    If study section is closed and screen height is sufficient for full page (pageH <= availH),
-                              //    center align the quran page vertically.
-                              final isVerticallySufficient = pageH <= availH;
-                              final shouldCenterVertically = !showStudyPanel && isVerticallySufficient;
 
-                              return SizedBox(
-                                width: pageW,
-                                height: availH,
-                                child: SingleChildScrollView(
-                                  controller: _fullWidthScrollController,
-                                  physics: isVerticallySufficient
-                                      ? const NeverScrollableScrollPhysics()
-                                      : const ClampingScrollPhysics(),
-                                  scrollDirection: Axis.vertical,
-                                  child: Container(
-                                    width: pageW,
-                                    height: shouldCenterVertically ? availH : pageH,
-                                    alignment: shouldCenterVertically ? Alignment.center : Alignment.topCenter,
-                                    child: pageDecorationBox,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-
-                      ),
-
-                    );
-
-                  },
 
                 ),
 

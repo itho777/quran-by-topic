@@ -145,8 +145,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       final box = ctx.findRenderObject() as RenderBox?;
       if (box != null && box.hasSize) return box.size.height;
     }
-    // Fallback: match the AnimatedContainer heights + a small buffer
-    return (_studyMenuBarVisible ? 270.0 : 220.0) + 16.0;
+    return 286.0;
   }
 
   // Pre-indexed: page Ã¢â€ â€™ list of (globalAyahId, x, y) tuples, built once from the static coords.
@@ -1304,7 +1303,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     _menuCollapseTimer?.cancel();
     _studyMenuCollapseTimer?.cancel();
 
-    _menuCollapseTimer = Timer(const Duration(seconds: 5), () {
+    _menuCollapseTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
           _menusVisible = false;
@@ -2551,7 +2550,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       // ── SCROLL PATH: page is taller than visible area (small screen
                       //    or study panel open).  Use AnimatedPadding so the menu
                       //    nudges the page down to avoid overlap.
-                      return Center(
+                      return Align(
+                        alignment: Alignment.topCenter,
                         child: AnimatedPadding(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
@@ -2991,7 +2991,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
               key: _studyPanelKey,
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
-              height: _studyMenuBarVisible ? 270.0 : 220.0,
+              height: 270.0,
 
 
               decoration: BoxDecoration(

@@ -2414,11 +2414,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       // System safe-area only — the only truly stable inset.
                       // Used for the stationary path so nothing dynamic can shift the page.
                       final safeBottom = mediaQuery.padding.bottom;
+                      final navBarOffset = _menusVisible ? 56.0 : 0.0;
 
                       // Dynamic inset — used only in the SCROLL path where movement is acceptable.
                       final bottomInset = showStudyPanel
-                          ? (_actualPanelHeight + safeBottom)
+                          ? (_actualPanelHeight + navBarOffset)
                           : (20.0 + safeBottom);
+                      final topInset = _menusVisible ? 90.0 : 0.0;
+                      final availViewportH = screenH - topInset - bottomInset;
 
                       // ── Page size computed against raw screen — no component heights subtracted.
                       //    The top menu bar and study bar are floating overlays; they must not
@@ -2456,7 +2459,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           : _svgIdForDbId(_selectedVerseId);
 
                       final panelHeightPx = showStudyPanel
-                          ? (_actualPanelHeight + safeBottom)
+                          ? (_actualPanelHeight + navBarOffset)
                           : 0.0;
 
                       final activeSvgId = effectivePlayingVerseId ?? effectiveSelectedVerseId;
@@ -2479,9 +2482,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         panelHeight: panelHeightPx,
                       );
 
+                      // When study panel is open, ensure paper background fills available viewport height so no black gap appears above panel.
+                      final effectiveBoxH = (fullWidth && showStudyPanel && pageH < availViewportH)
+                          ? availViewportH
+                          : pageH;
+
                       final pageDecorationBox = Container(
                         width: pageW,
-                        height: pageH,
+                        height: effectiveBoxH,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFBF9F1),
                           boxShadow: [

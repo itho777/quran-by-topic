@@ -2522,19 +2522,22 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       );
 
                       // ── STATIONARY PATH: page fits in raw screen, study closed.
-                      //    No AnimatedPadding. Bottom padding = system safe-area only
-                      //    (fixed, never dynamic) so position never shifts.
+                      //    Use OverflowBox with exact screen dimensions to override any
+                      //    parent constraints or layout rebuild shifts. This guarantees
+                      //    the Quran page remains 100% stationary at the screen center.
                       if (fitsVertically) {
                         if (fullWidth) {
-                          return SizedBox.expand(
-                            child: Padding(
-                              padding: EdgeInsets.only(bottom: safeBottom),
-                              child: Center(
-                                child: SingleChildScrollView(
-                                  controller: _fullWidthScrollController,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  child: pageDecorationBox,
-                                ),
+                          return OverflowBox(
+                            minWidth: screenW,
+                            maxWidth: screenW,
+                            minHeight: screenH,
+                            maxHeight: screenH,
+                            alignment: Alignment.center,
+                            child: Center(
+                              child: SingleChildScrollView(
+                                controller: _fullWidthScrollController,
+                                physics: const NeverScrollableScrollPhysics(),
+                                child: pageDecorationBox,
                               ),
                             ),
                           );
@@ -2551,18 +2554,20 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 }
                               }),
                           );
-                          return SizedBox.expand(
-                            child: Padding(
-                              padding: EdgeInsets.only(bottom: safeBottom),
-                              child: InteractiveViewer(
-                                key: ValueKey('iv_fit_$pageNum'),
-                                transformationController: controller,
-                                maxScale: 4.0,
-                                minScale: 1.0,
-                                panEnabled: true,
-                                scaleEnabled: true,
-                                child: Center(child: pageDecorationBox),
-                              ),
+                          return OverflowBox(
+                            minWidth: screenW,
+                            maxWidth: screenW,
+                            minHeight: screenH,
+                            maxHeight: screenH,
+                            alignment: Alignment.center,
+                            child: InteractiveViewer(
+                              key: ValueKey('iv_fit_$pageNum'),
+                              transformationController: controller,
+                              maxScale: 4.0,
+                              minScale: 1.0,
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              child: Center(child: pageDecorationBox),
                             ),
                           );
                         }

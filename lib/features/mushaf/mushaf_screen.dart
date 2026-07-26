@@ -1246,6 +1246,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       c.value = Matrix4.identity();
     }
 
+    if (_fullWidthScrollController.hasClients) {
+      _fullWidthScrollController.jumpTo(0.0);
+    }
+
     setState(() {
       _currentPage = pageNum;
       _isZoomed = false;
@@ -2416,8 +2420,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                     reverse: true,
 
-                    // Disable horizontal swipe in fullWidth mode OR when user has zoomed in.
-                    physics: (ref.watch(settingsProvider).mushafFullWidth || _isZoomed)
+                    // Disable horizontal swipe only when user has zoomed in.
+                    physics: _isZoomed
                         ? const NeverScrollableScrollPhysics()
                         : const PageScrollPhysics(),
 
@@ -2428,6 +2432,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                     itemBuilder: (context, index) {
 
                       int pageNum = index + 1;
+                      final fullWidth = ref.watch(settingsProvider).mushafFullWidth;
+                      const aspectRatio = 345.0 / 550.0;
+                      final maxW = mediaQuery.size.width;
+                      final fullAvailH = mediaQuery.size.height - (20.0 + mediaQuery.padding.bottom);
+                      final testW = fullWidth ? (maxW > 650.0 ? 650.0 : maxW) : (fullAvailH * aspectRatio);
+                      final testH = testW / aspectRatio;
+                      final isSufficientWithoutMenus = !showStudyPanel && (testH <= fullAvailH);
 
                       return Center(
 
@@ -2438,8 +2449,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           curve: Curves.easeInOut,
 
                           padding: EdgeInsets.only(
-                            top: _menusVisible ? 90.0 : 0.0,
-                            // Fixed padding when study panel is open Ã¢â‚¬â€ avoids blank space on menu-bar auto-hide
+                            top: isSufficientWithoutMenus
+                                ? 0.0
+                                : (_menusVisible ? 90.0 : 0.0),
+                            // Fixed padding when study panel is open — avoids blank space on menu-bar auto-hide
                             bottom: showStudyPanel
                                 ? (_actualPanelHeight + mediaQuery.padding.bottom)
                                 : (20.0 + mediaQuery.padding.bottom),
@@ -2557,29 +2570,26 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 );
                               }
 
-                              // ── Full-width mode: zoom disabled, vertical scrolling only via SingleChildScrollView.
-                              //    This prevents horizontal panning/diagonal swipe from breaking the full-width layout.
+                              // ── Full-width mode: zoom disabled, vertical scrolling via SingleChildScrollView.
+                              //    If study section is closed and screen height is sufficient for full page (pageH <= availH),
+                              //    center align the quran page vertically.
+                              final isVerticallySufficient = pageH <= availH;
+                              final shouldCenterVertically = !showStudyPanel && isVerticallySufficient;
+
                               return SizedBox(
                                 width: pageW,
                                 height: availH,
                                 child: SingleChildScrollView(
                                   controller: _fullWidthScrollController,
-                                  physics: const ClampingScrollPhysics(),
+                                  physics: isVerticallySufficient
+                                      ? const NeverScrollableScrollPhysics()
+                                      : const ClampingScrollPhysics(),
                                   scrollDirection: Axis.vertical,
                                   child: Container(
                                     width: pageW,
-                                    height: pageH,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFBF9F1),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.08),
-                                          blurRadius: 16,
-                                          offset: const Offset(0, 4),
-                                        )
-                                      ],
-                                    ),
-                                    child: pageImage,
+                                    height: shouldCenterVertically ? availH : pageH,
+                                    alignment: shouldCenterVertically ? Alignment.center : Alignment.topCenter,
+                                    child: pageDecorationBox,
                                   ),
                                 ),
                               );

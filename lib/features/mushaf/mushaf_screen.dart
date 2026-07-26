@@ -2435,39 +2435,44 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       final fullWidth = ref.watch(settingsProvider).mushafFullWidth;
                       const aspectRatio = 345.0 / 550.0;
 
-                      // ── KEY FIX: compute page size from stable screen dimensions,
-                      //    NOT from LayoutBuilder constraints that shrink whenever
-                      //    AnimatedPadding changes.  The top menu is an AnimatedPositioned
-                      //    overlay in the outer Stack and must NOT affect layout at all.
                       final screenW = mediaQuery.size.width;
                       final screenH = mediaQuery.size.height;
-                      final bottomInset = showStudyPanel
-                          ? (_actualPanelHeight + mediaQuery.padding.bottom)
-                          : (20.0 + mediaQuery.padding.bottom);
-                      final stableH = screenH - bottomInset;
+                      // System safe-area only — the only truly stable inset.
+                      // Used for the stationary path so nothing dynamic can shift the page.
+                      final safeBottom = mediaQuery.padding.bottom;
 
+                      // Dynamic inset — used only in the SCROLL path where movement is acceptable.
+                      final bottomInset = showStudyPanel
+                          ? (_actualPanelHeight + safeBottom)
+                          : (20.0 + safeBottom);
+
+                      // ── Page size computed against raw screen — no component heights subtracted.
+                      //    The top menu bar and study bar are floating overlays; they must not
+                      //    influence whether the page "fits" or how large it is rendered.
                       double pageW, pageH;
                       if (fullWidth) {
                         pageW = screenW > 650.0 ? 650.0 : screenW;
                         pageH = pageW / aspectRatio;
                       } else {
-                        if (stableH.isFinite && stableH * aspectRatio <= screenW) {
-                          pageH = stableH;
-                          pageW = stableH * aspectRatio;
+                        // Fit-to-raw-screen: height-first if it fits, otherwise width-first.
+                        if (screenH.isFinite && screenH * aspectRatio <= screenW) {
+                          pageH = screenH;
+                          pageW = screenH * aspectRatio;
                         } else {
                           pageW = screenW.isFinite ? screenW : 400;
                           pageH = pageW / aspectRatio;
                         }
                       }
 
-                      // Does the page fit without needing to scroll or nudge for menu?
-                      final fitsVertically = !showStudyPanel && pageH <= stableH;
+                      // Fits if the page is no taller than the raw screen AND study is closed.
+                      // This check uses only fixed dimensions so it never flips due to
+                      // dynamic component heights (study menu bar auto-hide, etc.).
+                      final fitsVertically = !showStudyPanel && pageH <= screenH;
 
                       final murajaahState = ref.watch(murajaahProvider);
                       final isMurajaahActive = murajaahState.sessionActive && murajaahState.isPlaying;
                       final murajaahVerse = murajaahState.currentVerse;
 
-                      // Use svgVerseId (sequential 1–6236) for SVG element highlighting.
                       final effectivePlayingVerseId = isMurajaahActive
                           ? murajaahVerse?.svgVerseId
                           : (_isPlaying ? _svgIdForDbId(_playingVerseId) : null);
@@ -2477,7 +2482,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           : _svgIdForDbId(_selectedVerseId);
 
                       final panelHeightPx = showStudyPanel
-                          ? (_actualPanelHeight + mediaQuery.padding.bottom)
+                          ? (_actualPanelHeight + safeBottom)
                           : 0.0;
 
                       final activeSvgId = effectivePlayingVerseId ?? effectiveSelectedVerseId;
@@ -2516,14 +2521,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         child: pageImage,
                       );
 
-                      // ── STATIONARY PATH: page fits vertically, study closed.
-                      //    No AnimatedPadding — the menu is a floating overlay and
-                      //    must not displace the page at all.
+                      // ── STATIONARY PATH: page fits in raw screen, study closed.
+                      //    No AnimatedPadding. Bottom padding = system safe-area only
+                      //    (fixed, never dynamic) so position never shifts.
                       if (fitsVertically) {
                         if (fullWidth) {
                           return SizedBox.expand(
                             child: Padding(
-                              padding: EdgeInsets.only(bottom: bottomInset),
+                              padding: EdgeInsets.only(bottom: safeBottom),
                               child: Center(
                                 child: SingleChildScrollView(
                                   controller: _fullWidthScrollController,
@@ -2548,7 +2553,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           );
                           return SizedBox.expand(
                             child: Padding(
-                              padding: EdgeInsets.only(bottom: bottomInset),
+                              padding: EdgeInsets.only(bottom: safeBottom),
                               child: InteractiveViewer(
                                 key: ValueKey('iv_fit_$pageNum'),
                                 transformationController: controller,

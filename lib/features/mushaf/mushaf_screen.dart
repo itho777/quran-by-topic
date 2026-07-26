@@ -1283,87 +1283,62 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   }
 
   void _toggleMenus() {
-
     final nowVisible = !_menusVisible;
 
     setState(() {
-
       _menusVisible = nowVisible;
-
+      _studyMenuBarVisible = nowVisible;
     });
 
     ref.read(hideNavBarProvider.notifier).state = !nowVisible;
 
     if (nowVisible) {
-
       _startMenuCollapseTimer();
-
     } else {
-
       _menuCollapseTimer?.cancel();
-
+      _studyMenuCollapseTimer?.cancel();
     }
-
   }
 
   void _startMenuCollapseTimer() {
-
     _menuCollapseTimer?.cancel();
+    _studyMenuCollapseTimer?.cancel();
 
     _menuCollapseTimer = Timer(const Duration(seconds: 5), () {
-
-      if (mounted && _menusVisible) {
-
+      if (mounted) {
         setState(() {
-
           _menusVisible = false;
-
+          _studyMenuBarVisible = false;
         });
-
         ref.read(hideNavBarProvider.notifier).state = true;
-
       }
-
     });
-
   }
-
 
   void _onUserInteraction() {
     _startMenuCollapseTimer();
-    _startStudyMenuCollapseTimer();
-    if (!_menusVisible) {
+    if (!_menusVisible || !_studyMenuBarVisible) {
       setState(() {
         _menusVisible = true;
-      });
-      ref.read(hideNavBarProvider.notifier).state = false;
-    }
-    if (!_studyMenuBarVisible) {
-      setState(() {
         _studyMenuBarVisible = true;
       });
+      ref.read(hideNavBarProvider.notifier).state = false;
     }
   }
 
   void _startStudyMenuCollapseTimer() {
-    _studyMenuCollapseTimer?.cancel();
-    _studyMenuCollapseTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _studyPanelOpen && _studyMenuBarVisible) {
-        setState(() {
-          _studyMenuBarVisible = false;
-        });
-      }
-    });
+    _startMenuCollapseTimer();
   }
 
   void _onStudyPanelInteraction() {
-    _startStudyMenuCollapseTimer();
+    _startMenuCollapseTimer();
     if (!_studyMenuBarVisible) {
       setState(() {
         _studyMenuBarVisible = true;
       });
     }
   }
+
 
 
   void _onImageTapped(double relX, double relY) {

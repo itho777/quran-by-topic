@@ -12,17 +12,44 @@ const _kCdnBase =
 // In-memory SVG text cache (survives widget rebuilds, cleared on hot-restart)
 final Map<int, String> _memCache = {};
 
+String _getSvgUrl(int pageNum, String edition) {
+  final paddedPage = pageNum.toString().padLeft(3, '0');
+  switch (edition) {
+    case 'warsh_kfqc':
+      return 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/warsh/kfqc/svg/$paddedPage.svg';
+    case 'douri_kfqc':
+      return 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/douri/kfqc/svg/$paddedPage.svg';
+    case 'batoulapps':
+      return 'https://cdn.jsdelivr.net/gh/batoulapps/quran-svg@master/svg/$paddedPage.svg';
+    case 'tajweed_css':
+    case 'hafs_kfqc':
+    default:
+      return 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg/$paddedPage.svg';
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CSS / JS — identical to quran_page_image_web.dart
 // ─────────────────────────────────────────────────────────────────────────────
-const _kSharedScript = r'''
+String _buildPageCssScript(String edition) {
+  final isTajweed = edition == 'tajweed_css';
+  final tajweedCss = isTajweed ? '''
+    svg [class*="madd"], svg [data-tajweed="madd"] { fill: #E74C3C !important; }
+    svg [class*="ghunnah"], svg [data-tajweed="ghunnah"] { fill: #27AE60 !important; }
+    svg [class*="qalqalah"], svg [data-tajweed="qalqalah"] { fill: #2980B9 !important; }
+    svg [class*="ikhfa"], svg [data-tajweed="ikhfa"] { fill: #8E44AD !important; }
+    svg [class*="idgham"], svg [data-tajweed="idgham"] { fill: #E67E22 !important; }
+    svg [class*="slnt"], svg [class*="silent"], svg [data-tajweed="silent"] { fill: #95A5A6 !important; }
+  ''' : 'svg path:not(.ayahPolygon){fill:#000!important}';
+
+  return '''
 var _styleEl = null;
 
 function _buildCss(sel, play) {
   return [
     '.ayahPolygon{fill:#000!important;fill-opacity:0!important;cursor:pointer!important;pointer-events:auto!important;transition:fill .2s,fill-opacity .2s}',
     'svg *:not(.ayahPolygon){pointer-events:none!important}',
-    'svg path:not(.ayahPolygon){fill:#000!important}',
+    '$tajweedCss',
     sel != null ? '#verse-'+sel+',#verse-'+sel+' .ayahPolygon{fill:#E9C176!important;fill-opacity:0.25!important}' : '',
     play != null ? '#verse-'+play+',#verse-'+play+' .ayahPolygon{fill:#95D1D1!important;fill-opacity:0.30!important}' : '',
   ].join('');
@@ -56,7 +83,6 @@ function _initSvg() {
   });
 }
 
-// Called by Flutter via runJavaScript to live-update highlights and scroll them into view
 window.updateHighlight = function(sel, play) {
   if (_styleEl) _styleEl.textContent = _buildCss(sel, play);
   var activeId = play !== null ? play : sel;
@@ -70,18 +96,12 @@ window.updateHighlight = function(sel, play) {
   }
 };
 ''';
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HTML builder — SVG always embedded inline (no iframe src, no fetch in JS)
-// ─────────────────────────────────────────────────────────────────────────────
-// KFQC Mushaf page aspect ratio: viewBox="0 0 345 550"
 const _kPageAspectRatio = 550.0 / 345.0;
 
-String _buildHtml(String svgText, bool fullWidth) {
-  // Always overflow:hidden — scrolling is handled by Flutter's InteractiveViewer
-  // in fullWidth mode, or the page fits the viewport in fit-to-page mode.
+String _buildHtml(String svgText, bool fullWidth, String edition) {
   const overflow = 'hidden';
-  // In both modes the SVG fills and centers within its container.
   const wrapStyle =
       'width:100%;height:100%;display:flex;align-items:center;justify-content:center;';
   const svgStyle =
@@ -101,16 +121,12 @@ svg{$svgStyle}
 </head>
 <body>
 <div id="wrap">$svgText</div>
-<script>$_kSharedScript</script>
+<script>${_buildPageCssScript(edition)}</script>
 <script>_initSvg();</script>
 </body>
 </html>
 ''';
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SVG loader — memory cache → disk cache → CDN download
-// ─────────────────────────────────────────────────────────────────────────────
 
 Future<String?> _localCacheDir() async {
   try {
@@ -123,22 +139,16 @@ Future<String?> _localCacheDir() async {
   }
 }
 
-/// Loads the SVG for [pageNum]:
-///   1. In-memory cache  (instant)
-///   2. App-documents disk cache (fast, survives app restarts)
-///   3. CDN download + save to disk
-///
-/// Returns null if offline and not cached.
-Future<String?> _loadSvg(int pageNum) async {
-  // 1. Memory
+Future<String?> _loadSvg(int pageNum, String edition) async {
+  final cacheKey = '$edition-$pageNum';
   if (_memCache.containsKey(pageNum)) return _memCache[pageNum];
 
   final padded = pageNum.toString().padLeft(3, '0');
+  final fileName = '$edition-$padded.svg';
 
-  // 2. Disk
   final cacheDir = await _localCacheDir();
   if (cacheDir != null) {
-    final file = File('$cacheDir/$padded.svg');
+    final file = File('$cacheDir/$fileName');
     if (await file.exists()) {
       final text = await file.readAsString();
       _memCache[pageNum] = text;
@@ -146,34 +156,23 @@ Future<String?> _loadSvg(int pageNum) async {
     }
   }
 
-  // 3. CDN
   try {
-    final url = '$_kCdnBase/$padded.svg';
+    final url = _getSvgUrl(pageNum, edition);
     final response = await http.get(Uri.parse(url))
         .timeout(const Duration(seconds: 15));
     if (response.statusCode == 200) {
       final text = response.body;
       _memCache[pageNum] = text;
-      // Save to disk in background
       if (cacheDir != null) {
-        File('$cacheDir/$padded.svg').writeAsString(text).ignore();
+        File('$cacheDir/$fileName').writeAsString(text).ignore();
       }
       return text;
     }
   } catch (_) {}
 
-  return null; // offline, not cached
+  return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public API — same signature as the web version
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Builds the native (Android / iOS) Mushaf page widget.
-///
-/// Pages are served via WebView (same HTML/CSS/JS as the web version) so that
-/// CSS class-selectors and verse highlighting work identically.
-/// SVGs are cached on disk after first load, so subsequent views are instant.
 Widget buildQuranPageImage(
   BuildContext context,
   int pageNum, {
@@ -185,11 +184,8 @@ Widget buildQuranPageImage(
   bool fullWidth = false,
   double? viewportWidth,
   double panelHeight = 0.0,
+  String mushafEdition = 'hafs_kfqc',
 }) {
-  // In fullWidth mode we size the widget to the SVG's true aspect ratio so that
-  // Flutter's InteractiveViewer can pan the entire page natively — no gesture
-  // conflict and no clipping.  In fit-to-page mode the widget fills the parent
-  // and the SVG scales down to fit the viewport.
   if (fullWidth) {
     final w = viewportWidth ?? MediaQuery.of(context).size.width;
     final h = w * _kPageAspectRatio;
@@ -203,6 +199,7 @@ Widget buildQuranPageImage(
         selectedVerseId: selectedVerseId,
         playingVerseId:  playingVerseId,
         fullWidth:       fullWidth,
+        mushafEdition:   mushafEdition,
       ),
     );
   }
@@ -213,6 +210,7 @@ Widget buildQuranPageImage(
     selectedVerseId: selectedVerseId,
     playingVerseId:  playingVerseId,
     fullWidth:       fullWidth,
+    mushafEdition:   mushafEdition,
   );
 }
 
@@ -223,6 +221,7 @@ class _QuranPageWebView extends StatefulWidget {
   final int? selectedVerseId;
   final int? playingVerseId;
   final bool fullWidth;
+  final String mushafEdition;
 
   const _QuranPageWebView({
     required this.pageNum,
@@ -231,6 +230,7 @@ class _QuranPageWebView extends StatefulWidget {
     this.selectedVerseId,
     this.playingVerseId,
     this.fullWidth = false,
+    this.mushafEdition = 'hafs_kfqc',
   });
 
   @override
@@ -276,11 +276,11 @@ class _QuranPageWebViewState extends State<_QuranPageWebView> {
   Future<void> _loadPage() async {
     if (mounted) setState(() => _loaded = false);
 
-    final svgText = await _loadSvg(widget.pageNum);
+    final svgText = await _loadSvg(widget.pageNum, widget.mushafEdition);
     if (!mounted) return;
 
     if (svgText != null) {
-      _controller.loadHtmlString(_buildHtml(svgText, widget.fullWidth));
+      _controller.loadHtmlString(_buildHtml(svgText, widget.fullWidth, widget.mushafEdition));
     } else {
       // Offline fallback
       _controller.loadHtmlString('''
@@ -310,7 +310,9 @@ class _QuranPageWebViewState extends State<_QuranPageWebView> {
   void didUpdateWidget(_QuranPageWebView old) {
     super.didUpdateWidget(old);
 
-    if (old.pageNum != widget.pageNum || old.fullWidth != widget.fullWidth) {
+    if (old.pageNum != widget.pageNum ||
+        old.fullWidth != widget.fullWidth ||
+        old.mushafEdition != widget.mushafEdition) {
       _loadPage();
       return;
     }

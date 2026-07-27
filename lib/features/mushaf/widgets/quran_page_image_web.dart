@@ -18,7 +18,24 @@ class _SvgPageState {
   double panelHeight = 0.0; // Height of the bottom panel overlay (px)
 }
 
-String _buildPageCss(int? selectedId, int? playingId) {
+String _getSvgUrl(int pageNum, String edition) {
+  final paddedPage = pageNum.toString().padLeft(3, '0');
+  switch (edition) {
+    case 'warsh_kfqc':
+      return 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/warsh/kfqc/svg/$paddedPage.svg';
+    case 'douri_kfqc':
+      return 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/douri/kfqc/svg/$paddedPage.svg';
+    case 'batoulapps':
+      return 'https://cdn.jsdelivr.net/gh/batoulapps/quran-svg@master/svg/$paddedPage.svg';
+    case 'tajweed_css':
+    case 'hafs_kfqc':
+    default:
+      return 'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg/$paddedPage.svg';
+  }
+}
+
+String _buildPageCss(int? selectedId, int? playingId, {String mushafEdition = 'hafs_kfqc'}) {
+  final isTajweed = mushafEdition == 'tajweed_css';
   return '''
     .ayahPolygon {
       fill: #000 !important;
@@ -30,9 +47,19 @@ String _buildPageCss(int? selectedId, int? playingId) {
     svg *:not(.ayahPolygon) {
       pointer-events: none !important;
     }
+    ${isTajweed ? '''
+    /* Dynamic Tajweed Rule Color Overrides */
+    svg [class*="madd"], svg [data-tajweed="madd"] { fill: #E74C3C !important; }
+    svg [class*="ghunnah"], svg [data-tajweed="ghunnah"] { fill: #27AE60 !important; }
+    svg [class*="qalqalah"], svg [data-tajweed="qalqalah"] { fill: #2980B9 !important; }
+    svg [class*="ikhfa"], svg [data-tajweed="ikhfa"] { fill: #8E44AD !important; }
+    svg [class*="idgham"], svg [data-tajweed="idgham"] { fill: #E67E22 !important; }
+    svg [class*="slnt"], svg [class*="silent"], svg [data-tajweed="silent"] { fill: #95A5A6 !important; }
+    ''' : '''
     svg path:not(.ayahPolygon) {
       fill: #000000 !important;
     }
+    '''}
     ${selectedId != null ? '''
     #verse-$selectedId, #verse-$selectedId .ayahPolygon {
       fill: #E9C176 !important;
@@ -59,8 +86,9 @@ Widget buildQuranPageImage(
   bool fullWidth = false,
   double? viewportWidth,
   double panelHeight = 0.0,
+  String mushafEdition = 'hafs_kfqc',
 }) {
-  final viewType = 'quran-svg-page-$pageNum-$fullWidth';
+  final viewType = 'quran-svg-page-$pageNum-$fullWidth-$mushafEdition';
 
   // Always refresh callbacks and IDs
   final state = _pageStates.putIfAbsent(pageNum, () => _SvgPageState());
@@ -74,7 +102,7 @@ Widget buildQuranPageImage(
   if (state.container != null) {
     final style = state.container!.querySelector('style');
     if (style != null) {
-      style.text = _buildPageCss(selectedVerseId, playingVerseId);
+      style.text = _buildPageCss(selectedVerseId, playingVerseId, mushafEdition: mushafEdition);
     }
     
     // Auto-scroll the active verse into the visible area above the panel
@@ -101,7 +129,7 @@ Widget buildQuranPageImage(
           ..style.cursor = 'pointer';
 
         state.container = container;
-        _loadSvgIntoContainer(container, pageNum, state, fullWidth);
+        _loadSvgIntoContainer(container, pageNum, state, fullWidth, mushafEdition);
         return container;
       });
     } catch (e) {
@@ -134,6 +162,7 @@ void _loadSvgIntoContainer(
   int pageNum,
   _SvgPageState state,
   bool fullWidth,
+  String mushafEdition,
 ) {
   // Show loading indicator while fetching
   container.children.clear();
@@ -144,9 +173,7 @@ void _loadSvgIntoContainer(
     ..text = 'Loading page $pageNum…';
   container.append(loader);
 
-  final paddedPage = pageNum.toString().padLeft(3, '0');
-  final url =
-      'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg/$paddedPage.svg';
+  final url = _getSvgUrl(pageNum, mushafEdition);
 
   html.HttpRequest.getString(url).then((svgText) {
     container.children.clear();

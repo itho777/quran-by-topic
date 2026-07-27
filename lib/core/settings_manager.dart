@@ -11,6 +11,7 @@ class SettingsState {
   final String appLanguage;
   final String selectedReciter;
   final bool mushafFullWidth;
+  final String mushafEdition;
   final String prayerCalculationMethod;
   final int fajrOffset;
   final int sunriseOffset;
@@ -43,6 +44,7 @@ class SettingsState {
     required this.appLanguage,
     required this.selectedReciter,
     this.mushafFullWidth = true,
+    this.mushafEdition = 'hafs_kfqc',
     this.prayerCalculationMethod = 'kemenag',
     this.fajrOffset = 0,
     this.sunriseOffset = 0,
@@ -76,6 +78,7 @@ class SettingsState {
     String? appLanguage,
     String? selectedReciter,
     bool? mushafFullWidth,
+    String? mushafEdition,
     String? prayerCalculationMethod,
     int? fajrOffset,
     int? sunriseOffset,
@@ -184,8 +187,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final customUri = prefs.getString('custom_sound_uri');
       final customTitle = prefs.getString('custom_sound_title');
 
-      // mushafFullWidth is persisted to storage.
+      // mushafFullWidth and mushafEdition are persisted to storage.
       final mushafFW = prefs.getBool('mushaf_full_width') ?? true;
+      final mushafEd = prefs.getString('mushaf_edition') ?? 'hafs_kfqc';
       state = SettingsState(
         arabicFontSize: arabicSize,
         translationFontSize: transSize,
@@ -194,6 +198,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
         appLanguage: lang,
         selectedReciter: reciter,
         mushafFullWidth: mushafFW,
+        mushafEdition: mushafEd,
         prayerCalculationMethod: calcMethod,
         fajrOffset: fOffset,
         sunriseOffset: sOffset,
@@ -273,6 +278,12 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(mushafFullWidth: val);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('mushaf_full_width', val);
+  }
+
+  Future<void> setMushafEdition(String edition) async {
+    state = state.copyWith(mushafEdition: edition);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mushaf_edition', edition);
   }
 
   Future<void> setPrayerCalculationMethod(String method) async {

@@ -2504,6 +2504,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         fullWidth: fullWidth,
                         viewportWidth: pageW,
                         panelHeight: panelHeightPx,
+                        mushafEdition: ref.watch(settingsProvider).mushafEdition,
                       );
 
                       // Page card is always exactly the SVG's natural height.
@@ -2818,17 +2819,24 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             tooltip: _currentLang == 'en' ? 'More' : 'Lainnya',
                             color: AppTheme.surfaceContainerHigh,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
                             ),
                             onSelected: (value) async {
                               switch (value) {
+                                case 'mushaf_ed_hafs_kfqc':
+                                case 'mushaf_ed_tajweed_css':
+                                case 'mushaf_ed_warsh_kfqc':
+                                case 'mushaf_ed_douri_kfqc':
+                                case 'mushaf_ed_batoulapps':
+                                  final ed = value.replaceFirst('mushaf_ed_', '');
+                                  ref.read(settingsProvider.notifier).setMushafEdition(ed);
+                                  break;
                                 case 'lang_en':
                                   ref.read(settingsProvider.notifier).setAppLanguage('en');
                                   setState(() {
                                     _selectedSource = 'en.sahih';
                                     _translitSource = 'en.transliteration';
-                                    _tafsirSource   = 'en.katsir_pdf';
-                                    _nuzulSource    = 'en.wahidi';
+                                    _tafsirSource   = 'en.ibnkathir';
+                                    _nuzulSource    = 'en.asbab_nuzul';
                                   });
                                   _loadPageTexts();
                                   break;
@@ -2892,7 +2900,52 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             },
                             itemBuilder: (ctx) {
                               final isEn = _currentLang == 'en';
+                              final currentEd = ref.watch(settingsProvider).mushafEdition;
+                              final editions = {
+                                'hafs_kfqc': isEn ? 'Hafs (Madani KFQC)' : 'Hafs (Madani KFQC)',
+                                'tajweed_css': isEn ? 'Tajweed (Color-Coded)' : 'Tajweed (Warna-Warni)',
+                                'warsh_kfqc': isEn ? 'Warsh (Madani KFQC)' : 'Warsh (Madani KFQC)',
+                                'douri_kfqc': isEn ? 'Douri (Madani KFQC)' : 'Douri (Madani KFQC)',
+                                'batoulapps': isEn ? 'BatoulApps (15-Line)' : 'BatoulApps (15 Baris)',
+                              };
                               return [
+                                // Mushaf Edition Section
+                                PopupMenuItem<String>(
+                                  enabled: false,
+                                  height: 28,
+                                  child: Text(
+                                    isEn ? 'MUSHAF STYLE' : 'TAMPILAN MUSHAF',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppTheme.outline,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ),
+                                ...editions.entries.map((e) {
+                                  final isActive = e.key == currentEd;
+                                  return PopupMenuItem<String>(
+                                    value: 'mushaf_ed_${e.key}',
+                                    child: Row(children: [
+                                      Icon(
+                                        isActive ? Icons.radio_button_checked : Icons.radio_button_off,
+                                        size: 16,
+                                        color: isActive ? AppTheme.primary : AppTheme.outline,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(
+                                        e.value,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: isActive ? AppTheme.primary : AppTheme.onSurface,
+                                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                      )),
+                                    ]),
+                                  );
+                                }),
+                                const PopupMenuDivider(),
                                 // Language header
                                 PopupMenuItem<String>(
                                   enabled: false,

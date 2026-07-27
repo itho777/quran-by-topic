@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:quran_library/quran_library.dart';
 import '../../../core/theme.dart';
 
 // CDN base — same source used by the web version
@@ -186,6 +188,25 @@ Widget buildQuranPageImage(
   double panelHeight = 0.0,
   String mushafEdition = 'hafs_kfqc',
 }) {
+  // On Android/iOS: use the native QPC Tajweed font engine
+  if (!kIsWeb && mushafEdition == 'tajweed_qcf4') {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final w = fullWidth
+        ? (viewportWidth ?? MediaQuery.of(context).size.width)
+        : MediaQuery.of(context).size.width;
+    final h = w * _kPageAspectRatio;
+    return SizedBox(
+      width: w,
+      height: h,
+      child: QuranPagesScreen(
+        isDark: isDark,
+        startPage: pageNum,
+        endPage: pageNum,
+        parentContext: context,
+      ),
+    );
+  }
+
   if (fullWidth) {
     final w = viewportWidth ?? MediaQuery.of(context).size.width;
     final h = w * _kPageAspectRatio;

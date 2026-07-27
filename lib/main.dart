@@ -10,9 +10,17 @@ import 'core/bookmarks_manager.dart';
 import 'core/widgets/home_widget_service.dart';
 // ignore: depend_on_referenced_packages
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:quran_library/quran_library.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize QuranLibrary (loads JSON data for QPC Tajweed engine)
+  if (!kIsWeb) {
+    await QuranLibrary.init();
+  }
+
+
 
   await Supabase.initialize(
     url: 'https://zgeygoclduqotqveperx.supabase.co',

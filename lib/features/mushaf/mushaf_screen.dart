@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
@@ -2827,6 +2828,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 case 'mushaf_ed_warsh_kfqc':
                                 case 'mushaf_ed_douri_kfqc':
                                 case 'mushaf_ed_batoulapps':
+                                case 'mushaf_ed_tajweed_qcf4':
                                   final ed = value.replaceFirst('mushaf_ed_', '');
                                   ref.read(settingsProvider.notifier).setMushafEdition(ed);
                                   break;
@@ -2901,12 +2903,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             itemBuilder: (ctx) {
                               final isEn = _currentLang == 'en';
                               final currentEd = ref.watch(settingsProvider).mushafEdition;
-                              final editions = {
+                              final editions = <String, String>{
                                 'hafs_kfqc': isEn ? 'Hafs (Madani KFQC)' : 'Hafs (Madani KFQC)',
                                 'tajweed_css': isEn ? 'Tajweed (Color-Coded)' : 'Tajweed (Warna-Warni)',
                                 'warsh_kfqc': isEn ? 'Warsh (Madani KFQC)' : 'Warsh (Madani KFQC)',
                                 'douri_kfqc': isEn ? 'Douri (Madani KFQC)' : 'Douri (Madani KFQC)',
                                 'batoulapps': isEn ? 'BatoulApps (15-Line)' : 'BatoulApps (15 Baris)',
+                                if (!kIsWeb) 'tajweed_qcf4': isEn ? 'Tajweed QCF4 (Native Font)' : 'Tajweed QCF4 (Font Asli)',
                               };
                               return [
                                 // Mushaf Edition Section

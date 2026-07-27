@@ -12,7 +12,7 @@ const _kCdnBase =
     'https://cdn.jsdelivr.net/gh/quranpedia/quran-svg@main/mushafs/hafs/kfqc/svg';
 
 // In-memory SVG text cache (survives widget rebuilds, cleared on hot-restart)
-final Map<int, String> _memCache = {};
+final Map<String, String> _memCache = {};
 
 String _getSvgUrl(int pageNum, String edition) {
   final paddedPage = pageNum.toString().padLeft(3, '0');
@@ -143,7 +143,7 @@ Future<String?> _localCacheDir() async {
 
 Future<String?> _loadSvg(int pageNum, String edition) async {
   final cacheKey = '$edition-$pageNum';
-  if (_memCache.containsKey(pageNum)) return _memCache[pageNum];
+  if (_memCache.containsKey(cacheKey)) return _memCache[cacheKey];
 
   final padded = pageNum.toString().padLeft(3, '0');
   final fileName = '$edition-$padded.svg';
@@ -153,7 +153,7 @@ Future<String?> _loadSvg(int pageNum, String edition) async {
     final file = File('$cacheDir/$fileName');
     if (await file.exists()) {
       final text = await file.readAsString();
-      _memCache[pageNum] = text;
+      _memCache[cacheKey] = text;
       return text;
     }
   }
@@ -164,7 +164,7 @@ Future<String?> _loadSvg(int pageNum, String edition) async {
         .timeout(const Duration(seconds: 15));
     if (response.statusCode == 200) {
       final text = response.body;
-      _memCache[pageNum] = text;
+      _memCache[cacheKey] = text;
       if (cacheDir != null) {
         File('$cacheDir/$fileName').writeAsString(text).ignore();
       }

@@ -1059,10 +1059,9 @@ packages:
   quran_library:
     dependency: "direct main"
     description:
-      name: quran_library
-      sha256: "70ecd46da07481247091c93d9ae5bfd90711b2c8e6adcd6a5bfaeea44a8a67ed"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/quran_library"
+      relative: true
+    source: path
     version: "4.2.1"
   realtime_client:
     dependency: transitive

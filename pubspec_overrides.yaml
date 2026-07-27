@@ -1,0 +1,3 @@
+dependency_overrides:
+  quran_library:
+    path: packages/quran_library

@@ -2905,11 +2905,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                               final currentEd = ref.watch(settingsProvider).mushafEdition;
                               final editions = <String, String>{
                                 'hafs_kfqc': isEn ? 'Hafs (Madani KFQC)' : 'Hafs (Madani KFQC)',
-                                'tajweed_css': isEn ? 'Tajweed (Color-Coded)' : 'Tajweed (Warna-Warni)',
                                 'warsh_kfqc': isEn ? 'Warsh (Madani KFQC)' : 'Warsh (Madani KFQC)',
                                 'douri_kfqc': isEn ? 'Douri (Madani KFQC)' : 'Douri (Madani KFQC)',
-                                'batoulapps': isEn ? 'BatoulApps (15-Line)' : 'BatoulApps (15 Baris)',
-                                if (!kIsWeb) 'tajweed_qcf4': isEn ? 'Tajweed QCF4 (Native Font)' : 'Tajweed QCF4 (Font Asli)',
+                                if (!kIsWeb) 'tajweed_qcf4': isEn ? 'Tajweed QCF4 (Font Asli)' : 'Tajweed QCF4 (Font Asli)',
                               };
                               return [
                                 // Mushaf Edition Section

@@ -133,10 +133,19 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   final Map<int, GlobalKey> _verseKeys = {};
 
   final ScrollController _studyPanelScrollController = ScrollController();
-  final ScrollController _fullWidthScrollController = ScrollController();
+  // Per-page scroll controllers for fullWidth mode (one per page slot).
+  final Map<int, ScrollController> _fullWidthScrollControllers = {};
+
+  ScrollController _scrollCtrlForPage(int pageNum) =>
+      _fullWidthScrollControllers.putIfAbsent(pageNum, () => ScrollController());
 
   /// GlobalKey on the study panel so we can measure its actual rendered height.
   final GlobalKey _studyPanelKey = GlobalKey();
+
+  /// Draggable study panel height. User can resize by pulling the handle.
+  double _studyPanelHeight = 245.0;
+  static const double _kPanelMinHeight = 120.0;
+  static const double _kPanelDefaultHeight = 245.0;
 
   /// Returns the actual rendered height of the study panel, or a safe default.
   double get _actualPanelHeight {
@@ -145,7 +154,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       final box = ctx.findRenderObject() as RenderBox?;
       if (box != null && box.hasSize) return box.size.height;
     }
-    return _studyMenuBarVisible ? 270.0 : 220.0;
+    return _studyPanelHeight;
   }
 
   // Pre-indexed: page Ã¢â€ â€™ list of (globalAyahId, x, y) tuples, built once from the static coords.
@@ -407,7 +416,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     _pageController.dispose();
     _studyPanelScrollController.dispose();
-    _fullWidthScrollController.dispose();
+    for (final sc in _fullWidthScrollControllers.values) {
+      sc.dispose();
+    }
+    _fullWidthScrollControllers.clear();
 
     _jumpAyahController.dispose();
 
@@ -952,18 +964,19 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         break;
       }
     }
-    if (verseY == null || !_fullWidthScrollController.hasClients) return;
+    final sc = _fullWidthScrollControllers[_currentPage];
+    if (verseY == null || sc == null || !sc.hasClients) return;
 
     // Convert SVG Y (0–550) to pixel offset in the rendered page
     final pixelY = (verseY / 550.0) * pageH;
     // Visible height above the panel
-    final visibleH = _fullWidthScrollController.position.viewportDimension;
+    final visibleH = sc.position.viewportDimension;
     // Centre the verse in visible area
     final targetOffset = (pixelY - (visibleH - panelH) / 2).clamp(
       0.0,
-      _fullWidthScrollController.position.maxScrollExtent,
+      sc.position.maxScrollExtent,
     );
-    _fullWidthScrollController.animateTo(
+    sc.animateTo(
       targetOffset,
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
@@ -1245,8 +1258,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       c.value = Matrix4.identity();
     }
 
-    if (_fullWidthScrollController.hasClients) {
-      _fullWidthScrollController.jumpTo(0.0);
+    final sc = _fullWidthScrollControllers[_currentPage];
+    if (sc != null && sc.hasClients) {
+      sc.jumpTo(0.0);
     }
 
     setState(() {
@@ -2372,6 +2386,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           // Ã¢â€â‚¬Ã¢â€â‚¬ Background / Swipe View Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
+          // ── Full-screen cream background so no dark gap shows above/below page card ──
+          Positioned.fill(
+            child: Container(color: const Color(0xFFFBF9F1)),
+          ),
+
+          // ── Background / Swipe View ─────────────────────────────────────────────────
+
           GestureDetector(
 
             onTap: _toggleMenus,
@@ -2416,9 +2437,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       final safeBottom = mediaQuery.padding.bottom;
                       final navBarOffset = _menusVisible ? 56.0 : 0.0;
 
-                      // Dynamic inset — used only in the SCROLL path where movement is acceptable.
+                      // Study panel uses fixed 220px — navBarOffset is NOT added here
+                      // because the panel is at bottom:0 and overlaps the nav bar area.
+                      // Adding navBarOffset created an exact 56px gap between page bottom
+                      // and panel top. Keep bottomInset = panel height only.
                       final bottomInset = showStudyPanel
-                          ? (_actualPanelHeight + navBarOffset)
+                          ? _actualPanelHeight
                           : (20.0 + safeBottom);
                       final topInset = _menusVisible ? 90.0 : 0.0;
                       final availViewportH = screenH - topInset - bottomInset;
@@ -2482,14 +2506,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         panelHeight: panelHeightPx,
                       );
 
-                      // When study panel is open, ensure paper background fills available viewport height so no black gap appears above panel.
-                      final effectiveBoxH = (fullWidth && showStudyPanel && pageH < availViewportH)
-                          ? availViewportH
-                          : pageH;
-
+                      // Page card is always exactly the SVG's natural height.
+                      // The full-screen cream Positioned.fill behind the PageView
+                      // handles any uncovered area so no dark gap appears.
                       final pageDecorationBox = Container(
                         width: pageW,
-                        height: effectiveBoxH,
+                        height: pageH,
                         decoration: BoxDecoration(
                           color: const Color(0xFFFBF9F1),
                           boxShadow: [
@@ -2517,7 +2539,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                             alignment: Alignment.center,
                             child: Center(
                               child: SingleChildScrollView(
-                                controller: _fullWidthScrollController,
+                                controller: _scrollCtrlForPage(pageNum),
                                 physics: const NeverScrollableScrollPhysics(),
                                 child: pageDecorationBox,
                               ),
@@ -2556,13 +2578,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       }
 
                       // ── SCROLL PATH: page is taller than visible area (small screen
-                      //    or study panel open).  Use AnimatedPadding so the menu
-                      //    nudges the page down to avoid overlap.
+                      //    or study panel open). Top-align the page and pad by the exact
+                      //    bottomInset so the page fills flush to the study panel.
                       return Align(
                         alignment: Alignment.topCenter,
-                        child: AnimatedPadding(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+                        child: Padding(
                           padding: EdgeInsets.only(
                             top: _menusVisible ? 90.0 : 0.0,
                             bottom: bottomInset,
@@ -2571,7 +2591,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                               ? SizedBox(
                                   width: pageW,
                                   child: SingleChildScrollView(
-                                    controller: _fullWidthScrollController,
+                                    controller: _scrollCtrlForPage(pageNum),
                                     physics: const ClampingScrollPhysics(),
                                     scrollDirection: Axis.vertical,
                                     child: pageDecorationBox,
@@ -2597,11 +2617,16 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                     minScale: 1.0,
                                     panEnabled: true,
                                     scaleEnabled: true,
-                                    child: Center(child: pageDecorationBox),
+                                    child: Align(
+                                      alignment: Alignment.topCenter,
+                                      child: pageDecorationBox,
+                                    ),
                                   );
                                 }),
                         ),
                       );
+
+
                     },
 
 
@@ -2995,11 +3020,26 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             bottom: showStudyPanel ? 0 : -320,
             left: 0,
             right: 0,
-            child: AnimatedContainer(
-              key: _studyPanelKey,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-              height: _studyMenuBarVisible ? 270.0 : 220.0,
+            child: GestureDetector(
+              // Drag the handle to resize the panel
+              onVerticalDragUpdate: (details) {
+                final screenH = MediaQuery.of(context).size.height;
+                setState(() {
+                  _studyPanelHeight = (_studyPanelHeight - details.delta.dy)
+                      .clamp(_kPanelMinHeight, screenH * 0.70);
+                });
+              },
+              onVerticalDragEnd: (_) {
+                // Snap to default if close to it (within 30px)
+                if ((_studyPanelHeight - _kPanelDefaultHeight).abs() < 30) {
+                  setState(() => _studyPanelHeight = _kPanelDefaultHeight);
+                }
+              },
+              child: SizedBox(
+                height: _studyPanelHeight,
+                child: Container(
+                  key: _studyPanelKey,
+                  height: _studyPanelHeight,
 
 
               decoration: BoxDecoration(
@@ -3026,6 +3066,18 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                 children: [
 
+                  // ── Drag handle pill ──────────────────────────────────────────
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.outlineVariant.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
 
                   // Tab Navigation & Action Bar
                   AnimatedContainer(
@@ -3496,7 +3548,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                         ),
 
-                  ),
+                    ),
 
                 ],
 
@@ -3505,6 +3557,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             ),
 
           ),
+
+        ),
+
+      ),
 
         ],
 

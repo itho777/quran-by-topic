@@ -160,7 +160,7 @@ void _loadSvgIntoContainer(
       ..style.display = 'flex'
       ..style.alignItems = 'center'
       ..style.justifyContent = 'center'
-      ..style.backgroundColor = 'transparent';
+      ..style.backgroundColor = '#FBF9F1';
 
     svgWrapper.setInnerHtml(
       svgText,

@@ -157,7 +157,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     return _studyPanelHeight;
   }
 
-  // Pre-indexed: page Ã¢â€ â€™ list of (globalAyahId, x, y) tuples, built once from the static coords.
+  // Pre-indexed: page -> list of (globalAyahId, x, y) tuples, built once from the static coords.
 
   // Each entry: [globalAyahId, x, y]
 
@@ -225,7 +225,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     WakelockPlus.enable().ignore();
 
-    // Build a fast pageÃ¢â€ â€™coords index from the static quranCoordsData list.
+    // Build a fast page -> coords index from the static quranCoordsData list.
 
     final Map<int, List<List<double>>> byPage = {};
 
@@ -1408,7 +1408,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (match.isNotEmpty) {
 
-        // Study panel is only manually toggled Ã¢â‚¬â€ do NOT open on verse tap
+        // Study panel is only manually toggled — do NOT open on verse tap
         setState(() {
           _menusVisible = true;
         });
@@ -1435,7 +1435,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     if (match.isNotEmpty) {
 
-      // Study panel is only manually toggled Ã¢â‚¬â€ do NOT open on verse select
+      // Study panel is only manually toggled — do NOT open on verse select
       setState(() {
         _menusVisible = true;
       });
@@ -1676,7 +1676,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Searchable surah picker bottom sheet Ã¢â‚¬â€ same UX as Home & Surah pages
+  // Searchable surah picker bottom sheet — same UX as Home & Surah pages
 
   void _showJumpSurahPicker() {
 
@@ -1788,7 +1788,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                   decoration: InputDecoration(
 
-                    hintText: isEn ? 'Search by name or numberÃ¢â‚¬Â¦' : 'Cari surahÃ¢â‚¬Â¦',
+                    hintText: isEn ? 'Search by name or number...' : 'Cari surah...',
 
                     hintStyle: TextStyle(color: AppTheme.outline),
 
@@ -1916,7 +1916,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Jump to Ayah Ã¢â‚¬â€ bottom sheet with same UX as Home & Surah screens
+  // Jump to Ayah — bottom sheet with same UX as Home & Surah screens
 
   void _showJumpDialog() {
 
@@ -2347,7 +2347,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     final mediaQuery = MediaQuery.of(context);
     final isMobileLandscape = mediaQuery.orientation == Orientation.landscape && mediaQuery.size.shortestSide < 600;
-    // Study panel is independent of top menus Ã¢â‚¬â€ it only follows _studyPanelOpen
+    // Study panel is independent of top menus — it only follows _studyPanelOpen
     final showStudyPanel = _studyPanelOpen && !isMobileLandscape;
 
 
@@ -2384,7 +2384,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         children: [
 
-          // Ã¢â€â‚¬Ã¢â€â‚¬ Background / Swipe View Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+          // ──── Background / Swipe View ──────────────────────────────────────────────────────────────────────────────────
 
           // ── Full-screen cream background so no dark gap shows above/below page card ──
           Positioned.fill(
@@ -2669,7 +2669,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // Ã¢â€â‚¬Ã¢â€â‚¬ Slide-Down Top Menu Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+          // ──── Slide-Down Top Menu ────────────────────────────────────────────────────────────────────────────────────────────
 
           AnimatedPositioned(
 
@@ -3011,7 +3011,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           ),
 
-          // Ã¢â€â‚¬Ã¢â€â‚¬ Slide-Up Study Panel (Bottom) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+          // ──── Slide-Up Study Panel (Bottom) ──────────────────────────────────────────────────────────────────────
 
 
           AnimatedPositioned(
@@ -3098,7 +3098,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       children: [
 
-                        // Tab selector Ã¢â‚¬â€ compact dropdown
+                        // Tab selector — compact dropdown
                         _buildStudyTabDropdown(),
 
                         const Spacer(),
@@ -3346,7 +3346,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                                                 const SizedBox(width: 8),
 
-                                                // Ã¢â€â‚¬Ã¢â€â‚¬ Detail page link Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+                                                // ──── Detail page link ────────────────────────────────────────────────
 
                                                 InkWell(
 
@@ -3572,7 +3572,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Study-panel tab: compact pop-up menu Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ──── Study-panel tab: compact pop-up menu ────────────────────────────────────────────────────────────────────
   Widget _buildStudyTabDropdown() {
     final tabLabels = {
       'transliteration': _currentLang == 'en' ? 'Transliteration' : 'Transliterasi',

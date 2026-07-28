@@ -76,14 +76,32 @@ class _TajweedLegendState extends State<TajweedLegend> {
   @override
   Widget build(BuildContext context) {
     final isEn = widget.isEn;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final bgColor = isDark
+        ? AppTheme.surfaceContainerHigh
+        : const Color(0xFFF1F5F2);
+    final borderColor = isDark
+        ? AppTheme.outlineVariant
+        : const Color(0xFFE2E8E4);
+    final titleColor = isDark
+        ? AppTheme.onSurface
+        : const Color(0xFF2C4A3E);
+    final iconColor = isDark
+        ? AppTheme.onSurfaceVariant
+        : const Color(0xFF4A6B5D);
+    final dividerColor = isDark
+        ? AppTheme.outlineVariant.withValues(alpha: 0.5)
+        : const Color(0xFFE0E6E2);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F2),
+        color: bgColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8E4)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,9 +129,9 @@ class _TajweedLegendState extends State<TajweedLegend> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isEn ? 'Tajweed Color Guide' : 'Panduan Warna Tajweed',
-                      style: const TextStyle(
-                        color: Color(0xFF2C4A3E),
+                      isEn ? 'Tajweed Color Guide' : 'Panduan Warna Tajwid',
+                      style: TextStyle(
+                        color: titleColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -122,7 +140,7 @@ class _TajweedLegendState extends State<TajweedLegend> {
                   Icon(
                     _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                     size: 18,
-                    color: const Color(0xFF4A6B5D),
+                    color: iconColor,
                   ),
                 ],
               ),
@@ -131,7 +149,7 @@ class _TajweedLegendState extends State<TajweedLegend> {
 
           if (_isExpanded) ...[
             const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFE0E6E2)),
+            Divider(height: 1, color: dividerColor),
             const SizedBox(height: 10),
             Wrap(
               spacing: 12,
@@ -171,6 +189,9 @@ class _LegendChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = isEn ? rule.nameEn : rule.nameId;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppTheme.onSurface : const Color(0xFF37474F);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -185,8 +206,8 @@ class _LegendChip extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF37474F),
+          style: TextStyle(
+            color: textColor,
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),

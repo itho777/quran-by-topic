@@ -61,17 +61,15 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
       
       // 1. Sync Last Read
       final lr = await BookmarksManager.getLastRead();
-      if (lr != null) {
-        final surahId = lr['surahId'] as int? ?? 1;
-        final ayahNumber = lr['ayahNumber'] as int? ?? 1;
-        final surahName = lr['surahName'] as String? ?? 'Al-Fatihah';
-        await HomeWidgetService.instance.updateLastReadWidget(
-          surahName: surahName,
-          surahNo: surahId,
-          ayahNo: ayahNumber,
-          progress: (ayahNumber / 50.0).clamp(0.0, 1.0) * 100.0,
-        );
-      }
+      final surahId = lr['surahId'] as int? ?? 1;
+      final ayahNumber = lr['ayahNumber'] as int? ?? 1;
+      final surahName = lr['surahName'] as String? ?? 'Al-Fatihah';
+      await HomeWidgetService.instance.updateLastReadWidget(
+        surahName: surahName,
+        surahNo: surahId,
+        ayahNo: ayahNumber,
+        progress: (ayahNumber / 50.0).clamp(0.0, 1.0) * 100.0,
+      );
 
       // 2. Sync Featured Ayah
       await HomeWidgetService.instance.syncFeaturedAyah(lang: lang);

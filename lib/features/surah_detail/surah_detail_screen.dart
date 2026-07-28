@@ -939,7 +939,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Tajwid',
+                          isEn ? 'Tajweed' : 'Tajwid',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -972,7 +972,6 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   if (v == 'arabic') _showArabic = !_showArabic;
                   if (v == 'translit') _showTranslit = !_showTranslit;
                   if (v == 'translation') _showTranslation = !_showTranslation;
-                  if (v == 'tajweed') _showTajweedColors = !_showTajweedColors;
                 }),
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'arabic', child: Row(children: [
@@ -989,12 +988,6 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     Icon(_showTranslation ? Icons.check_box : Icons.check_box_outline_blank,
                       color: AppTheme.primary, size: 18),
                     const SizedBox(width: 8), Text(isEn ? 'Show Translation' : 'Tampilkan Terjemahan'),
-                  ])),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(value: 'tajweed', child: Row(children: [
-                    Icon(_showTajweedColors ? Icons.check_box : Icons.check_box_outline_blank,
-                      color: const Color(0xFF2DB56B), size: 18),
-                    const SizedBox(width: 8), Text(isEn ? 'Colour-coded Tajweed' : 'Warna Tajwid'),
                   ])),
                 ],
               ),

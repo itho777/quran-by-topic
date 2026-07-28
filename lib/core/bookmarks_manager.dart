@@ -87,15 +87,22 @@ class BookmarksManager {
     } catch (_) {}
   }
 
-  // Get Last Read
-  static Future<Map<String, dynamic>?> getLastRead() async {
+  // Get Last Read — defaults to Al-Fatihah (1:1) on first install
+  static Future<Map<String, dynamic>> getLastRead() async {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString(_lastReadKey);
-    if (data == null) return null;
+    final defaultData = {
+      'surahId': 1,
+      'ayahNumber': 1,
+      'surahName': 'Al-Fatihah',
+      'timestamp': 0, // 0 indicates not yet read by user
+    };
+    if (data == null) return defaultData;
     try {
-      return json.decode(data) as Map<String, dynamic>;
+      final decoded = json.decode(data) as Map<String, dynamic>?;
+      return decoded ?? defaultData;
     } catch (_) {
-      return null;
+      return defaultData;
     }
   }
 }

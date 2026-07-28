@@ -1085,7 +1085,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Tajwid',
+                      isEn ? 'Tajweed' : 'Tajwid',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -1145,9 +1145,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 case 'share':
                   _copyActiveAyah();
                   break;
-                case 'tajweed':
-                  setState(() => _showTajweedColors = !_showTajweedColors);
-                  break;
+
                 case 'settings':
                   context.push('/settings');
                   break;
@@ -1234,20 +1232,6 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                     Icon(Icons.share, size: 18, color: AppTheme.primary),
                     const SizedBox(width: 10),
                     Text(isEn ? 'Copy & Share' : 'Salin & Bagikan',
-                        style: const TextStyle(fontSize: 13)),
-                  ]),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'tajweed',
-                  child: Row(children: [
-                    Icon(
-                      _showTajweedColors ? Icons.check_box : Icons.check_box_outline_blank,
-                      size: 18,
-                      color: const Color(0xFF2DB56B),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(isEn ? 'Colour-coded Tajweed' : 'Warna Tajwid',
                         style: const TextStyle(fontSize: 13)),
                   ]),
                 ),

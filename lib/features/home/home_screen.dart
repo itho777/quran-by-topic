@@ -213,6 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 
   String _getTimeAgo(int timestamp, bool isEn) {
+    if (timestamp <= 0) return isEn ? 'Not started' : 'Belum mulai';
     final diff = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
     if (diff.inMinutes < 60) {
       return isEn ? '${diff.inMinutes} mins ago' : '${diff.inMinutes} menit lalu';

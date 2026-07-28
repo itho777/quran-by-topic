@@ -16,6 +16,7 @@ import '../mushaf/source_picker_sheet.dart';
 import '../../core/local_db.dart';
 import '../../core/cdn_translation_service.dart';
 import '../../core/murajaah_service.dart';
+import '../../core/uthmani_text_service.dart';
 
 class SurahDetailScreen extends ConsumerStatefulWidget {
   final int surahId;
@@ -46,6 +47,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   bool _showArabic = true;
   bool _showTranslit = true;
   bool _showTajweedColors = false;
+  bool _tajweedLoading = false;
+  Map<String, String> _uthmaniTexts = {};
   int? _firstPageNumber; 
 
   // Audio Playback
@@ -915,7 +918,23 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: InkWell(
-                  onTap: () => setState(() => _showTajweedColors = !_showTajweedColors),
+                  onTap: () async {
+                    final turningOn = !_showTajweedColors;
+                    if (turningOn && _uthmaniTexts.isEmpty) {
+                      setState(() => _tajweedLoading = true);
+                      final texts = await UthmaniTextService.instance
+                          .getSurahTexts(widget.surahId);
+                      if (mounted) {
+                        setState(() {
+                          _uthmaniTexts = texts ?? {};
+                          _showTajweedColors = true;
+                          _tajweedLoading = false;
+                        });
+                      }
+                    } else {
+                      setState(() => _showTajweedColors = turningOn);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -929,24 +948,44 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'ت',
-                          style: AppTheme.arabicStyle(
-                            fontSize: 14,
-                            color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isEn ? 'Tajweed' : 'Tajwid',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                      children: _tajweedLoading
+                          ? [
+                              SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isEn ? 'Tajweed' : 'Tajwid',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ]
+                          : [
+                              Text(
+                                'ت',
+                                style: AppTheme.arabicStyle(
+                                  fontSize: 14,
+                                  color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isEn ? 'Tajweed' : 'Tajwid',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                     ),
                   ),
                 ),

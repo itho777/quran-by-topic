@@ -149,6 +149,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       icon: Icons.auto_stories_rounded,
     ));
 
+    // Uthmani Tajwid Text & Font Set
+    _mushaf.add(_DownloadItem(
+      sourceType: 'uthmani',
+      sourceId: 'quran_uthmani',
+      label: 'Uthmani Tajwid Text & Font Set',
+      subtitle: '114 Surahs · Complete Uthmani Diacritics',
+      icon: Icons.font_download_rounded,
+    ));
+
     // Fix #1: Deduplicate reciters — for reciters with the same display-name base,
     // keep only the highest bitrate entry.
     // Strategy: parse kbps from the key (e.g., 'Alafasy_128kbps' → 128),
@@ -290,6 +299,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         );
       case 'mushaf':
         stream = svc.downloadMushafPages(resume: resume);
+      case 'uthmani':
+        stream = svc.downloadUthmaniText(resume: resume);
       case 'audio':
         stream = svc.downloadAllAudioSurahs(
           reciterId: item.sourceId,
@@ -384,6 +395,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         await svc.deleteTextSource('asbabun_nuzul', 'nuzul', item.sourceId);
       case 'mushaf':
         await svc.deleteMushafPages();
+      case 'uthmani':
+        await svc.deleteUthmaniText();
       case 'audio':
         await svc.deleteAllAudioSurahs(item.sourceId);
     }

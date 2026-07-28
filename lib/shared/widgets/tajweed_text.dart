@@ -115,15 +115,16 @@ class _TajweedLegendState extends State<TajweedLegend> {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
                 children: [
-                  // 5 Colored dots
+                  // Colored dots representing key rule groups
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _Dot(color: TajweedColors.maddWajib),
-                      _Dot(color: TajweedColors.maddMunfasil),
                       _Dot(color: TajweedColors.maddThabii),
                       _Dot(color: TajweedColors.ghunnah),
-                      _Dot(color: TajweedColors.qalqalah),
+                      _Dot(color: TajweedColors.ikhfa),
+                      _Dot(color: TajweedColors.idgham),
+                      _Dot(color: TajweedColors.iqlab),
                     ],
                   ),
                   const SizedBox(width: 8),

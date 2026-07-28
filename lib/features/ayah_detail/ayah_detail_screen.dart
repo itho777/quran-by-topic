@@ -1057,6 +1057,46 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
         ),
         actions: [
+          // Tajweed Pill button
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: InkWell(
+              onTap: () => setState(() => _showTajweedColors = !_showTajweedColors),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _showTajweedColors ? const Color(0xFF2DB56B).withValues(alpha: 0.15) : AppTheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.outlineVariant,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'ت',
+                      style: AppTheme.arabicStyle(
+                        fontSize: 14,
+                        color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Tajwid',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // Play button
           IconButton(
             icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),

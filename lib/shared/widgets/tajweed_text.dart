@@ -1,10 +1,7 @@
 // lib/shared/widgets/tajweed_text.dart
 //
 // TajweedText — renders an Arabic verse with colour-coded tajweed rules.
-// TajweedLegend — shows a legend panel explaining each colour.
-//
-// Both widgets are self-contained; they only depend on tajweed_parser.dart
-// and Flutter core. No internet or asset access needed.
+// TajweedLegend — shows a collapsible legend panel matching the user UI design.
 
 import 'package:flutter/material.dart';
 import '../../core/tajweed_parser.dart';
@@ -14,9 +11,6 @@ import '../../core/theme.dart';
 // TajweedText
 // ─────────────────────────────────────────────────────────────────────────────
 /// Displays an Arabic Quranic verse string with tajweed colour-coding applied.
-///
-/// When [enabled] is false the text is rendered with [fallbackColor] using the
-/// standard (non-coloured) style — allowing a simple toggle.
 class TajweedText extends StatelessWidget {
   final String arabic;
   final double fontSize;
@@ -67,47 +61,103 @@ class TajweedText extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TajweedLegend
 // ─────────────────────────────────────────────────────────────────────────────
-/// A compact horizontally-scrollable legend card showing tajweed colour rules.
-///
-/// Pass [isEn] = true for English labels, false for Indonesian.
-class TajweedLegend extends StatelessWidget {
+/// A collapsible legend card showing tajweed colour rules.
+class TajweedLegend extends StatefulWidget {
   final bool isEn;
   const TajweedLegend({super.key, this.isEn = true});
 
   @override
+  State<TajweedLegend> createState() => _TajweedLegendState();
+}
+
+class _TajweedLegendState extends State<TajweedLegend> {
+  bool _isExpanded = true;
+
+  @override
   Widget build(BuildContext context) {
+    final isEn = widget.isEn;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.outlineVariant),
+        color: const Color(0xFFF1F5F2),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8E4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(children: [
-            Icon(Icons.palette_outlined, size: 13, color: AppTheme.primary),
-            const SizedBox(width: 4),
-            Text(
-              isEn ? 'Tajweed Colour Guide' : 'Panduan Warna Tajwid',
-              style: TextStyle(
-                color: AppTheme.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.4,
+          // Header Row with colored dots, title, and collapse arrow
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  // 5 Colored dots
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _Dot(color: TajweedColors.maddWajib),
+                      _Dot(color: TajweedColors.maddMunfasil),
+                      _Dot(color: TajweedColors.maddThabii),
+                      _Dot(color: TajweedColors.ghunnah),
+                      _Dot(color: TajweedColors.qalqalah),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isEn ? 'Tajweed Color Guide' : 'Panduan Warna Tajweed',
+                      style: const TextStyle(
+                        color: Color(0xFF2C4A3E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: const Color(0xFF4A6B5D),
+                  ),
+                ],
               ),
             ),
-          ]),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: tajweedRules.map((rule) => _LegendChip(rule: rule, isEn: isEn)).toList(),
           ),
+
+          if (_isExpanded) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: Color(0xFFE0E6E2)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: tajweedRules.map((rule) => _LegendChip(rule: rule, isEn: isEn)).toList(),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  final Color color;
+  const _Dot({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 6,
+      height: 6,
+      margin: const EdgeInsets.only(right: 3),
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
       ),
     );
   }
@@ -125,26 +175,21 @@ class _LegendChip extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
             color: rule.color,
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(2.5),
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(
-            color: AppTheme.onSurfaceVariant,
-            fontSize: 10,
-            height: 1.3,
+          style: const TextStyle(
+            color: Color(0xFF37474F),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          rule.nameAr,
-          style: AppTheme.arabicStyle(fontSize: 10, color: rule.color),
         ),
       ],
     );

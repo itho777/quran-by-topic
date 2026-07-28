@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../shared/widgets/islamic_star.dart';
+import '../../shared/widgets/tajweed_text.dart';
 import '../../shared/widgets/reciter_picker_sheet.dart';
 import '../../core/quran_sources.dart';
 import '../mushaf/source_picker_sheet.dart';
@@ -44,6 +45,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   bool _showTranslation = true;
   bool _showArabic = true;
   bool _showTranslit = true;
+  bool _showTajweedColors = false;
   int? _firstPageNumber; 
 
   // Audio Playback
@@ -930,6 +932,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   if (v == 'arabic') _showArabic = !_showArabic;
                   if (v == 'translit') _showTranslit = !_showTranslit;
                   if (v == 'translation') _showTranslation = !_showTranslation;
+                  if (v == 'tajweed') _showTajweedColors = !_showTajweedColors;
                 }),
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'arabic', child: Row(children: [
@@ -946,6 +949,12 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     Icon(_showTranslation ? Icons.check_box : Icons.check_box_outline_blank,
                       color: AppTheme.primary, size: 18),
                     const SizedBox(width: 8), Text(isEn ? 'Show Translation' : 'Tampilkan Terjemahan'),
+                  ])),
+                  const PopupMenuDivider(),
+                  PopupMenuItem(value: 'tajweed', child: Row(children: [
+                    Icon(_showTajweedColors ? Icons.check_box : Icons.check_box_outline_blank,
+                      color: const Color(0xFF2DB56B), size: 18),
+                    const SizedBox(width: 8), Text(isEn ? 'Colour-coded Tajweed' : 'Warna Tajwid'),
                   ])),
                 ],
               ),
@@ -1262,6 +1271,11 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 color: AppTheme.primary, backgroundColor: AppTheme.surfaceContainerHigh),
             ),
 
+          if (_showTajweedColors)
+            SliverToBoxAdapter(
+              child: TajweedLegend(isEn: isEn),
+            ),
+
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
@@ -1286,6 +1300,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       showArabic: _showArabic,
                       showTranslit: _showTranslit,
                       showTranslation: _showTranslation,
+                      showTajweedColors: _showTajweedColors,
                       isPlaying: (_playingAyahNum == aNum && _isPlaying) || isMurajaahPlaying,
                       isBookmarked: _bookmarkedKeys.contains(v['verse_key'] as String? ?? ''),
                       onPlayTapped: () {
@@ -1354,6 +1369,7 @@ class _VerseCard extends ConsumerWidget {
   final bool showArabic;
   final bool showTranslit;
   final bool showTranslation;
+  final bool showTajweedColors;
   final bool isPlaying;
   final bool isBookmarked;
   final VoidCallback onPlayTapped;
@@ -1367,6 +1383,7 @@ class _VerseCard extends ConsumerWidget {
     required this.showArabic,
     required this.showTranslit,
     required this.showTranslation,
+    this.showTajweedColors = false,
     required this.isPlaying,
     required this.isBookmarked,
     required this.onPlayTapped,
@@ -1459,11 +1476,12 @@ class _VerseCard extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 if (showArabic) ...[
-                  Text(arabic, textDirection: TextDirection.rtl, textAlign: TextAlign.right,
-                    style: AppTheme.arabicStyle(
-                      fontSize: settings.arabicFontSize * 0.82,
-                      color: isPlaying ? AppTheme.secondary : AppTheme.primary,
-                    ),
+                  TajweedText(
+                    arabic: arabic,
+                    fontSize: settings.arabicFontSize * 0.82,
+                    fallbackColor: isPlaying ? AppTheme.secondary : AppTheme.primary,
+                    enabled: showTajweedColors,
+                    textAlign: TextAlign.right,
                   ),
                   if ((showTranslit && settings.showTransliteration) || showTranslation)
                     Padding(padding: EdgeInsets.symmetric(vertical: 10),

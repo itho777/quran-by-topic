@@ -15,6 +15,7 @@ import '../../shared/widgets/reciter_picker_sheet.dart';
 import '../mushaf/source_picker_sheet.dart';
 import '../../core/quran_sources.dart';
 import '../../core/cdn_translation_service.dart';
+import '../../shared/widgets/tajweed_text.dart';
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Data model for each "slot" the user can toggle between two sources
@@ -54,6 +55,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
   late TabController _tabController;
   bool _loading = true;
   bool _isBookmarked = false;
+  bool _showTajweedColors = false;
 
   // â”€â”€ DB data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Map<String, dynamic>? _verse;
@@ -1103,6 +1105,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 case 'share':
                   _copyActiveAyah();
                   break;
+                case 'tajweed':
+                  setState(() => _showTajweedColors = !_showTajweedColors);
+                  break;
                 case 'settings':
                   context.push('/settings');
                   break;
@@ -1194,6 +1199,20 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 ),
                 const PopupMenuDivider(),
                 PopupMenuItem<String>(
+                  value: 'tajweed',
+                  child: Row(children: [
+                    Icon(
+                      _showTajweedColors ? Icons.check_box : Icons.check_box_outline_blank,
+                      size: 18,
+                      color: const Color(0xFF2DB56B),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(isEn ? 'Colour-coded Tajweed' : 'Warna Tajwid',
+                        style: const TextStyle(fontSize: 13)),
+                  ]),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem<String>(
                   value: 'settings',
                   child: Row(children: [
                     Icon(Icons.settings_outlined, size: 18, color: AppTheme.outline),
@@ -1210,7 +1229,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       ),
       body: NestedScrollView(
         headerSliverBuilder: (context, _) => [
-          // â”€â”€ Arabic + Transliteration Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Arabic + Transliteration Card ───────────────────────────────
           SliverToBoxAdapter(
             child: GestureDetector(
               onHorizontalDragEnd: (details) {
@@ -1226,14 +1245,12 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                 child: Column(
                   children: [
-                    Text(
-                      arabicText,
-                      textDirection: TextDirection.rtl,
+                    TajweedText(
+                      arabic: arabicText,
+                      fontSize: ref.watch(settingsProvider).arabicFontSize * 0.82,
+                      fallbackColor: _isPlaying ? AppTheme.secondary : AppTheme.primary,
+                      enabled: _showTajweedColors,
                       textAlign: TextAlign.center,
-                      style: AppTheme.arabicStyle(
-                        fontSize: ref.watch(settingsProvider).arabicFontSize * 0.82,
-                        color: _isPlaying ? AppTheme.secondary : AppTheme.primary,
-                      ),
                     ),
                     if (ref.watch(settingsProvider).showTransliteration) ...[
                       const SizedBox(height: 12),
@@ -1283,6 +1300,10 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
               ),
             ),
           ),
+          if (_showTajweedColors)
+            SliverToBoxAdapter(
+              child: TajweedLegend(isEn: isEn),
+            ),
           // â”€â”€ Prev / Next Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           SliverToBoxAdapter(child: _buildNavigation(totalAyahs, isEn)),
           // â”€â”€ Pinned TabBar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

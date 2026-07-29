@@ -221,55 +221,36 @@ class _LegendChip extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TajweedLogoIcon — Theme-aware calligraphy logo widget
 // ─────────────────────────────────────────────────────────────────────────────
-/// Renders the official Tajweed logo calligraphy graphic, adapting its color
-/// seamlessly to dark/light theme and active/inactive toggle state.
+/// Renders the Tajweed calligraphy logo tinted to match AppBar icon colors:
+/// AppTheme.primary when active, AppTheme.onSurfaceVariant when inactive.
 class TajweedLogoIcon extends StatelessWidget {
   final double height;
   final bool active;
 
   const TajweedLogoIcon({
     super.key,
-    this.height = 18,
+    this.height = 22,
     this.active = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tintColor = active
+        ? AppTheme.primary
+        : AppTheme.onSurfaceVariant;
 
-    // In dark mode, the black ink would be invisible against a dark AppBar.
-    // Apply a light tint (white/silver) to the whole image so it shows up,
-    // then switch to green when active.
-    // In light mode, the original black+red ink is perfectly readable — just
-    // dim to 45% opacity when inactive.
-
-    if (isDark) {
-      final tintColor = active
-          ? const Color(0xFF4ADE80)   // emerald green accent
-          : const Color(0xFFB0BEC5);  // cool silver — visible on dark bg
-
-      return ColorFiltered(
-        colorFilter: ColorFilter.mode(tintColor, BlendMode.srcIn),
-        child: _image(),
-      );
-    } else {
-      // Light mode: keep original colors, dim when inactive
-      return Opacity(
-        opacity: active ? 1.0 : 0.45,
-        child: _image(),
-      );
-    }
-  }
-
-  Widget _image() => Image.asset(
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(tintColor, BlendMode.srcIn),
+      child: Image.asset(
         'assets/images/tajweed_logo.png',
         height: height,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return Text(
-            'التجويد',
-            style: AppTheme.arabicStyle(fontSize: height * 0.8),
-          );
-        },
-      );
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.auto_fix_high,
+          size: height,
+          color: tintColor,
+        ),
+      ),
+    );
+  }
 }

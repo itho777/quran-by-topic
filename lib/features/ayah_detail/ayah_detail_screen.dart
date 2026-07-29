@@ -1060,20 +1060,26 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Tajweed icon button — logo only, no text
           IconButton(
             tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             onPressed: () => setState(() => _showTajweedColors = !_showTajweedColors),
             icon: TajweedLogoIcon(
-              height: 24,
+              height: 22,
               active: _showTajweedColors,
             ),
           ),
           // Play button
           IconButton(
-            icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),
             tooltip: isEn ? 'Play Audio' : 'Putar Audio',
             onPressed: _toggleAudio,
           ),
           // Bookmark
           IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: AppTheme.primary),
             tooltip: isEn ? 'Bookmark' : 'Simpan',
             onPressed: () => _showBookmarkOptions(context),
@@ -1081,6 +1087,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Read in Mushaf
           if (_verse != null && _verse!['page_number'] != null)
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               icon: AppTheme.getMushafIcon(color: AppTheme.primary),
               tooltip: isEn ? 'Read in Mushaf' : 'Buka Mushaf',
               onPressed: () {
@@ -1090,6 +1098,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             ),
           // Overflow — secondary actions
           PopupMenuButton<String>(
+            padding: EdgeInsets.zero,
             icon: Icon(Icons.more_vert, color: AppTheme.primary),
             tooltip: isEn ? 'More' : 'Lainnya',
             color: AppTheme.surfaceContainerHigh,

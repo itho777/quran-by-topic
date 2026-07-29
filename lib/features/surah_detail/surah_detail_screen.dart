@@ -929,7 +929,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     )
                   : IconButton(
                       tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                       onPressed: () async {
                         final turningOn = !_showTajweedColors;
                         if (turningOn && _uthmaniTexts.isEmpty) {
@@ -948,18 +949,22 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         }
                       },
                       icon: TajweedLogoIcon(
-                        height: 24,
+                        height: 22,
                         active: _showTajweedColors,
                       ),
                     ),
               // Audio Play button
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),
                 tooltip: isEn ? 'Play Audio' : 'Putar Audio',
                 onPressed: _toggleAudio,
               ),
               // Translation source picker
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Icon(Icons.translate, color: AppTheme.primary),
                 tooltip: isEn ? 'Translation' : 'Terjemahan',
                 onPressed: _showTranslationSourcePicker,
@@ -967,6 +972,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               // Display options
               PopupMenuButton<String>(
                 icon: Icon(Icons.tune, color: AppTheme.outline),
+                padding: EdgeInsets.zero,
                 color: AppTheme.surfaceContainer,
                 tooltip: isEn ? 'Display' : 'Tampilan',
                 onSelected: (v) => setState(() {
@@ -995,6 +1001,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               // Overflow — secondary actions
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert, color: AppTheme.primary),
+                padding: EdgeInsets.zero,
                 tooltip: isEn ? 'More' : 'Lainnya',
                 color: AppTheme.surfaceContainerHigh,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

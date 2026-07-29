@@ -217,3 +217,50 @@ class _LegendChip extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TajweedLogoIcon — Theme-aware calligraphy logo widget
+// ─────────────────────────────────────────────────────────────────────────────
+/// Renders the official Tajweed logo calligraphy graphic, adapting its color
+/// seamlessly to dark/light theme and active/inactive toggle state.
+class TajweedLogoIcon extends StatelessWidget {
+  final double height;
+  final bool active;
+  final Color? color;
+
+  const TajweedLogoIcon({
+    super.key,
+    this.height = 18,
+    this.active = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final Color tintColor = color ??
+        (active
+            ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF2DB56B))
+            : (isDark ? AppTheme.onSurfaceVariant : const Color(0xFF5A6E65)));
+
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(tintColor, BlendMode.srcIn),
+      child: Image.asset(
+        'assets/images/tajweed_logo.png',
+        height: height,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Text(
+            'التجويد',
+            style: AppTheme.arabicStyle(
+              fontSize: height * 0.8,
+              color: tintColor,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

@@ -98,6 +98,7 @@ flutter:
   assets:
     - assets/images/logo_dark.png
     - assets/images/logo_light.png
+    - assets/images/tajweed_logo.png
     - assets/mushaf/
     - assets/images/kaabah_overlay.jpg
     - assets/audio/

@@ -969,14 +969,11 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                               ),
                             ]
                           : [
-                              Text(
-                                'ت',
-                                style: AppTheme.arabicStyle(
-                                  fontSize: 14,
-                                  color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
-                                ),
+                              TajweedLogoIcon(
+                                height: 16,
+                                active: _showTajweedColors,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 5),
                               Text(
                                 isEn ? 'Tajweed' : 'Tajwid',
                                 style: TextStyle(

@@ -226,41 +226,50 @@ class _LegendChip extends StatelessWidget {
 class TajweedLogoIcon extends StatelessWidget {
   final double height;
   final bool active;
-  final Color? color;
 
   const TajweedLogoIcon({
     super.key,
     this.height = 18,
     this.active = false,
-    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final Color tintColor = color ??
-        (active
-            ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF2DB56B))
-            : (isDark ? AppTheme.onSurfaceVariant : const Color(0xFF5A6E65)));
+    // In dark mode, the black ink would be invisible against a dark AppBar.
+    // Apply a light tint (white/silver) to the whole image so it shows up,
+    // then switch to green when active.
+    // In light mode, the original black+red ink is perfectly readable — just
+    // dim to 45% opacity when inactive.
 
-    return ColorFiltered(
-      colorFilter: ColorFilter.mode(tintColor, BlendMode.srcIn),
-      child: Image.asset(
+    if (isDark) {
+      final tintColor = active
+          ? const Color(0xFF4ADE80)   // emerald green accent
+          : const Color(0xFFB0BEC5);  // cool silver — visible on dark bg
+
+      return ColorFiltered(
+        colorFilter: ColorFilter.mode(tintColor, BlendMode.srcIn),
+        child: _image(),
+      );
+    } else {
+      // Light mode: keep original colors, dim when inactive
+      return Opacity(
+        opacity: active ? 1.0 : 0.45,
+        child: _image(),
+      );
+    }
+  }
+
+  Widget _image() => Image.asset(
         'assets/images/tajweed_logo.png',
         height: height,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           return Text(
             'التجويد',
-            style: AppTheme.arabicStyle(
-              fontSize: height * 0.8,
-              color: tintColor,
-            ),
+            style: AppTheme.arabicStyle(fontSize: height * 0.8),
           );
         },
-      ),
-    );
-  }
+      );
 }

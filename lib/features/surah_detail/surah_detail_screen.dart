@@ -914,79 +914,44 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               ),
             ),
             actions: [
-              // Tajweed Pill button
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: InkWell(
-                  onTap: () async {
-                    final turningOn = !_showTajweedColors;
-                    if (turningOn && _uthmaniTexts.isEmpty) {
-                      setState(() => _tajweedLoading = true);
-                      final texts = await UthmaniTextService.instance
-                          .getSurahTexts(widget.surahId);
-                      if (mounted) {
-                        setState(() {
-                          _uthmaniTexts = texts ?? {};
-                          _showTajweedColors = true;
-                          _tajweedLoading = false;
-                        });
-                      }
-                    } else {
-                      setState(() => _showTajweedColors = turningOn);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _showTajweedColors ? const Color(0xFF2DB56B).withValues(alpha: 0.15) : AppTheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.outlineVariant,
-                        width: 1.2,
+              // Tajweed icon button — logo only, no text
+              _tajweedLoading
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      onPressed: () async {
+                        final turningOn = !_showTajweedColors;
+                        if (turningOn && _uthmaniTexts.isEmpty) {
+                          setState(() => _tajweedLoading = true);
+                          final texts = await UthmaniTextService.instance
+                              .getSurahTexts(widget.surahId);
+                          if (mounted) {
+                            setState(() {
+                              _uthmaniTexts = texts ?? {};
+                              _showTajweedColors = true;
+                              _tajweedLoading = false;
+                            });
+                          }
+                        } else {
+                          setState(() => _showTajweedColors = turningOn);
+                        }
+                      },
+                      icon: TajweedLogoIcon(
+                        height: 24,
+                        active: _showTajweedColors,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: _tajweedLoading
-                          ? [
-                              SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                isEn ? 'Tajweed' : 'Tajwid',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ]
-                          : [
-                              TajweedLogoIcon(
-                                height: 16,
-                                active: _showTajweedColors,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                isEn ? 'Tajweed' : 'Tajwid',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: _showTajweedColors ? const Color(0xFF2DB56B) : AppTheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                    ),
-                  ),
-                ),
-              ),
               // Audio Play button
               IconButton(
                 icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),

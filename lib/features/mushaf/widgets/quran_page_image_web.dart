@@ -1,6 +1,7 @@
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
+import 'tajweed_page_widget.dart';
 
 // KFQC Mushaf page aspect ratio: viewBox="0 0 345 550"
 const _kPageAspectRatio = 550.0 / 345.0;

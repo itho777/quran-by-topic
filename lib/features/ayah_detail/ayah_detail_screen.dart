@@ -1035,6 +1035,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
+        titleSpacing: 0,
+        actionsPadding: const EdgeInsets.only(right: 4),
         title: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () => context.go('/surahs/${widget.surahId}'),
@@ -1061,7 +1063,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           IconButton(
             tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             onPressed: () => setState(() => _showTajweedColors = !_showTajweedColors),
             icon: TajweedLogoIcon(
               height: 22,
@@ -1071,7 +1073,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Play button
           IconButton(
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),
             tooltip: isEn ? 'Play Audio' : 'Putar Audio',
             onPressed: _toggleAudio,
@@ -1079,7 +1081,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Bookmark
           IconButton(
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: AppTheme.primary),
             tooltip: isEn ? 'Bookmark' : 'Simpan',
             onPressed: () => _showBookmarkOptions(context),
@@ -1088,7 +1090,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           if (_verse != null && _verse!['page_number'] != null)
             IconButton(
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               icon: AppTheme.getMushafIcon(color: AppTheme.primary),
               tooltip: isEn ? 'Read in Mushaf' : 'Buka Mushaf',
               onPressed: () {

@@ -874,6 +874,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
             pinned: true,
             backgroundColor: AppTheme.surfaceContainer,
             surfaceTintColor: Colors.transparent,
+            titleSpacing: 0,
+            actionsPadding: const EdgeInsets.only(right: 4),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -930,7 +932,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   : IconButton(
                       tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                       onPressed: () async {
                         final turningOn = !_showTajweedColors;
                         if (turningOn && _uthmaniTexts.isEmpty) {
@@ -956,7 +958,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               // Audio Play button
               IconButton(
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),
                 tooltip: isEn ? 'Play Audio' : 'Putar Audio',
                 onPressed: _toggleAudio,

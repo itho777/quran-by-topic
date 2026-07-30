@@ -221,8 +221,11 @@ class _LegendChip extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TajweedLogoIcon — Theme-aware calligraphy logo widget
 // ─────────────────────────────────────────────────────────────────────────────
-/// Renders the Tajweed calligraphy logo tinted to match AppBar icon colors:
-/// AppTheme.primary when active, AppTheme.onSurfaceVariant when inactive.
+/// Renders the Tajweed calligraphy logo tinted to match AppBar icon colors.
+///
+/// Colors per theme — matching AppTheme.primary exactly:
+///   Dark  : gold  #E9C176  (active) / 50% opacity (inactive)
+///   Light : teal  #00443E  (active) / 50% opacity (inactive)
 class TajweedLogoIcon extends StatelessWidget {
   final double height;
   final bool active;
@@ -235,9 +238,12 @@ class TajweedLogoIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tintColor = active
-        ? AppTheme.primary
-        : AppTheme.onSurfaceVariant;
+    // Read brightness from context so the color reacts to live theme changes.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark
+        ? const Color(0xFFE9C176) // dark theme  — gold
+        : const Color(0xFF00443E); // light theme — teal
+    final tintColor = primaryColor.withValues(alpha: active ? 1.0 : 0.5);
 
     return ColorFiltered(
       colorFilter: ColorFilter.mode(tintColor, BlendMode.srcIn),

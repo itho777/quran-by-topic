@@ -2907,7 +2907,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                 'hafs_kfqc': isEn ? 'Hafs (Madani KFQC)' : 'Hafs (Madani KFQC)',
                                 'warsh_kfqc': isEn ? 'Warsh (Madani KFQC)' : 'Warsh (Madani KFQC)',
                                 'douri_kfqc': isEn ? 'Douri (Madani KFQC)' : 'Douri (Madani KFQC)',
-                                if (!kIsWeb) 'tajweed_qcf4': isEn ? 'Tajweed QCF4 (Font Asli)' : 'Tajweed QCF4 (Font Asli)',
+                                'tajweed_qcf4': isEn ? 'Tajwid Warna (Madani QCF4)' : 'Tajwid Warna (Madani QCF4)',
+                                'tajweed_css': isEn ? 'Tajwid Warna (Vector SVG)' : 'Tajwid Warna (Vector SVG)',
                               };
                               return [
                                 // Mushaf Edition Section

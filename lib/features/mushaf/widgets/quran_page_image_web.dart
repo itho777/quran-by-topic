@@ -16,6 +16,7 @@ class _SvgPageState {
   int? selectedVerseId;
   int? playingVerseId;
   double panelHeight = 0.0; // Height of the bottom panel overlay (px)
+  String? currentEdition;
 }
 
 String _getSvgUrl(int pageNum, String edition) {
@@ -88,6 +89,22 @@ Widget buildQuranPageImage(
   double panelHeight = 0.0,
   String mushafEdition = 'hafs_kfqc',
 }) {
+  if (mushafEdition == 'tajweed_qcf4') {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final w = fullWidth
+        ? (viewportWidth ?? MediaQuery.of(context).size.width)
+        : MediaQuery.of(context).size.width;
+    final h = w * _kPageAspectRatio;
+    return SizedBox(
+      width: w,
+      height: h,
+      child: TajweedPageWidget(
+        pageNumber: pageNum,
+        isDark: isDark,
+      ),
+    );
+  }
+
   final viewType = 'quran-svg-page-$pageNum-$fullWidth-$mushafEdition';
 
   // Always refresh callbacks and IDs
@@ -98,11 +115,16 @@ Widget buildQuranPageImage(
   state.playingVerseId = playingVerseId;
   state.panelHeight = panelHeight;
 
-  // Dynamically update highlights if container style is already rendered
+  // Dynamically update highlights or reload if edition changed
   if (state.container != null) {
-    final style = state.container!.querySelector('style');
-    if (style != null) {
-      style.text = _buildPageCss(selectedVerseId, playingVerseId, mushafEdition: mushafEdition);
+    if (state.currentEdition != mushafEdition) {
+      state.currentEdition = mushafEdition;
+      _loadSvgIntoContainer(state.container as html.DivElement, pageNum, state, fullWidth, mushafEdition);
+    } else {
+      final style = state.container!.querySelector('style');
+      if (style != null) {
+        style.text = _buildPageCss(selectedVerseId, playingVerseId, mushafEdition: mushafEdition);
+      }
     }
     
     // Auto-scroll the active verse into the visible area above the panel
@@ -164,6 +186,7 @@ void _loadSvgIntoContainer(
   bool fullWidth,
   String mushafEdition,
 ) {
+  state.currentEdition = mushafEdition;
   // Show loading indicator while fetching
   container.children.clear();
   final loader = html.DivElement()

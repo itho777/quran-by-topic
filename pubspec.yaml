@@ -96,12 +96,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/logo_dark.png
-    - assets/images/logo_light.png
+    - assets/images/
     - assets/mushaf/
-    - assets/images/kaabah_overlay.jpg
     - assets/audio/
-    - assets/images/quran_calligraphy.png
     - assets/data/
 
   # An image asset can refer to one or more resolution-specific "variants", see

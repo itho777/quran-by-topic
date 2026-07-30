@@ -16,8 +16,6 @@ class TajweedPageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return const SizedBox.shrink();
-
     return QuranPagesScreen(
       isDark: isDark,
       startPage: pageNumber,

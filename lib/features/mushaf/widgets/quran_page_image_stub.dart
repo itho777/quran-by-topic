@@ -188,8 +188,8 @@ Widget buildQuranPageImage(
   double panelHeight = 0.0,
   String mushafEdition = 'hafs_kfqc',
 }) {
-  // On Android/iOS: use the native QPC Tajweed font engine
-  if (!kIsWeb && mushafEdition == 'tajweed_qcf4') {
+  // Use the native QPC Tajweed font engine
+  if (mushafEdition == 'tajweed_qcf4') {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final w = fullWidth
         ? (viewportWidth ?? MediaQuery.of(context).size.width)

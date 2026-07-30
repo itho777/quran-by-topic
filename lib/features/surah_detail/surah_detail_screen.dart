@@ -1018,7 +1018,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                   return [
                     PopupMenuItem<String>(
                       value: 'tajweed',
-                      child: Row(children: [
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
                         _tajweedLoading
                             ? SizedBox(
                                 width: 18,
@@ -1033,18 +1033,18 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                                 active: _showTajweedColors,
                               ),
                         const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            isEn ? 'Colored Tajweed' : 'Tajwid Warna',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,
-                              fontWeight: _showTajweedColors ? FontWeight.bold : FontWeight.normal,
-                            ),
+                        Text(
+                          isEn ? 'Colored Tajweed' : 'Tajwid Warna',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,
+                            fontWeight: _showTajweedColors ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
-                        if (_showTajweedColors)
+                        if (_showTajweedColors) ...[
+                          const SizedBox(width: 6),
                           Icon(Icons.check, size: 14, color: AppTheme.primary),
+                        ],
                       ]),
                     ),
                     const PopupMenuDivider(),
@@ -1064,32 +1064,36 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                     ),
                     PopupMenuItem<String>(
                       value: 'lang_en',
-                      child: Row(children: [
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.language, size: 18,
                             color: _currentLang == 'en' ? AppTheme.primary : AppTheme.outline),
                         const SizedBox(width: 10),
-                        Expanded(child: Text('English', style: TextStyle(
+                        Text('English', style: TextStyle(
                           fontSize: 13,
                           color: _currentLang == 'en' ? AppTheme.primary : AppTheme.onSurface,
                           fontWeight: _currentLang == 'en' ? FontWeight.bold : FontWeight.normal,
-                        ))),
-                        if (_currentLang == 'en')
+                        )),
+                        if (_currentLang == 'en') ...[
+                          const SizedBox(width: 6),
                           Icon(Icons.check, size: 14, color: AppTheme.primary),
+                        ],
                       ]),
                     ),
                     PopupMenuItem<String>(
                       value: 'lang_id',
-                      child: Row(children: [
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.language, size: 18,
                             color: _currentLang == 'id' ? AppTheme.primary : AppTheme.outline),
                         const SizedBox(width: 10),
-                        Expanded(child: Text('Indonesia', style: TextStyle(
+                        Text('Indonesia', style: TextStyle(
                           fontSize: 13,
                           color: _currentLang == 'id' ? AppTheme.primary : AppTheme.onSurface,
                           fontWeight: _currentLang == 'id' ? FontWeight.bold : FontWeight.normal,
-                        ))),
-                        if (_currentLang == 'id')
+                        )),
+                        if (_currentLang == 'id') ...[
+                          const SizedBox(width: 6),
                           Icon(Icons.check, size: 14, color: AppTheme.primary),
+                        ],
                       ]),
                     ),
                     const PopupMenuDivider(),

@@ -98,7 +98,6 @@ const int _maddahAbove             = 0x0653; // ٓ — maddah above (used in mad
 const Set<int> _idghamWithGhunnah    = {_ya, _nun, _mim, _waw};
 // — without ghunnah: ل ر
 const Set<int> _idghamWithoutGhunnah = {_lam, _ra};
-const Set<int> _idghamLetters        = {_ya, _nun, _mim, _waw, _lam, _ra};
 
 // Ikhfa letters (15 letters: ص ذ ث ك ج ش ق س د ط ز ف ت ض ظ)
 const Set<int> _ikhfaLetters = {

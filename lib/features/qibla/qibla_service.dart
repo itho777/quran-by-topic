@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:adhan/adhan.dart';
 import 'package:geolocator/geolocator.dart';

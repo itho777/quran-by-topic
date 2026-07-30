@@ -916,45 +916,6 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               ),
             ),
             actions: [
-              // Tajweed icon button — logo only, no text
-              _tajweedLoading
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                      ),
-                    )
-                  : IconButton(
-                      tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                      onPressed: () async {
-                        final turningOn = !_showTajweedColors;
-                        if (turningOn && _uthmaniTexts.isEmpty) {
-                          setState(() => _tajweedLoading = true);
-                          final texts = await UthmaniTextService.instance
-                              .getSurahTexts(widget.surahId);
-                          if (mounted) {
-                            setState(() {
-                              _uthmaniTexts = texts ?? {};
-                              _showTajweedColors = true;
-                              _tajweedLoading = false;
-                            });
-                          }
-                        } else {
-                          setState(() => _showTajweedColors = turningOn);
-                        }
-                      },
-                      icon: TajweedLogoIcon(
-                        height: 22,
-                        active: _showTajweedColors,
-                      ),
-                    ),
               // Audio Play button
               IconButton(
                 padding: EdgeInsets.zero,
@@ -1007,8 +968,25 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 tooltip: isEn ? 'More' : 'Lainnya',
                 color: AppTheme.surfaceContainerHigh,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onSelected: (value) {
+                onSelected: (value) async {
                   switch (value) {
+                    case 'tajweed':
+                      final turningOn = !_showTajweedColors;
+                      if (turningOn && _uthmaniTexts.isEmpty) {
+                        setState(() => _tajweedLoading = true);
+                        final texts = await UthmaniTextService.instance
+                            .getSurahTexts(widget.surahId);
+                        if (mounted) {
+                          setState(() {
+                            _uthmaniTexts = texts ?? {};
+                            _showTajweedColors = true;
+                            _tajweedLoading = false;
+                          });
+                        }
+                      } else {
+                        setState(() => _showTajweedColors = turningOn);
+                      }
+                      break;
                     case 'lang_en':
                       ref.read(settingsProvider.notifier).setAppLanguage('en');
                       setState(() {});
@@ -1038,6 +1016,38 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 },
                 itemBuilder: (ctx) {
                   return [
+                    PopupMenuItem<String>(
+                      value: 'tajweed',
+                      child: Row(children: [
+                        _tajweedLoading
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primary,
+                                ),
+                              )
+                            : TajweedLogoIcon(
+                                height: 20,
+                                active: _showTajweedColors,
+                              ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isEn ? 'Tajweed Colors' : 'Warna Tajwid',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,
+                              fontWeight: _showTajweedColors ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        if (_showTajweedColors)
+                          Icon(Icons.check, size: 14, color: AppTheme.primary),
+                      ]),
+                    ),
+                    const PopupMenuDivider(),
                     // Language header
                     PopupMenuItem<String>(
                       enabled: false,

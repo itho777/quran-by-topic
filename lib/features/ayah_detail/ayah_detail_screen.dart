@@ -1059,17 +1059,6 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           ),
         ),
         actions: [
-          // Tajweed icon button — logo only, no text
-          IconButton(
-            tooltip: isEn ? 'Tajweed Colors' : 'Warna Tajwid',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            onPressed: () => setState(() => _showTajweedColors = !_showTajweedColors),
-            icon: TajweedLogoIcon(
-              height: 22,
-              active: _showTajweedColors,
-            ),
-          ),
           // Play button
           IconButton(
             padding: EdgeInsets.zero,
@@ -1107,6 +1096,9 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               switch (value) {
+                case 'tajweed':
+                  setState(() => _showTajweedColors = !_showTajweedColors);
+                  break;
                 case 'lang_en':
                   ref.read(settingsProvider.notifier).setAppLanguage('en');
                   break;
@@ -1133,6 +1125,29 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             },
             itemBuilder: (ctx) {
               return [
+                PopupMenuItem<String>(
+                  value: 'tajweed',
+                  child: Row(children: [
+                    TajweedLogoIcon(
+                      height: 20,
+                      active: _showTajweedColors,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isEn ? 'Tajweed Colors' : 'Warna Tajwid',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,
+                          fontWeight: _showTajweedColors ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    if (_showTajweedColors)
+                      Icon(Icons.check, size: 14, color: AppTheme.primary),
+                  ]),
+                ),
+                const PopupMenuDivider(),
                 // Language header
                 PopupMenuItem<String>(
                   enabled: false,

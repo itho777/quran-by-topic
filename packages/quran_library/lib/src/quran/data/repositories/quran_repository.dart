@@ -26,7 +26,7 @@ class QuranRepository {
   ///
   /// Throws an [Exception] if the data retrieval fails.
   Future<List<dynamic>> getQuran() async {
-    const gzPath = 'packages/quran_library/assets/jsons/quran_hafs.json.gz';
+    const gzPath = 'packages/quran_library/assets/jsons/quran_hafs.json.bin';
     return _gzipJsonAssetService.loadJsonList(
       gzPath,
     );
@@ -45,7 +45,7 @@ class QuranRepository {
   /// Throws:
   ///   An exception if there is an error while fetching the Surah data.
   Future<Map<String, dynamic>> getSurahs() async {
-    const gzPath = 'packages/quran_library/assets/jsons/surahs_name.json.gz';
+    const gzPath = 'packages/quran_library/assets/jsons/surahs_name.json.bin';
     return _gzipJsonAssetService.loadJsonMap(
       gzPath,
     );
@@ -63,7 +63,7 @@ class QuranRepository {
   /// List<dynamic> fonts = await getFontsQuran();
   /// ```
   Future<List<dynamic>> getQuranDataV3() async {
-    const gzPath = 'packages/quran_library/assets/jsons/quranV4.json.gz';
+    const gzPath = 'packages/quran_library/assets/jsons/quranV4.json.bin';
     final jsonResponse = await _gzipJsonAssetService.loadJsonMap(
       gzPath,
     );

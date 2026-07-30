@@ -16,6 +16,7 @@ import '../mushaf/source_picker_sheet.dart';
 import '../../core/local_db.dart';
 import '../../core/cdn_translation_service.dart';
 import '../../core/murajaah_service.dart';
+import '../../core/uthmani_text_service.dart';
 
 class SurahDetailScreen extends ConsumerStatefulWidget {
   final int surahId;
@@ -46,6 +47,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   bool _showArabic = true;
   bool _showTranslit = true;
   bool _showTajweedColors = false;
+  bool _tajweedLoading = false;
+  Map<String, String> _uthmaniTexts = {};
   int? _firstPageNumber; 
 
   // Audio Playback
@@ -871,6 +874,8 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
             pinned: true,
             backgroundColor: AppTheme.surfaceContainer,
             surfaceTintColor: Colors.transparent,
+            titleSpacing: 0,
+            actionsPadding: const EdgeInsets.only(right: 4),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -913,12 +918,16 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
             actions: [
               // Audio Play button
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),
                 tooltip: isEn ? 'Play Audio' : 'Putar Audio',
                 onPressed: _toggleAudio,
               ),
               // Translation source picker
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 icon: Icon(Icons.translate, color: AppTheme.primary),
                 tooltip: isEn ? 'Translation' : 'Terjemahan',
                 onPressed: _showTranslationSourcePicker,
@@ -926,13 +935,13 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
               // Display options
               PopupMenuButton<String>(
                 icon: Icon(Icons.tune, color: AppTheme.outline),
+                padding: EdgeInsets.zero,
                 color: AppTheme.surfaceContainer,
                 tooltip: isEn ? 'Display' : 'Tampilan',
                 onSelected: (v) => setState(() {
                   if (v == 'arabic') _showArabic = !_showArabic;
                   if (v == 'translit') _showTranslit = !_showTranslit;
                   if (v == 'translation') _showTranslation = !_showTranslation;
-                  if (v == 'tajweed') _showTajweedColors = !_showTajweedColors;
                 }),
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'arabic', child: Row(children: [
@@ -950,22 +959,34 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                       color: AppTheme.primary, size: 18),
                     const SizedBox(width: 8), Text(isEn ? 'Show Translation' : 'Tampilkan Terjemahan'),
                   ])),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(value: 'tajweed', child: Row(children: [
-                    Icon(_showTajweedColors ? Icons.check_box : Icons.check_box_outline_blank,
-                      color: const Color(0xFF2DB56B), size: 18),
-                    const SizedBox(width: 8), Text(isEn ? 'Colour-coded Tajweed' : 'Warna Tajwid'),
-                  ])),
                 ],
               ),
               // Overflow — secondary actions
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert, color: AppTheme.primary),
+                padding: EdgeInsets.zero,
                 tooltip: isEn ? 'More' : 'Lainnya',
                 color: AppTheme.surfaceContainerHigh,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onSelected: (value) {
+                onSelected: (value) async {
                   switch (value) {
+                    case 'tajweed':
+                      final turningOn = !_showTajweedColors;
+                      if (turningOn && _uthmaniTexts.isEmpty) {
+                        setState(() => _tajweedLoading = true);
+                        final texts = await UthmaniTextService.instance
+                            .getSurahTexts(widget.surahId);
+                        if (mounted) {
+                          setState(() {
+                            _uthmaniTexts = texts ?? {};
+                            _showTajweedColors = true;
+                            _tajweedLoading = false;
+                          });
+                        }
+                      } else {
+                        setState(() => _showTajweedColors = turningOn);
+                      }
+                      break;
                     case 'lang_en':
                       ref.read(settingsProvider.notifier).setAppLanguage('en');
                       setState(() {});
@@ -995,6 +1016,38 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                 },
                 itemBuilder: (ctx) {
                   return [
+                    PopupMenuItem<String>(
+                      value: 'tajweed',
+                      child: Row(children: [
+                        _tajweedLoading
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.primary,
+                                ),
+                              )
+                            : TajweedLogoIcon(
+                                height: 20,
+                                active: _showTajweedColors,
+                              ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isEn ? 'Colored Tajweed' : 'Tajwid Warna',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,
+                              fontWeight: _showTajweedColors ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        if (_showTajweedColors)
+                          Icon(Icons.check, size: 14, color: AppTheme.primary),
+                      ]),
+                    ),
+                    const PopupMenuDivider(),
                     // Language header
                     PopupMenuItem<String>(
                       enabled: false,

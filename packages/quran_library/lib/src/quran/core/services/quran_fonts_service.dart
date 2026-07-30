@@ -56,7 +56,7 @@ class QuranFontsService {
   static String _assetPath(int page) {
     final padded = page.toString().padLeft(3, '0');
     return 'packages/quran_library/assets/fonts/quran_fonts_qfc4/'
-        'QCF4${padded}_COLOR-Regular.ttf.gz';
+        'QCF4${padded}_COLOR-Regular.ttf.bin';
   }
 
   // ---------------------------------------------------------------------------
@@ -243,14 +243,17 @@ class QuranFontsService {
     });
   }
 
-  /// فك ضغط ملف `.ttf.gz` من الـ assets أو تنزيله من CDN إذا لم يكن مضمناً.
+  /// فك ضغط ملف الخط من الـ assets أو تنزيله من CDN إذا لم يكن مضمناً.
   static Future<Uint8List> _decompressFromAsset(int page) async {
     try {
       final data = await rootBundle.load(_assetPath(page));
       final gzBytes =
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-      final decompressed = const GZipDecoder().decodeBytes(gzBytes);
-      return Uint8List.fromList(decompressed);
+      if (gzBytes.length >= 2 && gzBytes[0] == 0x1f && gzBytes[1] == 0x8b) {
+        final decompressed = const GZipDecoder().decodeBytes(gzBytes);
+        return Uint8List.fromList(decompressed);
+      }
+      return gzBytes;
     } catch (_) {
       final padded = page.toString().padLeft(3, '0');
       final url =
@@ -258,8 +261,12 @@ class QuranFontsService {
       final response =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
-        final decompressed = const GZipDecoder().decodeBytes(response.bodyBytes);
-        return Uint8List.fromList(decompressed);
+        final bytes = response.bodyBytes;
+        if (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b) {
+          final decompressed = const GZipDecoder().decodeBytes(bytes);
+          return Uint8List.fromList(decompressed);
+        }
+        return bytes;
       }
       rethrow;
     }

@@ -17,7 +17,7 @@ class QpcHafsWordByWordStore {
 
 class QpcHafsWordByWordAssetsLoader {
   static const _wbwGzPath =
-      'packages/quran_library/assets/jsons/qpc-hafs-word-by-word.json.gz';
+      'packages/quran_library/assets/jsons/qpc-hafs-word-by-word.json.bin';
 
   static Future<QpcHafsWordByWordStore> load() async {
     const jsonService = GzipJsonAssetService();

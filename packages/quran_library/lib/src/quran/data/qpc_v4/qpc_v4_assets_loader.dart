@@ -12,9 +12,9 @@ class QpcV4AssetsStore {
 
 class QpcV4AssetsLoader {
   static const _ayahInfoGzPath =
-      'packages/quran_library/assets/jsons/qpc_v4_ayah_info.json.gz';
+      'packages/quran_library/assets/jsons/qpc_v4_ayah_info.json.bin';
   static const _wordsGzPath =
-      'packages/quran_library/assets/jsons/qpc-v4.json.gz';
+      'packages/quran_library/assets/jsons/qpc-v4.json.bin';
 
   static Future<QpcV4AssetsStore> load() async {
     const jsonService = GzipJsonAssetService();

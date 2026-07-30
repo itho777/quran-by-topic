@@ -72,14 +72,15 @@ flutter:
   assets:
     - assets/
     - assets/fonts/
+    - assets/fonts/quran_fonts_qfc4/
     - assets/fonts/Kufam-Regular.ttf
     - assets/fonts/NotoNaskhArabic-VariableFont_wght.ttf
     - assets/fonts/UthmanicHafs_V20.ttf
     - assets/jsons/
     - assets/svg/
     - assets/images/
-    - assets/saadi.json.gz
-    - assets/en.json.gz
+    - assets/saadi.json.bin
+    - assets/en.json.bin
 
   fonts:
     - family: kufi

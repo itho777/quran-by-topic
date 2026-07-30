@@ -18,6 +18,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'local_db.dart';
+import 'uthmani_text_service.dart';
 
 // ---------------------------------------------------------------------------
 // CDN / storage constants
@@ -509,6 +510,66 @@ class DownloadService {
       label: reciterId,
       status: 'idle',
       totalItems: _totalSurahs,
+      downloadedItems: 0,
+    );
+  }
+
+  // =========================================================================
+  // 9. Download Uthmani Tajwid Text & Font Set (114 Surahs)
+  // =========================================================================
+
+  Stream<DownloadProgress> downloadUthmaniText({bool resume = false}) async* {
+    const sourceType = 'uthmani';
+    const sourceId = 'quran_uthmani';
+    const totalSurahs = 114;
+
+    DownloadProgress progress = const DownloadProgress(
+      sourceType: sourceType,
+      sourceId: sourceId,
+      downloaded: 0,
+      total: totalSurahs,
+      status: 'downloading',
+    );
+    yield progress;
+
+    try {
+      int downloaded = 0;
+      for (int surah = 1; surah <= totalSurahs; surah++) {
+        await UthmaniTextService.instance.getSurahTexts(surah);
+        downloaded++;
+
+        await _db.upsertManifest(
+          sourceType: sourceType,
+          sourceId: sourceId,
+          label: 'Uthmani Tajwid Text & Font Set',
+          status: downloaded >= totalSurahs ? 'completed' : 'downloading',
+          totalItems: totalSurahs,
+          downloadedItems: downloaded,
+        );
+
+        progress = progress.copyWith(
+          downloaded: downloaded,
+          total: totalSurahs,
+          status: downloaded >= totalSurahs ? 'completed' : 'downloading',
+        );
+        yield progress;
+      }
+    } catch (e, st) {
+      final errorMsg = _describeError(e, st);
+      yield progress.copyWith(status: 'error', error: errorMsg);
+    }
+  }
+
+  Future<void> deleteUthmaniText() async {
+    const sourceType = 'uthmani';
+    const sourceId = 'quran_uthmani';
+    UthmaniTextService.instance.clearCache();
+    await _db.upsertManifest(
+      sourceType: sourceType,
+      sourceId: sourceId,
+      label: 'Uthmani Tajwid Text & Font Set',
+      status: 'idle',
+      totalItems: 114,
       downloadedItems: 0,
     );
   }

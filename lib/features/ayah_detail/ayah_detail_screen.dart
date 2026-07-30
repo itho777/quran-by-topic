@@ -1035,6 +1035,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceContainer,
+        titleSpacing: 0,
+        actionsPadding: const EdgeInsets.only(right: 4),
         title: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () => context.go('/surahs/${widget.surahId}'),
@@ -1059,12 +1061,16 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
         actions: [
           // Play button
           IconButton(
-            icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 28),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, color: AppTheme.primary, size: 24),
             tooltip: isEn ? 'Play Audio' : 'Putar Audio',
             onPressed: _toggleAudio,
           ),
           // Bookmark
           IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
             icon: Icon(_isBookmarked ? Icons.bookmark : Icons.bookmark_border, color: AppTheme.primary),
             tooltip: isEn ? 'Bookmark' : 'Simpan',
             onPressed: () => _showBookmarkOptions(context),
@@ -1072,6 +1078,8 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
           // Read in Mushaf
           if (_verse != null && _verse!['page_number'] != null)
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               icon: AppTheme.getMushafIcon(color: AppTheme.primary),
               tooltip: isEn ? 'Read in Mushaf' : 'Buka Mushaf',
               onPressed: () {
@@ -1081,12 +1089,16 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             ),
           // Overflow — secondary actions
           PopupMenuButton<String>(
+            padding: EdgeInsets.zero,
             icon: Icon(Icons.more_vert, color: AppTheme.primary),
             tooltip: isEn ? 'More' : 'Lainnya',
             color: AppTheme.surfaceContainerHigh,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               switch (value) {
+                case 'tajweed':
+                  setState(() => _showTajweedColors = !_showTajweedColors);
+                  break;
                 case 'lang_en':
                   ref.read(settingsProvider.notifier).setAppLanguage('en');
                   break;
@@ -1105,9 +1117,7 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                 case 'share':
                   _copyActiveAyah();
                   break;
-                case 'tajweed':
-                  setState(() => _showTajweedColors = !_showTajweedColors);
-                  break;
+
                 case 'settings':
                   context.push('/settings');
                   break;
@@ -1115,6 +1125,29 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
             },
             itemBuilder: (ctx) {
               return [
+                PopupMenuItem<String>(
+                  value: 'tajweed',
+                  child: Row(children: [
+                    TajweedLogoIcon(
+                      height: 20,
+                      active: _showTajweedColors,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isEn ? 'Colored Tajweed' : 'Tajwid Warna',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,
+                          fontWeight: _showTajweedColors ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    if (_showTajweedColors)
+                      Icon(Icons.check, size: 14, color: AppTheme.primary),
+                  ]),
+                ),
+                const PopupMenuDivider(),
                 // Language header
                 PopupMenuItem<String>(
                   enabled: false,
@@ -1194,20 +1227,6 @@ class _AyahDetailScreenState extends ConsumerState<AyahDetailScreen>
                     Icon(Icons.share, size: 18, color: AppTheme.primary),
                     const SizedBox(width: 10),
                     Text(isEn ? 'Copy & Share' : 'Salin & Bagikan',
-                        style: const TextStyle(fontSize: 13)),
-                  ]),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem<String>(
-                  value: 'tajweed',
-                  child: Row(children: [
-                    Icon(
-                      _showTajweedColors ? Icons.check_box : Icons.check_box_outline_blank,
-                      size: 18,
-                      color: const Color(0xFF2DB56B),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(isEn ? 'Colour-coded Tajweed' : 'Warna Tajwid',
                         style: const TextStyle(fontSize: 13)),
                   ]),
                 ),

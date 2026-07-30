@@ -121,7 +121,9 @@ class GzipJsonAssetService {
     final bytes =
         data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
 
-    if (assetPath.endsWith('.gz')) {
+    if (assetPath.endsWith('.gz') ||
+        assetPath.endsWith('.bin') ||
+        (bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b)) {
       return decodeGzipBytesToString(bytes);
     }
 

@@ -1035,7 +1035,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            isEn ? 'Tajweed Colors' : 'Warna Tajwid',
+                            isEn ? 'Colored Tajweed' : 'Tajwid Warna',
                             style: TextStyle(
                               fontSize: 13,
                               color: _showTajweedColors ? AppTheme.primary : AppTheme.onSurface,

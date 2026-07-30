@@ -130,7 +130,7 @@ class _TajweedLegendState extends State<TajweedLegend> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isEn ? 'Tajweed Color Guide' : 'Panduan Warna Tajwid',
+                      isEn ? 'Colored Tajweed Guide' : 'Panduan Tajwid Warna',
                       style: TextStyle(
                         color: titleColor,
                         fontSize: 12,

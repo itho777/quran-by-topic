@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="cream">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Colored Tajweed Mushaf Trial - tafseer.id</title>
+  <meta name="description" content="Uji Coba Standalone Mushaf Tajwid Warna Berstandar Certified QPC / Dar Al-Marifah dengan 12 Aturan Tajwid Lengkap & Interaktif di tafseer.id.">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="../" class="brand-section">
+        <img src="../logo-dark-trans.png" alt="tafseer.id logo" class="brand-logo" id="headerLogo">
+        <div class="brand-title">
+          <span class="brand-name">tafseer.id</span>
+          <span class="brand-badge">✨ Tajweed Trial v3.1</span>
+        </div>
+      </a>
+
+      <div class="header-actions">
+        <div class="theme-selector">
+          <button class="theme-opt active" data-theme="cream">Cream</button>
+          <button class="theme-opt" data-theme="dark">Dark</button>
+          <button class="theme-opt" data-theme="sepia">Sepia</button>
+        </div>
+        <a href="../" class="btn-icon" title="Kembali ke tafseer.id">
+          🏠
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <div class="main-wrapper">
+
+    <!-- Left Sidebar: Tajweed Legend Panel -->
+    <aside class="sidebar-panel">
+      <div class="glass-card">
+        <div class="card-title">
+          <span>📖 Panduan Tajwid Warna</span>
+          <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">12 Hukum Certified</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+          Klik hukum Tajwid di bawah untuk memfilter dan menyorot teks pada Mushaf:
+        </p>
+        <div class="legend-list" id="legendList">
+          <!-- Populated by app.js -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+
+      <!-- Navigation & Controls Toolbar -->
+      <div class="toolbar-section glass-card" style="padding: 14px 20px;">
+        <div class="nav-select-group">
+          <label for="surahSelect" style="font-size: 0.85rem; font-weight: 600;">Surah:</label>
+          <select id="surahSelect" class="select-custom">
+            <!-- Populated by app.js -->
+          </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <!-- Tajweed Toggle -->
+          <label class="toggle-switch">
+            <span>Tajwid Warna</span>
+            <input type="checkbox" id="tajweedToggle" class="toggle-checkbox" checked>
+          </label>
+
+          <!-- Terjemahan Toggle -->
+          <label class="toggle-switch">
+            <span>Terjemahan</span>
+            <input type="checkbox" id="translationToggle" class="toggle-checkbox" checked>
+          </label>
+
+          <!-- Font Size Slider -->
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600;">
+            <span>Ukuran Teks:</span>
+            <input type="range" id="fontSizeSlider" min="22" max="48" value="32" style="accent-color: var(--accent-gold); cursor: pointer;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Mushaf Render Card -->
+      <div class="mushaf-card" id="mushafCard">
+        <div class="surah-banner">
+          <div class="surah-title-ar" id="surahTitleAr">الفاتحة</div>
+          <div class="surah-title-en" id="surahTitleEn">1. Surah Al-Fatihah</div>
+          <div class="surah-meta" id="surahMetaInfo">Meccan • 7 Verses</div>
+        </div>
+
+        <div class="bismillah-text" id="bismillahContainer">
+          بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+        </div>
+
+        <div class="ayah-list" id="ayahListContainer">
+          <!-- Ayah list rendered by app.js -->
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Audio Player Sticky Bar -->
+  <div class="audio-bar" id="audioBar">
+    <div class="audio-info">
+      <span style="font-size: 1.2rem;">🔊</span>
+      <span id="audioTrackInfo" style="font-size: 0.9rem; font-weight: 600;">Playing Recitation...</span>
+    </div>
+    <div class="audio-controls">
+      <button class="btn-sm" onclick="document.querySelector('audio')?.pause(); document.getElementById('audioBar').classList.remove('visible');">
+        ⏸ Hentikan Audio
+      </button>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

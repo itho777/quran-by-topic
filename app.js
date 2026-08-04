@@ -2697,6 +2697,7 @@ async function triggerRouting() {
             if (note === 'Translation') hasTranslationMatch = true;
             if (note === 'Tafsir') hasTafsirMatch = true;
             if (note === 'Asbabun Nuzul') hasNuzulMatch = true;
+            if (note === 'Tag' || note === 'Topic') hasTagMatch = true;
 
             // Keep results that match at least one selected category
             let keep = false;
@@ -2706,8 +2707,10 @@ async function triggerRouting() {
             if (state.searchOptions.nuzul && hasNuzulMatch) keep = true;
             if (state.searchOptions.tags && hasTagMatch) keep = true;
 
-            // If nothing is selected, display all as fallback
-            if (!state.searchOptions.quran && !state.searchOptions.trans && !state.searchOptions.tafsir && !state.searchOptions.nuzul && !state.searchOptions.tags) {
+            // When default (all categories enabled) or fallback, keep all results returned by DB
+            const allCategoriesEnabled = state.searchOptions.quran && state.searchOptions.trans && state.searchOptions.tafsir && state.searchOptions.nuzul && state.searchOptions.tags;
+            const noCategoriesEnabled = !state.searchOptions.quran && !state.searchOptions.trans && !state.searchOptions.tafsir && !state.searchOptions.nuzul && !state.searchOptions.tags;
+            if (allCategoriesEnabled || noCategoriesEnabled) {
               keep = true;
             }
 

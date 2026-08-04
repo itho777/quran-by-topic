@@ -1391,15 +1391,17 @@ function highlightSnippet(text, q) {
   return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
 }
 
+// Module-level alias so createVerseCard and other module-scope code can call it
+function highlightText(text, q) {
+  return highlightSnippet(text, q);
+}
+
 function getSearchExcerpts(verseKey, query) {
   if (!query) return '';
   const qLower = query.toLowerCase();
   let html = '';
+  const seenSources = new Set();
   
-  function highlightText(text, q) {
-    return highlightSnippet(text, q);
-  }
-
   if (searchContextSnippets && searchContextSnippets[verseKey]) {
     let snippets = [];
     try {
@@ -1413,9 +1415,48 @@ function getSearchExcerpts(verseKey, query) {
           const highlighted = highlightText(s.text, query);
           const typeClass = s.source_type === 'Tafsir' ? 'tafsir-source' : 
                             s.source_type === 'Asbabun Nuzul' ? 'nuzul-source' : 'translation-source';
+
+          let displayName = s.source_name || '';
+          let sourceId = s.source_id || '';
+          let type = s.source_type === 'Tafsir' ? 'tafsirs' :
+                     s.source_type === 'Asbabun Nuzul' ? 'asbabun_nuzul' : 'translations';
+
+          const sNameClean = displayName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const sIdClean = sourceId.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          let matchedRegistryItem = null;
+          const allReg = [
+            ...(db.registry?.translations || []).map(r => ({ ...r, type: 'translations' })),
+            ...(db.registry?.tafsirs || []).map(r => ({ ...r, type: 'tafsirs' })),
+            ...(db.registry?.asbabun_nuzul || []).map(r => ({ ...r, type: 'asbabun_nuzul' }))
+          ];
+
+          for (const reg of allReg) {
+            const regIdClean = reg.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const regNameClean = reg.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (sIdClean && regIdClean === sIdClean) { matchedRegistryItem = reg; break; }
+            if (sNameClean && (regIdClean === sNameClean || regNameClean === sNameClean)) { matchedRegistryItem = reg; break; }
+          }
+
+          if (matchedRegistryItem) {
+            displayName = matchedRegistryItem.name;
+            sourceId = matchedRegistryItem.id;
+            type = matchedRegistryItem.type;
+            seenSources.add(matchedRegistryItem.id);
+            seenSources.add(matchedRegistryItem.name.toLowerCase());
+          }
+
+          if (displayName) seenSources.add(displayName.toLowerCase());
+          if (s.source_name) seenSources.add(s.source_name.toLowerCase());
+          if (s.source_id) seenSources.add(s.source_id);
+
+          const sourceHeader = matchedRegistryItem
+            ? `<a class="search-excerpt-source ${typeClass} search-excerpt-source-link" href="#" title="Open ayah with this source" onclick="return goToVerseWithSource('${sourceId}','${type}','${verseKey}')">${displayName}</a>`
+            : `<span class="search-excerpt-source ${typeClass}">${displayName}</span>`;
+
           html += `
             <div class="search-excerpt-item">
-              <span class="search-excerpt-source ${typeClass}">${s.source_name}</span>
+              ${sourceHeader}
               <div class="search-excerpt-text">...${highlighted}...</div>
             </div>
           `;
@@ -1426,10 +1467,13 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all translations
   db.registry.translations.forEach(t => {
+    if (seenSources.has(t.id) || seenSources.has(t.name.toLowerCase())) return;
     const data = db.cache.get(t.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
       if (textMatchesQuery(text, query)) {
+        seenSources.add(t.id);
+        seenSources.add(t.name.toLowerCase());
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source translation-source search-excerpt-source-link" href="#" title="Open ayah with this translation" onclick="return goToVerseWithSource('${t.id}','translations','${verseKey}')">${t.name}</a>
@@ -1442,10 +1486,13 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all tafsirs
   db.registry.tafsirs.forEach(t => {
+    if (seenSources.has(t.id) || seenSources.has(t.name.toLowerCase())) return;
     const data = getTafsirData(t);
     if (data) {
       const text = resolveTafsirText(data, verseKey);
       if (textMatchesQuery(text, query)) {
+        seenSources.add(t.id);
+        seenSources.add(t.name.toLowerCase());
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source tafsir-source search-excerpt-source-link" href="#" title="Open ayah with this tafsir" onclick="return goToVerseWithSource('${t.id}','tafsirs','${verseKey}')">${t.name}</a>
@@ -1458,10 +1505,13 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all asbabun nuzul
   db.registry.asbabun_nuzul.forEach(n => {
+    if (seenSources.has(n.id) || seenSources.has(n.name.toLowerCase())) return;
     const data = db.cache.get(n.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
       if (textMatchesQuery(text, query)) {
+        seenSources.add(n.id);
+        seenSources.add(n.name.toLowerCase());
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source nuzul-source search-excerpt-source-link" href="#" title="Open ayah with this asbabun nuzul" onclick="return goToVerseWithSource('${n.id}','asbabun_nuzul','${verseKey}')">${n.name}</a>
@@ -2662,8 +2712,18 @@ async function triggerRouting() {
           body: JSON.stringify({
             query: query.trim(),
             hitsPerPage: 100,
-            attributesToRetrieve: ['verse_key', 'text_ar', `text_${targetLang}`, `translit_${targetLang}`, `tags_${targetLang}`],
-            attributesToHighlight: [`text_${targetLang}`, `translit_${targetLang}`, `tags_${targetLang}`],
+            attributesToRetrieve: [
+              'verse_key', 'text_ar',
+              `text_${targetLang}`, `translit_${targetLang}`,
+              `tafsir_${targetLang}`, `nuzul_${targetLang}`,
+              `tags_${targetLang}`
+            ],
+            attributesToHighlight: [
+              'text_ar',
+              `text_${targetLang}`, `translit_${targetLang}`,
+              `tafsir_${targetLang}`, `nuzul_${targetLang}`,
+              `tags_${targetLang}`
+            ],
           })
         }
       );
@@ -2671,12 +2731,40 @@ async function triggerRouting() {
       if (algoliaRes.ok) {
         const algoliaData = await algoliaRes.json();
         if (algoliaData.hits && algoliaData.hits.length > 0) {
-          const algoliaKeys = algoliaData.hits.map(h => h.verse_key);
+
+          // Apply search category filter based on which Algolia field matched
+          const opt = state.searchOptions || {};
+          const allCats = opt.quran && opt.trans && opt.tafsir && opt.nuzul && opt.tags;
+          const noCats  = !opt.quran && !opt.trans && !opt.tafsir && !opt.nuzul && !opt.tags;
+
+          const filteredHits = allCats || noCats
+            ? algoliaData.hits
+            : algoliaData.hits.filter(h => {
+                const hl = h._highlightResult || {};
+                const hasMatch = (field) => {
+                  const f = hl[field];
+                  return f && f.matchLevel && f.matchLevel !== 'none';
+                };
+                if (opt.quran   && hasMatch('text_ar'))                       return true;
+                if (opt.trans   && (hasMatch(`text_${targetLang}`) || hasMatch(`translit_${targetLang}`))) return true;
+                if (opt.tafsir  && hasMatch(`tafsir_${targetLang}`))          return true;
+                if (opt.nuzul   && hasMatch(`nuzul_${targetLang}`))           return true;
+                if (opt.tags    && hasMatch(`tags_${targetLang}`))            return true;
+                return false;
+              });
+
+          const algoliaKeys = filteredHits.map(h => h.verse_key);
 
           // Store snippet from Algolia highlight for context display
-          algoliaData.hits.forEach(h => {
+          filteredHits.forEach(h => {
             const hl = h._highlightResult;
-            const snippetField = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`]);
+            // Pick the most relevant highlighted field in priority order
+            const snippetField = hl && (
+              hl[`text_${targetLang}`] ||
+              hl[`translit_${targetLang}`] ||
+              hl[`tafsir_${targetLang}`] ||
+              hl[`nuzul_${targetLang}`]
+            );
             if (snippetField && snippetField.value) {
               // Convert Algolia's <em> highlights to our mark tag
               searchContextSnippets[h.verse_key] = snippetField.value

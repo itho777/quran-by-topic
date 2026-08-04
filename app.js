@@ -10,11 +10,6 @@ let supabaseClient = null;
 let currentUser = null;
 let currentUserProfile = null;
 
-// --- 0b. Algolia Client (Ultra-fast typo-tolerant search) ---
-const ALGOLIA_APP_ID = 'EKMF7ZL31U';
-const ALGOLIA_SEARCH_KEY = 'fcaec97b3e235e7ec952f59e8ee8eb61';
-let algoliaIndex = null;
-
 function initSupabase() {
   const adminPath = localStorage.getItem('admin_path');
   if (adminPath && window.location.hash.includes('access_token=')) {
@@ -533,43 +528,6 @@ function applyStyles() {
   const transLabel = document.getElementById('trans-font-label');
   if (arLabel) arLabel.textContent = state.arabicFontSize + 'px';
   if (transLabel) transLabel.textContent = state.transFontSize + 'px';
-
-  // Inject tag highlight CSS styles
-  let tagStyleEl = document.getElementById('dynamic-tag-highlight-style');
-  if (!tagStyleEl) {
-    tagStyleEl = document.createElement('style');
-    tagStyleEl.id = 'dynamic-tag-highlight-style';
-    tagStyleEl.textContent = `
-      mark.search-highlight {
-        background-color: #fef08a !important;
-        color: #854d0e !important;
-        padding: 1px 4px !important;
-        border-radius: 3px !important;
-        font-weight: 700 !important;
-      }
-      .verse-tag mark.search-highlight {
-        background-color: #fde047 !important;
-        color: #78350f !important;
-        padding: 0 4px !important;
-        border-radius: 3px !important;
-        font-weight: bold !important;
-        display: inline-block !important;
-      }
-      /* TOPIK / TAG badge — theme-aware, no white box in dark mode */
-      .search-excerpt-tag-source {
-        background: rgba(14, 165, 233, 0.18) !important;
-        color: #38bdf8 !important;
-        border-color: rgba(56, 189, 248, 0.35) !important;
-      }
-      [data-theme="light"] .search-excerpt-tag-source,
-      [data-theme="sepia"] .search-excerpt-tag-source {
-        background: #e0f2fe !important;
-        color: #0369a1 !important;
-        border-color: #bae6fd !important;
-      }
-    `;
-    document.head.appendChild(tagStyleEl);
-  }
 }
 
 function updateThemeButtons() {
@@ -1433,22 +1391,6 @@ function highlightSnippet(text, q) {
   return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
 }
 
-function highlightText(text, q) {
-  return highlightSnippet(text, q);
-}
-
-function formatTagName(id) {
-  if (!id) return '';
-  if (typeof tagLookup !== 'undefined' && tagLookup && tagLookup.has(id)) {
-    return tagLookup.get(id);
-  }
-  if (typeof db !== 'undefined' && db && db.tags) {
-    const found = db.tags.find(t => t.id === id);
-    if (found && found.name) return found.name;
-  }
-  return id.replace(/-/g, ' ');
-}
-
 function getSearchExcerpts(verseKey, query) {
   if (!query) return '';
   const qLower = query.toLowerCase();
@@ -1539,7 +1481,7 @@ function getSearchExcerpts(verseKey, query) {
         const tagSourceTitle = state.uiLang === 'id' ? 'Topik / Tag' : 'Topic Tag';
         html += `
           <div class="search-excerpt-item">
-            <a class="search-excerpt-source search-excerpt-source-link search-excerpt-tag-source" href="#topic/${id}" title="Open topic">${tagSourceTitle}</a>
+            <a class="search-excerpt-source search-excerpt-source-link" href="#topic/${id}" title="Open topic" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">${tagSourceTitle}</a>
             <div class="search-excerpt-text">${highlightText(name, query)}</div>
           </div>
         `;
@@ -1878,8 +1820,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
-          const rawName = formatTagName(id);
-          const displayName = highlightQuery ? highlightSnippet(rawName, highlightQuery) : rawName;
+          const name = tagLookup.get(id) || id;
+          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
@@ -2011,8 +1953,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
-          const rawName = formatTagName(id);
-          const displayName = highlightQuery ? highlightSnippet(rawName, highlightQuery) : rawName;
+          const name = tagLookup.get(id) || id;
+          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
@@ -2697,72 +2639,66 @@ async function triggerRouting() {
     // Reset context snippets
     searchContextSnippets = {};
 
-    // ── Algolia Instant Search (Ultra-fast typo-tolerant keyword search) ──
-    if (typeof algoliasearch !== 'undefined' && ALGOLIA_APP_ID) {
-      try {
-        if (!algoliaIndex) {
-          const algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
-          algoliaIndex = algoliaClient.initIndex('quran_verses');
+    // ── Algolia Keyword Search (Primary) ────────────────────────────────────
+    // Algolia tokenizes queries and ignores filler words, making it ideal for
+    // natural-language queries like "tolong tampilkan ayat tentang hukum riba".
+    // Unlike PostgreSQL plainto_tsquery (which requires ALL words to match),
+    // Algolia returns results based on the most meaningful keywords.
+    try {
+      const ALGOLIA_APP_ID   = 'EKMF7ZL31U';
+      const ALGOLIA_SEARCH_KEY = 'fdd11b6d57ebb5060e66599e7a9738ec';
+      const targetLang = state.uiLang === 'id' ? 'id' : 'en';
+      showProgress(isId ? 'Mencari...' : 'Searching...');
+
+      const algoliaRes = await fetch(
+        `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/quran_verses/query`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Algolia-Application-Id': ALGOLIA_APP_ID,
+            'X-Algolia-API-Key': ALGOLIA_SEARCH_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: query.trim(),
+            hitsPerPage: 100,
+            attributesToRetrieve: ['verse_key', 'text_ar', `text_${targetLang}`, `translit_${targetLang}`, `tags_${targetLang}`],
+            attributesToHighlight: [`text_${targetLang}`, `translit_${targetLang}`, `tags_${targetLang}`],
+          })
         }
+      );
 
-        showProgress(isId ? 'Mencari dengan Algolia...' : 'Searching with Algolia...');
-        const algoliaRes = await algoliaIndex.search(query.trim(), { hitsPerPage: 100 });
+      if (algoliaRes.ok) {
+        const algoliaData = await algoliaRes.json();
+        if (algoliaData.hits && algoliaData.hits.length > 0) {
+          const algoliaKeys = algoliaData.hits.map(h => h.verse_key);
 
-        if (algoliaRes && algoliaRes.hits && algoliaRes.hits.length > 0) {
-          const algoliaResults = [];
-          algoliaRes.hits.forEach(hit => {
-            const verseKey = hit.verse_key || hit.objectID;
-            algoliaResults.push(verseKey);
-
-            // Extract highlighted context snippets
-            const snippets = [];
-            const h = hit._highlightResult || {};
-
-            if (h.text_id && h.text_id.matchLevel !== 'none') {
-              snippets.push({ source_name: 'Kemenag RI Translation', source_type: 'Translation', text: h.text_id.value });
-            } else if (hit.text_id && state.uiLang === 'id') {
-              snippets.push({ source_name: 'Kemenag RI Translation', source_type: 'Translation', text: hit.text_id });
-            }
-
-            if (h.text_en && h.text_en.matchLevel !== 'none') {
-              snippets.push({ source_name: 'Sahih International', source_type: 'Translation', text: h.text_en.value });
-            } else if (hit.text_en && state.uiLang === 'en') {
-              snippets.push({ source_name: 'Sahih International', source_type: 'Translation', text: hit.text_en });
-            }
-
-            if (h.translit_id && h.translit_id.matchLevel !== 'none') {
-              snippets.push({ source_name: 'Transliterasi (Latin)', source_type: 'Transliteration', text: h.translit_id.value });
-            } else if (h.translit_en && h.translit_en.matchLevel !== 'none') {
-              snippets.push({ source_name: 'Transliteration (Latin)', source_type: 'Transliteration', text: h.translit_en.value });
-            }
-
-            if (h.tags_id && Array.isArray(h.tags_id)) {
-              h.tags_id.forEach(t => {
-                if (t.matchLevel !== 'none') {
-                  snippets.push({ source_name: 'Topik / Tag', source_type: 'Tag', text: t.value });
-                }
-              });
-            }
-
-            if (snippets.length > 0) {
-              searchContextSnippets[verseKey] = JSON.stringify(snippets);
+          // Store snippet from Algolia highlight for context display
+          algoliaData.hits.forEach(h => {
+            const hl = h._highlightResult;
+            const snippetField = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`]);
+            if (snippetField && snippetField.value) {
+              // Convert Algolia's <em> highlights to our mark tag
+              searchContextSnippets[h.verse_key] = snippetField.value
+                .replace(/<em>/g, '<mark class="highlight">')
+                .replace(/<\/em>/g, '</mark>');
             }
           });
 
           if (header) {
             header.innerHTML = `
-              <h2 class="search-results-title">${isId ? 'Hasil Pencarian Instant untuk' : 'Instant Search Results for'} &ldquo;${query}&rdquo;</h2>
-              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${algoliaResults.length} ${isId ? 'ayat paling relevan (Algolia Fast Search)' : 'verses matching (Algolia Instant Search)'}</div>
+              <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
+              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${algoliaKeys.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs & topics'}</div>
             `;
           }
 
           await ensureActiveDatasets();
-          renderSearchPage(algoliaResults, query);
+          renderSearchPage(algoliaKeys, query);
           return;
         }
-      } catch (algoliaErr) {
-        console.warn('[Algolia] Instant Search failed, falling back to database:', algoliaErr);
       }
+    } catch (algoliaErr) {
+      console.warn('Algolia search failed, falling back to Supabase:', algoliaErr);
     }
 
     if (supabaseClient) {

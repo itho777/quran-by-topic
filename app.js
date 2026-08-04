@@ -1,4 +1,4 @@
-﻿/* ================================================
+/* ================================================
    TAFSEER.ID – Full Web App
    Supabase-Powered SPA — Read, Comprehend, Apply
    ================================================ */
@@ -2537,21 +2537,32 @@ async function triggerRouting() {
     if (state.searchOptions && state.searchOptions.semantic) {
       showProgress(isId ? 'Menghubungkan ke AI...' : 'Connecting to AI...');
       try {
-        const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses_by_text', {
-          query_text: query.trim(),
-          lang_code: state.uiLang,
-          match_threshold: 0.1,
-          result_limit: 50,
-          offset_val: 0
+        // ── Cloudflare Workers AI Hybrid Search (bge-m3 vector + trigram RRF) ──
+        // Replaced old Supabase-only RPC with the CF Worker that generates
+        // real-time embeddings via @cf/baai/bge-m3 and merges semantic +
+        // full-text results using Reciprocal Rank Fusion (RRF).
+        const CF_WORKER_URL = 'https://tafsir-web-search.irianto-suryoputro.workers.dev/api/search';
+
+        const workerRes = await fetch(CF_WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: query.trim(),
+            lang: state.uiLang === 'id' ? 'id' : 'en',
+            limit: 50,
+          }),
         });
 
-        if (rpcErr) throw rpcErr;
+        if (!workerRes.ok) throw new Error(`Worker HTTP ${workerRes.status}`);
+        const workerData = await workerRes.json();
+        if (!workerData.success) throw new Error(workerData.error || 'Worker error');
 
         const mergedResults = [];
-        if (results && Array.isArray(results)) {
-          results.forEach(r => {
+        if (workerData.results && Array.isArray(workerData.results)) {
+          workerData.results.forEach(r => {
             const verseKey = r.verse_key;
-            searchSimilarityScores[verseKey] = r.similarity || 0;
+            // Store RRF score as similarity so existing score-badge UI still works
+            searchSimilarityScores[verseKey] = r.score || 0;
             mergedResults.push(verseKey);
           });
         }
@@ -2567,9 +2578,42 @@ async function triggerRouting() {
         renderSearchPage(mergedResults, query);
         return;
       } catch (err) {
-        console.warn('Semantic search failed, falling back to keyword search:', err);
-        // Reset scores and fall through to keyword search
-        searchSimilarityScores = {};
+        console.warn('Hybrid search (CF Worker) failed, falling back to legacy semantic search:', err);
+        // ── Legacy fallback: old Supabase RPC (no CF AI vectors) ──────────────
+        try {
+          const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses_by_text', {
+            query_text: query.trim(),
+            lang_code: state.uiLang,
+            match_threshold: 0.1,
+            result_limit: 50,
+            offset_val: 0
+          });
+
+          if (rpcErr) throw rpcErr;
+
+          const mergedResults = [];
+          if (results && Array.isArray(results)) {
+            results.forEach(r => {
+              const verseKey = r.verse_key;
+              searchSimilarityScores[verseKey] = r.similarity || 0;
+              mergedResults.push(verseKey);
+            });
+          }
+
+          if (header) {
+            header.innerHTML = `
+              <h2 class="search-results-title">${isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for'} &ldquo;${query}&rdquo;</h2>
+              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan secara makna' : 'verses matching semantically'}</div>
+            `;
+          }
+
+          await ensureActiveDatasets();
+          renderSearchPage(mergedResults, query);
+          return;
+        } catch (fallbackErr) {
+          console.warn('Legacy semantic search also failed, falling back to keyword search:', fallbackErr);
+          searchSimilarityScores = {};
+        }
       }
     }
 

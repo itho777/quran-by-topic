@@ -528,6 +528,31 @@ function applyStyles() {
   const transLabel = document.getElementById('trans-font-label');
   if (arLabel) arLabel.textContent = state.arabicFontSize + 'px';
   if (transLabel) transLabel.textContent = state.transFontSize + 'px';
+
+  // Inject tag highlight CSS styles
+  let tagStyleEl = document.getElementById('dynamic-tag-highlight-style');
+  if (!tagStyleEl) {
+    tagStyleEl = document.createElement('style');
+    tagStyleEl.id = 'dynamic-tag-highlight-style';
+    tagStyleEl.textContent = `
+      mark.search-highlight {
+        background-color: #fef08a !important;
+        color: #854d0e !important;
+        padding: 1px 4px !important;
+        border-radius: 3px !important;
+        font-weight: 700 !important;
+      }
+      .verse-tag mark.search-highlight {
+        background-color: #fde047 !important;
+        color: #78350f !important;
+        padding: 0 4px !important;
+        border-radius: 3px !important;
+        font-weight: bold !important;
+        display: inline-block !important;
+      }
+    `;
+    document.head.appendChild(tagStyleEl);
+  }
 }
 
 function updateThemeButtons() {
@@ -1391,6 +1416,22 @@ function highlightSnippet(text, q) {
   return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
 }
 
+function highlightText(text, q) {
+  return highlightSnippet(text, q);
+}
+
+function formatTagName(id) {
+  if (!id) return '';
+  if (typeof tagLookup !== 'undefined' && tagLookup && tagLookup.has(id)) {
+    return tagLookup.get(id);
+  }
+  if (typeof db !== 'undefined' && db && db.tags) {
+    const found = db.tags.find(t => t.id === id);
+    if (found && found.name) return found.name;
+  }
+  return id.replace(/-/g, ' ');
+}
+
 function getSearchExcerpts(verseKey, query) {
   if (!query) return '';
   const qLower = query.toLowerCase();
@@ -1820,8 +1861,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
-          const name = tagLookup.get(id) || id;
-          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
+          const rawName = formatTagName(id);
+          const displayName = highlightQuery ? highlightSnippet(rawName, highlightQuery) : rawName;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
@@ -1953,8 +1994,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
-          const name = tagLookup.get(id) || id;
-          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
+          const rawName = formatTagName(id);
+          const displayName = highlightQuery ? highlightSnippet(rawName, highlightQuery) : rawName;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;

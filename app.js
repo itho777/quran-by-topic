@@ -528,6 +528,31 @@ function applyStyles() {
   const transLabel = document.getElementById('trans-font-label');
   if (arLabel) arLabel.textContent = state.arabicFontSize + 'px';
   if (transLabel) transLabel.textContent = state.transFontSize + 'px';
+
+  // Inject tag highlight CSS styles
+  let tagStyleEl = document.getElementById('dynamic-tag-highlight-style');
+  if (!tagStyleEl) {
+    tagStyleEl = document.createElement('style');
+    tagStyleEl.id = 'dynamic-tag-highlight-style';
+    tagStyleEl.textContent = `
+      mark.search-highlight {
+        background-color: #fef08a !important;
+        color: #854d0e !important;
+        padding: 1px 4px !important;
+        border-radius: 3px !important;
+        font-weight: 700 !important;
+      }
+      .verse-tag mark.search-highlight {
+        background-color: #fde047 !important;
+        color: #78350f !important;
+        padding: 0 4px !important;
+        border-radius: 3px !important;
+        font-weight: bold !important;
+        display: inline-block !important;
+      }
+    `;
+    document.head.appendChild(tagStyleEl);
+  }
 }
 
 function updateThemeButtons() {
@@ -1391,6 +1416,22 @@ function highlightSnippet(text, q) {
   return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
 }
 
+function highlightText(text, q) {
+  return highlightSnippet(text, q);
+}
+
+function formatTagName(id) {
+  if (!id) return '';
+  if (typeof tagLookup !== 'undefined' && tagLookup && tagLookup.has(id)) {
+    return tagLookup.get(id);
+  }
+  if (typeof db !== 'undefined' && db && db.tags) {
+    const found = db.tags.find(t => t.id === id);
+    if (found && found.name) return found.name;
+  }
+  return id.replace(/-/g, ' ');
+}
+
 function getSearchExcerpts(verseKey, query) {
   if (!query) return '';
   const qLower = query.toLowerCase();
@@ -1399,8 +1440,6 @@ function getSearchExcerpts(verseKey, query) {
   function highlightText(text, q) {
     return highlightSnippet(text, q);
   }
-
-  const renderedSources = new Set();
 
   if (searchContextSnippets && searchContextSnippets[verseKey]) {
     let snippets = [];
@@ -1412,7 +1451,6 @@ function getSearchExcerpts(verseKey, query) {
     if (Array.isArray(snippets) && snippets.length > 0) {
       snippets.forEach(s => {
         if (s && s.text) {
-          if (s.source_id) renderedSources.add(s.source_id);
           const highlighted = highlightText(s.text, query);
           const typeClass = s.source_type === 'Tafsir' ? 'tafsir-source' : 
                             s.source_type === 'Asbabun Nuzul' ? 'nuzul-source' : 'translation-source';
@@ -1429,12 +1467,10 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all translations
   db.registry.translations.forEach(t => {
-    if (renderedSources.has(t.id)) return;
     const data = db.cache.get(t.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
       if (textMatchesQuery(text, query)) {
-        renderedSources.add(t.id);
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source translation-source search-excerpt-source-link" href="#" title="Open ayah with this translation" onclick="return goToVerseWithSource('${t.id}','translations','${verseKey}')">${t.name}</a>
@@ -1447,12 +1483,10 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all tafsirs
   db.registry.tafsirs.forEach(t => {
-    if (renderedSources.has(t.id)) return;
     const data = getTafsirData(t);
     if (data) {
       const text = resolveTafsirText(data, verseKey);
       if (textMatchesQuery(text, query)) {
-        renderedSources.add(t.id);
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source tafsir-source search-excerpt-source-link" href="#" title="Open ayah with this tafsir" onclick="return goToVerseWithSource('${t.id}','tafsirs','${verseKey}')">${t.name}</a>
@@ -1465,12 +1499,10 @@ function getSearchExcerpts(verseKey, query) {
 
   // Check all asbabun nuzul
   db.registry.asbabun_nuzul.forEach(n => {
-    if (renderedSources.has(n.id)) return;
     const data = db.cache.get(n.file);
     if (data && data[verseKey]) {
       const text = data[verseKey];
       if (textMatchesQuery(text, query)) {
-        renderedSources.add(n.id);
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source nuzul-source search-excerpt-source-link" href="#" title="Open ayah with this asbabun nuzul" onclick="return goToVerseWithSource('${n.id}','asbabun_nuzul','${verseKey}')">${n.name}</a>
@@ -1829,8 +1861,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
-          const name = tagLookup.get(id) || id;
-          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
+          const rawName = formatTagName(id);
+          const displayName = highlightQuery ? highlightSnippet(rawName, highlightQuery) : rawName;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
@@ -1962,8 +1994,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         const lessLabel = state.uiLang === 'id' ? 'Lebih sedikit ▲' : 'Show less ▲';
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
-          const name = tagLookup.get(id) || id;
-          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
+          const rawName = formatTagName(id);
+          const displayName = highlightQuery ? highlightSnippet(rawName, highlightQuery) : rawName;
           tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
@@ -2566,6 +2598,9 @@ async function triggerRouting() {
       showProgress(isId ? 'Menghubungkan ke AI...' : 'Connecting to AI...');
       try {
         // ── Cloudflare Workers AI Hybrid Search (bge-m3 vector + trigram RRF) ──
+        // Replaced old Supabase-only RPC with the CF Worker that generates
+        // real-time embeddings via @cf/baai/bge-m3 and merges semantic +
+        // full-text results using Reciprocal Rank Fusion (RRF).
         const CF_WORKER_URL = 'https://tafsir-web-search.irianto-suryoputro.workers.dev/api/search';
 
         const workerRes = await fetch(CF_WORKER_URL, {
@@ -2586,6 +2621,7 @@ async function triggerRouting() {
         if (workerData.results && Array.isArray(workerData.results)) {
           workerData.results.forEach(r => {
             const verseKey = r.verse_key;
+            // Store RRF score as similarity so existing score-badge UI still works
             searchSimilarityScores[verseKey] = r.score || 0;
             mergedResults.push(verseKey);
           });
@@ -2603,6 +2639,7 @@ async function triggerRouting() {
         return;
       } catch (err) {
         console.warn('Hybrid search (CF Worker) failed, falling back to legacy semantic search:', err);
+        // ── Legacy fallback: old Supabase RPC (no CF AI vectors) ──────────────
         try {
           const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses_by_text', {
             query_text: query.trim(),

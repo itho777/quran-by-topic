@@ -1523,7 +1523,7 @@ function getSearchExcerpts(verseKey, query) {
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source search-excerpt-source-link" href="#topic/${id}" title="Open topic" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">${tagSourceTitle}</a>
-            <div class="search-excerpt-text">${highlightText(name, query)}</div>
+            <div class="search-excerpt-text">${name}</div>
           </div>
         `;
       }

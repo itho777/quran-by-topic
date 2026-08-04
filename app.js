@@ -1472,6 +1472,23 @@ function getSearchExcerpts(verseKey, query) {
     }
   });
 
+  // Check topic tags
+  if (db.verseTags && db.verseTags[verseKey]) {
+    const tagIds = db.verseTags[verseKey];
+    tagIds.forEach(id => {
+      const name = tagLookup.get(id) || id;
+      if (textMatchesQuery(name, query)) {
+        const tagSourceTitle = state.uiLang === 'id' ? 'Topik / Tag' : 'Topic Tag';
+        html += `
+          <div class="search-excerpt-item">
+            <a class="search-excerpt-source search-excerpt-source-link" href="#topic/${id}" title="Open topic" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">${tagSourceTitle}</a>
+            <div class="search-excerpt-text">${highlightText(name, query)}</div>
+          </div>
+        `;
+      }
+    });
+  }
+
   if (html) {
     const title = state.uiLang === 'id' ? 'Kecocokan Pencarian:' : 'Search Matches:';
     return `
@@ -1804,7 +1821,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
           const name = tagLookup.get(id) || id;
-          tagsHtml += `<a href="#topic/${id}" class="verse-tag">${name}</a>`;
+          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
+          tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
         bodyHtml += tagsHtml;
@@ -1936,7 +1954,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
         let tagsHtml = '<div class="verse-tags tags-collapsible">';
         tagIds.forEach(id => {
           const name = tagLookup.get(id) || id;
-          tagsHtml += `<a href="#topic/${id}" class="verse-tag">${name}</a>`;
+          const displayName = highlightQuery ? highlightText(name, highlightQuery) : name;
+          tagsHtml += `<a href="#topic/${id}" class="verse-tag">${displayName}</a>`;
         });
         tagsHtml += `</div><button class="tags-more-btn" style="display:none" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>`;
         bodyHtml += tagsHtml;

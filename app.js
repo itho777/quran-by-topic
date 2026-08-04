@@ -550,6 +550,18 @@ function applyStyles() {
         font-weight: bold !important;
         display: inline-block !important;
       }
+      /* TOPIK / TAG badge — theme-aware, no white box in dark mode */
+      .search-excerpt-tag-source {
+        background: rgba(14, 165, 233, 0.18) !important;
+        color: #38bdf8 !important;
+        border-color: rgba(56, 189, 248, 0.35) !important;
+      }
+      [data-theme="light"] .search-excerpt-tag-source,
+      [data-theme="sepia"] .search-excerpt-tag-source {
+        background: #e0f2fe !important;
+        color: #0369a1 !important;
+        border-color: #bae6fd !important;
+      }
     `;
     document.head.appendChild(tagStyleEl);
   }
@@ -1522,8 +1534,8 @@ function getSearchExcerpts(verseKey, query) {
         const tagSourceTitle = state.uiLang === 'id' ? 'Topik / Tag' : 'Topic Tag';
         html += `
           <div class="search-excerpt-item">
-            <a class="search-excerpt-source search-excerpt-source-link" href="#topic/${id}" title="Open topic" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">${tagSourceTitle}</a>
-            <div class="search-excerpt-text">${name}</div>
+            <a class="search-excerpt-source search-excerpt-source-link search-excerpt-tag-source" href="#topic/${id}" title="Open topic">${tagSourceTitle}</a>
+            <div class="search-excerpt-text">${highlightText(name, query)}</div>
           </div>
         `;
       }

@@ -10,6 +10,11 @@ let supabaseClient = null;
 let currentUser = null;
 let currentUserProfile = null;
 
+// --- 0b. Algolia Client (Ultra-fast typo-tolerant search) ---
+const ALGOLIA_APP_ID = 'EKMF7ZL31U';
+const ALGOLIA_SEARCH_KEY = 'fcaec97b3e235e7ec952f59e8ee8eb61';
+let algoliaIndex = null;
+
 function initSupabase() {
   const adminPath = localStorage.getItem('admin_path');
   if (adminPath && window.location.hash.includes('access_token=')) {
@@ -2691,6 +2696,74 @@ async function triggerRouting() {
 
     // Reset context snippets
     searchContextSnippets = {};
+
+    // ── Algolia Instant Search (Ultra-fast typo-tolerant keyword search) ──
+    if (typeof algoliasearch !== 'undefined' && ALGOLIA_APP_ID) {
+      try {
+        if (!algoliaIndex) {
+          const algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_SEARCH_KEY);
+          algoliaIndex = algoliaClient.initIndex('quran_verses');
+        }
+
+        showProgress(isId ? 'Mencari dengan Algolia...' : 'Searching with Algolia...');
+        const algoliaRes = await algoliaIndex.search(query.trim(), { hitsPerPage: 100 });
+
+        if (algoliaRes && algoliaRes.hits && algoliaRes.hits.length > 0) {
+          const algoliaResults = [];
+          algoliaRes.hits.forEach(hit => {
+            const verseKey = hit.verse_key || hit.objectID;
+            algoliaResults.push(verseKey);
+
+            // Extract highlighted context snippets
+            const snippets = [];
+            const h = hit._highlightResult || {};
+
+            if (h.text_id && h.text_id.matchLevel !== 'none') {
+              snippets.push({ source_name: 'Kemenag RI Translation', source_type: 'Translation', text: h.text_id.value });
+            } else if (hit.text_id && state.uiLang === 'id') {
+              snippets.push({ source_name: 'Kemenag RI Translation', source_type: 'Translation', text: hit.text_id });
+            }
+
+            if (h.text_en && h.text_en.matchLevel !== 'none') {
+              snippets.push({ source_name: 'Sahih International', source_type: 'Translation', text: h.text_en.value });
+            } else if (hit.text_en && state.uiLang === 'en') {
+              snippets.push({ source_name: 'Sahih International', source_type: 'Translation', text: hit.text_en });
+            }
+
+            if (h.translit_id && h.translit_id.matchLevel !== 'none') {
+              snippets.push({ source_name: 'Transliterasi (Latin)', source_type: 'Transliteration', text: h.translit_id.value });
+            } else if (h.translit_en && h.translit_en.matchLevel !== 'none') {
+              snippets.push({ source_name: 'Transliteration (Latin)', source_type: 'Transliteration', text: h.translit_en.value });
+            }
+
+            if (h.tags_id && Array.isArray(h.tags_id)) {
+              h.tags_id.forEach(t => {
+                if (t.matchLevel !== 'none') {
+                  snippets.push({ source_name: 'Topik / Tag', source_type: 'Tag', text: t.value });
+                }
+              });
+            }
+
+            if (snippets.length > 0) {
+              searchContextSnippets[verseKey] = JSON.stringify(snippets);
+            }
+          });
+
+          if (header) {
+            header.innerHTML = `
+              <h2 class="search-results-title">${isId ? 'Hasil Pencarian Instant untuk' : 'Instant Search Results for'} &ldquo;${query}&rdquo;</h2>
+              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${algoliaResults.length} ${isId ? 'ayat paling relevan (Algolia Fast Search)' : 'verses matching (Algolia Instant Search)'}</div>
+            `;
+          }
+
+          await ensureActiveDatasets();
+          renderSearchPage(algoliaResults, query);
+          return;
+        }
+      } catch (algoliaErr) {
+        console.warn('[Algolia] Instant Search failed, falling back to database:', algoliaErr);
+      }
+    }
 
     if (supabaseClient) {
       showProgress(isId ? 'Mencari di basis data...' : 'Searching database...');

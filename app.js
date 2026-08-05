@@ -2682,16 +2682,15 @@ async function triggerRouting() {
     // Reset context snippets
     searchContextSnippets = {};
 
-    // ── Algolia Keyword Search (Primary) ────────────────────────────────────
-    // Algolia tokenizes queries and ignores filler words, making it ideal for
-    // natural-language queries like "tolong tampilkan ayat tentang hukum riba".
-    // Unlike PostgreSQL plainto_tsquery (which requires ALL words to match),
-    // Algolia returns results based on the most meaningful keywords.
+    const combinedKeysSet = new Set();
+
+    showProgress(isId ? 'Mencari...' : 'Searching...');
+
+    // ── 1. Algolia Keyword Search ──────────────────────────────────────────
     try {
       const ALGOLIA_APP_ID   = 'EKMF7ZL31U';
       const ALGOLIA_SEARCH_KEY = 'fdd11b6d57ebb5060e66599e7a9738ec';
       const targetLang = state.uiLang === 'id' ? 'id' : 'en';
-      showProgress(isId ? 'Mencari...' : 'Searching...');
 
       const algoliaRes = await fetch(
         `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/quran_verses/query`,
@@ -2714,50 +2713,24 @@ async function triggerRouting() {
       if (algoliaRes.ok) {
         const algoliaData = await algoliaRes.json();
         if (algoliaData.hits && algoliaData.hits.length > 0) {
-          const algoliaKeys = algoliaData.hits.map(h => h.verse_key);
-
-          // Store snippet from Algolia highlight for context display
           algoliaData.hits.forEach(h => {
+            combinedKeysSet.add(h.verse_key);
             const hl = h._highlightResult;
             const snippetField = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`]);
             if (snippetField && snippetField.value) {
-              // Convert Algolia's <em> highlights to our mark tag
               searchContextSnippets[h.verse_key] = snippetField.value
                 .replace(/<em>/g, '<mark class="highlight">')
                 .replace(/<\/em>/g, '</mark>');
             }
           });
-
-          if (header) {
-            const relatedTerms = getRelatedSearchTerms(query);
-            let noteHtml = '';
-            if (relatedTerms.length > 0) {
-              const links = relatedTerms.map(t => `<a href="#search/${encodeURIComponent(t)}" style="color:var(--accent, #10b981); font-weight:600; text-decoration:underline; margin:0 3px;">${t}</a>`).join(', ');
-              noteHtml = `
-                <div class="search-related-note" style="margin-top: 8px; font-size: 0.88rem; color: var(--text-muted, #94a3b8); background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 6px; padding: 6px 12px; display: inline-block;">
-                  💡 ${isId ? 'Pencarian juga mencakup kata/terminologi terkait:' : 'Search results also include related terms:'} ${links}
-                </div>
-              `;
-            }
-
-            header.innerHTML = `
-              <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
-              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${algoliaKeys.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs & topics'}</div>
-              ${noteHtml}
-            `;
-          }
-
-          await ensureActiveDatasets();
-          renderSearchPage(algoliaKeys, query);
-          return;
         }
       }
     } catch (algoliaErr) {
-      console.warn('Algolia search failed, falling back to Supabase:', algoliaErr);
+      console.warn('Algolia search error:', algoliaErr);
     }
 
+    // ── 2. Database / RPC Search (Supabase) ──────────────────────────────────
     if (supabaseClient) {
-      showProgress(isId ? 'Mencari di basis data...' : 'Searching database...');
       try {
         const { data: results, error: rpcErr } = await supabaseClient.rpc('search_verses', {
           p_query: query.trim(),
@@ -2766,127 +2739,34 @@ async function triggerRouting() {
           p_offset_val: 0
         });
 
-        if (rpcErr) throw rpcErr;
-
-        const filteredResults = [];
-        if (results && Array.isArray(results)) {
+        if (!rpcErr && results && Array.isArray(results)) {
           results.forEach(r => {
-            let hasQuranMatch = false;
-            let hasTranslationMatch = false;
-            let hasTafsirMatch = false;
-            let hasNuzulMatch = false;
-            let hasTagMatch = false;
-
-            // 1. Check Quran (Arabic text match)
-            const qLower = query.toLowerCase();
-            const words = qLower.split(/\s+/).filter(w => w.length > 0);
-            const arText = (r.text_ar || '').toLowerCase();
-            if (words.length > 0 && words.every(w => arText.includes(w))) {
-              hasQuranMatch = true;
-            }
-
-            // 2. Check Tag match
-            const tagsList = r.matched_tags || [];
-            if (tagsList.length > 0) {
-              hasTagMatch = true;
-            }
-
-            // Parse context snippet to check matches inside translation/tafsir/nuzul context sources
-            let contextSources = [];
-            const rawContext = r.context_snippet;
-            if (rawContext) {
-              try {
-                const decoded = typeof rawContext === 'string' ? JSON.parse(rawContext) : rawContext;
-                if (Array.isArray(decoded)) {
-                  contextSources = decoded;
-                }
-              } catch (_) {}
-            }
-
-            contextSources.forEach(src => {
-              const type = src.source_type || '';
-              if (type === 'Translation') hasTranslationMatch = true;
-              if (type === 'Tafsir') hasTafsirMatch = true;
-              if (type === 'Asbabun Nuzul') hasNuzulMatch = true;
-            });
-
-            const note = r.match_note || '';
-            if (note === 'Translation') hasTranslationMatch = true;
-            if (note === 'Tafsir') hasTafsirMatch = true;
-            if (note === 'Asbabun Nuzul') hasNuzulMatch = true;
-            if (note === 'Tag' || note === 'Topic') hasTagMatch = true;
-
-            // Keep results that match at least one selected category
-            let keep = false;
-            if (state.searchOptions.quran && hasQuranMatch) keep = true;
-            if (state.searchOptions.trans && hasTranslationMatch) keep = true;
-            if (state.searchOptions.tafsir && hasTafsirMatch) keep = true;
-            if (state.searchOptions.nuzul && hasNuzulMatch) keep = true;
-            if (state.searchOptions.tags && hasTagMatch) keep = true;
-
-            // When default (all categories enabled) or fallback, keep all results returned by DB
-            const allCategoriesEnabled = state.searchOptions.quran && state.searchOptions.trans && state.searchOptions.tafsir && state.searchOptions.nuzul && state.searchOptions.tags;
-            const noCategoriesEnabled = !state.searchOptions.quran && !state.searchOptions.trans && !state.searchOptions.tafsir && !state.searchOptions.nuzul && !state.searchOptions.tags;
-            if (allCategoriesEnabled || noCategoriesEnabled) {
-              keep = true;
-            }
-
-            if (keep) {
-              filteredResults.push(r.verse_key);
-              if (r.context_snippet) {
-                searchContextSnippets[r.verse_key] = r.context_snippet;
-              }
+            combinedKeysSet.add(r.verse_key);
+            if (r.context_snippet && !searchContextSnippets[r.verse_key]) {
+              searchContextSnippets[r.verse_key] = r.context_snippet;
             }
           });
         }
-
-        if (filteredResults.length === 0) {
-          throw new Error('No database results found, falling back to local index.');
-        }
-
-        if (header) {
-          header.innerHTML = `
-            <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
-            <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${filteredResults.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs, asbabun nuzul & topics'}</div>
-          `;
-        }
-
-        await ensureActiveDatasets();
-        renderSearchPage(filteredResults, query);
-        return;
       } catch (err) {
-        console.warn('Database search failed, falling back to local index:', err);
+        console.warn('Database search error:', err);
       }
     }
 
-    const qLower = query.toLowerCase().trim();
-    const matchedKeys = new Set();
-
+    // ── 3. Local Search Index & Tafsir Scan ────────────────────────────────
     await ensureActiveDatasets();
+    const qLower = query.toLowerCase().trim();
 
-    // --- 1. Load search index once (then kept in memory for the session) ---
-    const isOtherLang = state.searchOptions.lang !== 'en' && state.searchOptions.lang !== 'id' && state.searchOptions.lang !== 'all';
-    if (!db.searchIndex || (isOtherLang && !db.isFullIndex)) {
-      showProgress(isId ? 'Memuat indeks pencarian...' : 'Loading search index...');
+    // Check pre-built search index
+    if (!db.searchIndex) {
       try {
-        const indexFile = isOtherLang ? 'data/search_index_full.json' : 'data/search_index.json';
-        console.log('[Search] Fetching index file:', indexFile);
+        const indexFile = (state.searchOptions.lang !== 'en' && state.searchOptions.lang !== 'id' && state.searchOptions.lang !== 'all')
+          ? 'data/search_index_full.json' : 'data/search_index.json';
         const res = await fetch(indexFile);
         db.searchIndex = await res.json();
-        db.isFullIndex = isOtherLang;
-      } catch (e) {
-        console.warn('Search index unavailable, falling back to raw scan:', e);
-        db.searchIndex = null;
-      }
-    } else {
-      showProgress(isId ? 'Mencari...' : 'Searching...');
+      } catch (_) {}
     }
 
-    // --- 2a. Fast path: query the pre-built index ---
     if (db.searchIndex) {
-      showProgress(isId ? 'Mencari...' : 'Searching...');
-
-      // Parse exact phrases and broad words
       const exactPhrases = [];
       const broadWords = [];
       const regexParse = /"([^"]+)"|(\S+)/g;
@@ -2895,109 +2775,51 @@ async function triggerRouting() {
         if (match[1]) exactPhrases.push(match[1].trim());
         else if (match[2]) broadWords.push(match[2].trim());
       }
-
-      const sets = [];
-
-      // Helper: Exact word lookup
-      const addExactMatch = (word, targetSet) => {
-        const entryStr = db.searchIndex[word];
-        if (entryStr) {
-          const pairs = entryStr.split(',');
-          for (const pair of pairs) {
-            targetSet.add(pair.split('_')[0]);
-          }
-        }
-      };
-
-      // 1. Process broad words (substring match on index keys)
       for (const bw of broadWords) {
         if (bw.length < 2) continue;
-        const s = new Set();
         for (const word in db.searchIndex) {
           if (word.includes(bw)) {
-            addExactMatch(word, s);
-          }
-        }
-        sets.push(s);
-      }
-
-      // 2. Process exact phrases/words in double quotes
-      for (const ep of exactPhrases) {
-        const epWords = ep.split(/\s+/).filter(w => w.length >= 2);
-        if (epWords.length === 0) continue;
-
-        if (epWords.length === 1) {
-          // Exact single-word lookup -> O(1) lookup
-          const s = new Set();
-          addExactMatch(epWords[0], s);
-          sets.push(s);
-        } else {
-          // Exact multi-word phrase -> AND intersect all words exactly
-          const phraseWordSets = [];
-          for (const w of epWords) {
-            const ws = new Set();
-            addExactMatch(w, ws);
-            phraseWordSets.push(ws);
-          }
-          if (phraseWordSets.length > 0) {
-            phraseWordSets.sort((a, b) => a.size - b.size);
-            const s = new Set();
-            const [first, ...rest] = phraseWordSets;
-            for (const k of first) {
-              if (rest.every(rs => rs.has(k))) {
-                s.add(k);
+            const entryStr = db.searchIndex[word];
+            if (entryStr) {
+              const pairs = entryStr.split(',');
+              for (const pair of pairs) {
+                combinedKeysSet.add(pair.split('_')[0]);
               }
             }
-            sets.push(s);
-          }
-        }
-      }
-
-      // 3. Intersect all matching term sets
-      if (sets.length > 0) {
-        sets.sort((a, b) => a.size - b.size);
-        const [first, ...rest] = sets;
-        for (const k of first) {
-          if (rest.every(rs => rs.has(k))) {
-            matchedKeys.add(k);
-          }
-        }
-      }
-
-
-    } else {
-      // --- 2b. Fallback: raw scan of all source files ---
-      showProgress(isId ? 'Mencari di semua sumber...' : 'Scanning all sources...');
-      await Promise.all([
-        ...db.registry.translations.map(t => db.getResource(t.file).catch(() => null)),
-        // Only fetch non-chunked tafsirs; chunked ones are too large to bulk-fetch here
-        ...db.registry.tafsirs.filter(t => !t.chunked).map(t => db.getResource(t.file).catch(() => null)),
-        ...db.registry.asbabun_nuzul.map(n => db.getResource(n.file).catch(() => null))
-      ]);
-      for (const src of [...db.registry.translations, ...db.registry.tafsirs, ...db.registry.asbabun_nuzul]) {
-        // For chunked tafsirs use the virtual merged cache, for others use the direct cache
-        const data = src.chunked ? getTafsirData(src) : db.cache.get(src.file);
-        if (!data) continue;
-        for (const key in data) {
-          if (typeof data[key] === 'string' && data[key].toLowerCase().includes(qLower)) {
-            matchedKeys.add(key);
           }
         }
       }
     }
 
-    // --- 3. Topic tags (in-memory, always instant) ---
-    const matchingTagIds = db.tags
-      .filter(t => t.name.toLowerCase().includes(qLower))
-      .map(t => t.id);
-    for (const key in db.verseTags) {
-      if (db.verseTags[key].some(t => matchingTagIds.includes(t))) {
-        matchedKeys.add(key);
+    // Check loaded tafsirs for exact commentary matches (e.g., "Abu Hanifah")
+    if (db.registry && db.registry.tafsirs) {
+      db.registry.tafsirs.forEach(t => {
+        const data = getTafsirData(t);
+        if (data) {
+          for (const key in data) {
+            const txt = data[key];
+            if (typeof txt === 'string' && textMatchesQuery(txt, query)) {
+              combinedKeysSet.add(key);
+            }
+          }
+        }
+      });
+    }
+
+    // Check topic tags
+    if (db.tags && db.verseTags) {
+      const matchingTagIds = db.tags
+        .filter(t => t.name.toLowerCase().includes(qLower))
+        .map(t => t.id);
+      for (const key in db.verseTags) {
+        if (db.verseTags[key].some(t => matchingTagIds.includes(t))) {
+          combinedKeysSet.add(key);
+        }
       }
     }
 
-    // --- 4. Sort merged results by surah:ayah ---
-    const mergedResults = Array.from(matchedKeys).sort((a, b) => {
+    // ── 4. Sort Merged Results & Render Header ─────────────────────────────
+    const mergedResults = Array.from(combinedKeysSet).sort((a, b) => {
       const [s1, v1] = a.split(':').map(Number);
       const [s2, v2] = b.split(':').map(Number);
       if (s1 !== s2) return s1 - s2;
@@ -3005,11 +2827,27 @@ async function triggerRouting() {
     });
 
     if (header) {
+      const relatedTerms = getRelatedSearchTerms(query);
+      let noteHtml = '';
+      if (relatedTerms.length > 0) {
+        const links = relatedTerms.map(t => `<a href="#search/${encodeURIComponent(t)}" style="color:var(--accent, #10b981); font-weight:600; text-decoration:underline; margin:0 3px;">${t}</a>`).join(', ');
+        noteHtml = `
+          <div class="search-related-note" style="margin-top: 8px; font-size: 0.88rem; color: var(--text-muted, #94a3b8); background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 6px; padding: 6px 12px; display: inline-block;">
+            💡 ${isId ? 'Pencarian juga mencakup kata/terminologi terkait:' : 'Search results also include related terms:'} ${links}
+          </div>
+        `;
+      }
+
       header.innerHTML = `
         <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
         <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs, asbabun nuzul & topics'}</div>
+        ${noteHtml}
       `;
     }
+
+    await ensureActiveDatasets();
+    renderSearchPage(mergedResults, query);
+    return;
 
     // --- 5. Pre-load source files referenced in index for matched verses ---
     // This ensures getSearchExcerpts() can always show excerpts even when

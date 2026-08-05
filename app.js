@@ -1312,6 +1312,23 @@ function wrapLayerText(text) {
 }
 
 // --- Shared text highlight & query match helpers ---
+function getRelatedSearchTerms(query) {
+  if (!query) return [];
+  const q = query.toLowerCase().trim();
+  const terms = new Set();
+  if (q.endsWith('ah') && q.length > 4) terms.add(q.slice(0, -2));
+  else if (q.endsWith('an') && q.length > 4) terms.add(q.slice(0, -2));
+  else if (q.endsWith('in') && q.length > 4) terms.add(q.slice(0, -2));
+  else if (q.length >= 4) {
+    terms.add(q + 'a');
+    terms.add(q + 'ah');
+    terms.add(q + 'an');
+  }
+  if (q === 'hanif') { terms.add('hanifah'); terms.add('hanifan'); }
+  if (q === 'hanifah') { terms.add('hanif'); }
+  return Array.from(terms).filter(t => t !== q).slice(0, 3);
+}
+
 function textMatchesQuery(text, query) {
   if (!text) return false;
   const qLower = query.toLowerCase().trim();
@@ -1331,10 +1348,14 @@ function textMatchesQuery(text, query) {
     if (textLower.includes(ep)) return true;
   }
   
-  // Match if ANY broad word matches
+  // Match if ANY broad word matches (or stem variation)
   for (const bw of broadWords) {
     if (bw.length < 2) continue;
     if (textLower.includes(bw)) return true;
+    if (bw.length >= 4) {
+      const stem = (bw.endsWith('ah') || bw.endsWith('an') || bw.endsWith('in')) ? bw.slice(0, -2) : bw;
+      if (stem.length >= 3 && textLower.includes(stem)) return true;
+    }
   }
 
   return false;
@@ -1343,9 +1364,11 @@ function textMatchesQuery(text, query) {
 function escapeRegExpGlobal(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
 function highlightSnippet(text, q) {
   if (!text) return '';
-  const cleanText = text.replace(/<[^>]*>/g, ' ');
+  // Clean tags without breaking inner word tokens
+  const cleanText = text.replace(/<[^>]*>/g, '');
   const qLower = q.toLowerCase().trim();
 
   // Parse exact phrases and broad words to highlight
@@ -1359,6 +1382,24 @@ function highlightSnippet(text, q) {
   }
 
   const highlightTerms = [...exactPhrases, ...broadWords].filter(t => t.length >= 2);
+  const extraStems = [];
+  for (const t of highlightTerms) {
+    if (t.length >= 4) {
+      if (t.endsWith('ah') || t.endsWith('an') || t.endsWith('in')) {
+        extraStems.push(t.slice(0, -2));
+      } else if (t.endsWith('iya') || t.endsWith('yah')) {
+        extraStems.push(t.slice(0, -3));
+      } else {
+        extraStems.push(t + 'a');
+        extraStems.push(t + 'ah');
+        extraStems.push(t + 'an');
+      }
+    }
+  }
+  extraStems.forEach(s => {
+    if (s.length >= 3 && !highlightTerms.includes(s)) highlightTerms.push(s);
+  });
+
   if (highlightTerms.length === 0) return cleanText.slice(0, 150) + '...';
 
   // Find the first matching term index to center the snippet
@@ -1391,7 +1432,7 @@ function highlightSnippet(text, q) {
   return prefix + snippet.replace(regex, '<mark class="search-highlight">$1</mark>') + suffix;
 }
 
-// Module-level alias — needed by createVerseCard (tag highlighting) and getSearchExcerpts
+// Module-level alias — needed by createVerseCard (tag & transliteration highlighting) and getSearchExcerpts
 function highlightText(text, q) {
   return highlightSnippet(text, q);
 }
@@ -1786,7 +1827,8 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
       const trData = db.cache.get(trInfo.file);
       const trText = trData ? trData[verseKey] : '';
       if (trText) {
-        bodyHtml += `<div class="verse-transliteration">${trText}</div>`;
+        const renderedTr = highlightQuery ? highlightText(trText, highlightQuery) : trText;
+        bodyHtml += `<div class="verse-transliteration">${renderedTr}</div>`;
       }
     }
   }
@@ -2687,9 +2729,21 @@ async function triggerRouting() {
           });
 
           if (header) {
+            const relatedTerms = getRelatedSearchTerms(query);
+            let noteHtml = '';
+            if (relatedTerms.length > 0) {
+              const links = relatedTerms.map(t => `<a href="#search/${encodeURIComponent(t)}" style="color:var(--accent, #10b981); font-weight:600; text-decoration:underline; margin:0 3px;">${t}</a>`).join(', ');
+              noteHtml = `
+                <div class="search-related-note" style="margin-top: 8px; font-size: 0.88rem; color: var(--text-muted, #94a3b8); background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 6px; padding: 6px 12px; display: inline-block;">
+                  💡 ${isId ? 'Pencarian juga mencakup kata/terminologi terkait:' : 'Search results also include related terms:'} ${links}
+                </div>
+              `;
+            }
+
             header.innerHTML = `
               <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
               <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${algoliaKeys.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs & topics'}</div>
+              ${noteHtml}
             `;
           }
 

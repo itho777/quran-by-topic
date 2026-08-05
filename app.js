@@ -2856,30 +2856,113 @@ async function triggerRouting() {
       } catch (_) {}
     }
 
-    // ── Stop words: common words that exist in nearly every verse ───────────
-    // Filtering these out prevents long sentence queries like "ayat mana saja yang berisi..."
-    // from scanning the entire index via meaningless tokens.
-    const STOP_WORDS = new Set([
-      // Indonesian
-      'yang', 'dan', 'di', 'ke', 'dari', 'ini', 'itu', 'dengan', 'untuk',
-      'pada', 'adalah', 'dalam', 'tidak', 'ada', 'akan', 'juga', 'atau',
-      'oleh', 'serta', 'maka', 'agar', 'bahwa', 'lebih', 'sudah', 'telah',
-      'bisa', 'dapat', 'bila', 'jika', 'mana', 'saja', 'pun', 'tentang',
-      'sebagai', 'setelah', 'sebelum', 'karena', 'ketika', 'namun', 'tetapi',
-      'ayat', 'surah', 'surat', 'semua', 'setiap', 'masing',
-      'mereka', 'kamu', 'kami', 'kita', 'dia', 'nya', 'mu', 'ku', 'ia',
-      'apa', 'siapa', 'bagaimana', 'berapa', 'mengapa', 'kapan', 'mau',
-      'bagi', 'pula', 'lagi', 'harus', 'sangat', 'cari', 'berisi', 'bantu',
-      'tolong', 'tunjukkan', 'tampilkan', 'carikan',
-      // English
-      'the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'to', 'for',
-      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
-      'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
-      'may', 'might', 'must', 'that', 'this', 'these', 'those', 'with',
-      'from', 'by', 'as', 'at', 'it', 'its', 'which', 'who', 'what',
-      'how', 'when', 'where', 'why', 'all', 'any', 'some', 'about',
-      'verse', 'surah', 'quran', 'ayah', 'contains', 'regarding', 'find', 'show'
+
+    // ── Stop word computation (hybrid: NLP list + corpus-derived) ───────────
+    // Two sources combined:
+    // 1. Established NLP stop word list (stopwords-iso/stopwords-id, peer-reviewed)
+    // 2. Corpus-derived: words appearing in >15% of all verses in db.searchIndex are
+    //    auto-detected as stop words (the same principle used in social media text
+    //    mining / TF-IDF). Cached in db.derivedStopWords after first computation.
+    const NLP_STOP_WORDS_ID = new Set([
+      'ada','adalah','adanya','adapun','agak','agaknya','agar','akan','akankah',
+      'akhir','akhiri','akhirnya','aku','akulah','amat','amatlah','anda','andalah',
+      'antar','antara','antaranya','apa','apaan','apabila','apakah','apalagi',
+      'apatah','artinya','asal','asalkan','atas','atau','ataukah','ataupun',
+      'awal','awalnya','bagai','bagaikan','bagaimana','bagaimanakah','bagaimanapun',
+      'bagi','bagian','bahkan','bahwa','bahwasanya','baik','bakal','bakalan',
+      'balik','banyak','bapak','baru','bawah','beberapa','begini','beginian',
+      'beginikah','beginilah','begitu','begitukah','begitulah','begitupun',
+      'bekerja','belakang','belakangan','belum','belumlah','benar','benarkah',
+      'benarlah','berada','berakhir','berakhirlah','berakhirnya','berapa',
+      'berapakah','berapalah','berapapun','berarti','berawal','berbagai',
+      'berdatangan','beri','berikan','berikut','berikutnya','berjumlah',
+      'berkali-kali','berkata','berkehendak','berkeinginan','berkenaan',
+      'berlainan','berlalu','berlangsung','berlebihan','bermacam','bermacam-macam',
+      'bermaksud','bermula','bersama','bersama-sama','bersiap','bersiap-siap',
+      'bertanya','bertanya-tanya','berturut','berturut-turut','bertutur','berujar',
+      'berupa','besar','betul','betulkah','biasa','biasanya','bila','bilakah',
+      'bisa','bisakah','boleh','bolehkah','bolehlah','buat','bukan','bukankah',
+      'bukanlah','bukannya','bulan','bung','cara','caranya','cukup','cukupkah',
+      'cukuplah','cuma','dahulu','dalam','dan','dapat','dari','daripada','datang',
+      'dekat','demi','demikian','demikianlah','dengan','depan','di','dia',
+      'diakhiri','diakhirinya','dialah','diantara','diantaranya','diberi',
+      'diberikan','diberikannya','dibuat','dibuatnya','didapat','didatangkan',
+      'digunakan','diibaratkan','diibaratkannya','diingat','diingatkan',
+      'diinginkan','dijawab','dijelaskan','dijelaskannya','dikarenakan',
+      'dikatakan','dikatakannya','dikerjakan','diketahui','diketahuinya','dikira',
+      'dilakukan','dilalui','dilihat','dimaksud','dimaksudkan','dimaksudkannya',
+      'dimaksudnya','diminta','dimintai','dimisalkan','dimulai','dimulailah',
+      'dimulainya','dimungkinkan','dini','dipastikan','diperbuat','diperbuatnya',
+      'dipergunakan','diperkirakan','diperlihatkan','diperlukan','diperlukannya',
+      'dipersoalkan','dipertanyakan','dipunyai','diri','dirinya','disampaikan',
+      'disebut','disebutkan','disebutkannya','disini','disinilah','ditambahkan',
+      'ditandaskan','ditanya','ditanyai','ditanyakan','ditegaskan','ditujukan',
+      'ditunjuk','ditunjuki','ditunjukkan','ditunjukkannya','ditunjuknya',
+      'dituturkan','dituturkannya','diucapkan','diucapkannya','diungkapkan',
+      'dong','dua','dulu','empat','enggak','enggaknya','entah','entahlah',
+      'guna','gunakan','hal','hampir','hanya','hanyalah','hari','harus',
+      'haruslah','harusnya','ia','ialah','ibaratkan','ibaratnya','ibu','ikut',
+      'ingat','ingat-ingat','ingin','inginkan','ini','inilah','itu','itulah',
+      'jadi','jadikan','jadinya','jangan','jangankan','janganlah','jauh','jawab',
+      'jawaban','jawabnya','jelas','jelaskan','jelaslah','jelasnya','jika',
+      'jikalau','juga','jumlah','jumlahnya','justru','kala','kalau','kalaulah',
+      'kalaupun','kalian','kami','kamilah','kamu','kamulah','kapan',
+      'kapankah','kapanpun','karena','karenanya','kasus','kata','katakan',
+      'katakanlah','katanya','ke','keadaan','kebetulan','kebanyakan','keduanya',
+      'keinginan','kelamaan','kembali','kemudian','kepada','kepadanya','kesamaan',
+      'ketika','khususnya','kini','kiranya','kita','kitalah','kok','kurang',
+      'lagi','lagian','lain','lainnya','lakukan','lalu','lama','langsung',
+      'lebih','lewat','lima','luar','maka','makanya','makin','malah','malahan',
+      'mampu','mampukah','mana','manakala','masing-masing','maupun','melainkan',
+      'melakukan','melalui','melihat','memang','memberikan','membuat','memiliki',
+      'memungkinkan','menaiki','mencari','mendapat','mendapatkan','mengenai',
+      'menghendaki','menginginkan','mengira','mengucapkan','menjadi','merupakan',
+      'meski','meskipun','minta','mohon','mu','mulai','mungkin','namun','nanti',
+      'nantinya','nyatanya','oleh','pada','padahal','padanya','paling','pasti',
+      'pastikan','pastinya','pernah','pertanyaan','pihak','pula','pun','rupanya',
+      'saat','saatnya','saja','sama','sama-sama','sampai','sangat','sangatlah',
+      'seandainya','sebab','sebabnya','sebagai','sebagaimana','sebagian',
+      'sebelum','sebelumnya','sebenarnya','sedang','sedangkan','sedikit',
+      'seharusnya','sejak','sekadar','sekarang','seketika','sekiranya','sekitar',
+      'sela','selain','selalu','selama','seluruh','semua','seorang','seringkali',
+      'seseorang','sesudah','setelah','setidaknya','siapa','siapakah','sudah',
+      'sudahkah','sudahlah','supaya','tadi','tadinya','tak','tampak','tanpa',
+      'tanya','tanyakan','tanyanya','tapi','tegas','tegaskan','telah','tentang',
+      'tentu','tentunya','tepat','terdapat','terhadap','terjadinya','tersebut',
+      'terutama','tetapi','tiap','tidak','tidakkah','tidaklah','toh','turut',
+      'untuk','walaupun','yang',
+      // English function words
+      'the','a','an','and','or','of','in','on','to','for','is','are','was',
+      'were','be','been','being','have','has','had','do','does','did','will',
+      'would','could','should','may','might','must','that','this','these',
+      'those','with','from','by','as','at','it','its','which','who','what',
+      'how','when','where','why','all','any','some','about','i','me','my',
+      'we','our','you','your','he','his','she','her','they','their','them',
+      // Quran search UI meta-words (not Islamic terms)
+      'verse','surah','quran','ayah','ayat','surat','contains','regarding',
+      'find','show','search','cari','berisi','tampilkan','tunjukkan','carikan',
+      'tentang','mengenai','bantu','tolong'
     ]);
+
+    // Corpus-derived stop words: computed once from db.searchIndex, cached in db.derivedStopWords
+    if (!db.derivedStopWords && db.searchIndex) {
+      const STOP_THRESHOLD = 0.15; // 15% of all verses = auto stop word
+      const TOTAL_VERSES = 6236;   // approximate total Quran verse count
+      const minVerseCount = Math.floor(TOTAL_VERSES * STOP_THRESHOLD);
+      db.derivedStopWords = new Set();
+      for (const word in db.searchIndex) {
+        const entryStr = db.searchIndex[word];
+        if (!entryStr) continue;
+        const verseKeys = new Set(entryStr.split(',').map(p => p.split('_')[0]));
+        if (verseKeys.size >= minVerseCount) {
+          db.derivedStopWords.add(word);
+        }
+      }
+      console.log(`[Search] Corpus stop words: ${db.derivedStopWords.size} words cover >${Math.round(STOP_THRESHOLD*100)}% of verses`);
+    }
+
+    // Merge NLP list + corpus-derived into one effective stop word set for this search
+    const STOP_WORDS = new Set([...NLP_STOP_WORDS_ID, ...(db.derivedStopWords || [])]);
 
     if (db.searchIndex) {
       const exactPhrases = [];

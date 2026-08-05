@@ -12,17 +12,20 @@ on:
 jobs:
   build-stop-words:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Run stop word build script
         run: node scripts/build_corpus_stopwords.js
@@ -39,4 +42,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/stop_words_corpus.json
           git commit -m "chore(auto): rebuild stop_words_corpus.json from updated search index [skip ci]"
-          git push
+          git push origin HEAD:full-web

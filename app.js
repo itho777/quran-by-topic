@@ -1312,21 +1312,57 @@ function wrapLayerText(text) {
 }
 
 // --- Shared text highlight & query match helpers ---
+// Curated map of common Quranic/Islamic transliteration root & variant mappings
+const KNOWN_RELATED_MAP = {
+  'hanif': ['hanifah', 'hanifan'],
+  'hanifah': ['hanif'],
+  'hanifan': ['hanif'],
+  'salat': ['sholat'],
+  'sholat': ['salat'],
+  'zakat': ['jakat'],
+  'jakat': ['zakat'],
+  'mushaf': ['moshaf', 'masahif'],
+  'moshaf': ['mushaf'],
+  'asbabun nuzul': ['asbab nuzul'],
+  'asbab nuzul': ['asbabun nuzul'],
+  'rijal': ['rajul'],
+  'rajul': ['rijal'],
+  'tawrat': ['taurat', 'torah'],
+  'taurat': ['tawrat', 'torah'],
+  'injil': ['injel', 'gospel'],
+  'furqan': ['furqaan']
+};
+
 function getRelatedSearchTerms(query) {
   if (!query) return [];
   const q = query.toLowerCase().trim();
   const terms = new Set();
-  if (q.endsWith('ah') && q.length > 4) terms.add(q.slice(0, -2));
-  else if (q.endsWith('an') && q.length > 4) terms.add(q.slice(0, -2));
-  else if (q.endsWith('in') && q.length > 4) terms.add(q.slice(0, -2));
-  else if (q.length >= 4) {
-    terms.add(q + 'a');
-    terms.add(q + 'ah');
-    terms.add(q + 'an');
+
+  // 1. Direct dictionary lookup
+  if (KNOWN_RELATED_MAP[q]) {
+    KNOWN_RELATED_MAP[q].forEach(t => terms.add(t));
   }
-  if (q === 'hanif') { terms.add('hanifah'); terms.add('hanifan'); }
-  if (q === 'hanifah') { terms.add('hanif'); }
-  return Array.from(terms).filter(t => t !== q).slice(0, 3);
+
+  // Check individual words if multi-word query
+  const words = q.split(/\s+/);
+  words.forEach(w => {
+    if (KNOWN_RELATED_MAP[w]) {
+      KNOWN_RELATED_MAP[w].forEach(r => {
+        terms.add(q.replace(w, r));
+      });
+    }
+  });
+
+  // 2. Vocabulary validation helper: only allow terms that actually exist in index or topic tags
+  const isValidVocabularyWord = (term) => {
+    if (!term || term.length < 3) return false;
+    if (db.tags && db.tags.some(t => t.name.toLowerCase() === term)) return true;
+    if (db.searchIndex && db.searchIndex[term]) return true;
+    return false;
+  };
+
+  // Filter terms to strictly valid vocabulary words or curated dictionary entries
+  return Array.from(terms).filter(t => t !== q && (KNOWN_RELATED_MAP[q] || isValidVocabularyWord(t))).slice(0, 3);
 }
 
 function textMatchesQuery(text, query) {

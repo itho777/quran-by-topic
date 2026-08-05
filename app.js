@@ -1439,10 +1439,53 @@ function highlightText(text, q) {
 
 function getSearchExcerpts(verseKey, query) {
   if (!query) return '';
+  const isId = state.uiLang === 'id';
   const qLower = query.toLowerCase();
   let html = '';
   const seenSources = new Set();
-  
+
+  const typeLabel = {
+    translations:   isId ? 'Terjemahan' : 'Translation',
+    tafsirs:        'Tafsir',
+    asbabun_nuzul:  'Asbabun Nuzul'
+  };
+  const slotMap = {
+    translations:   ['trans1', 'trans2'],
+    tafsirs:        ['tafsir1', 'tafsir2'],
+    asbabun_nuzul:  ['nuzul1',  'nuzul2']
+  };
+
+  const createExcerptRow = (sourceId, type, displayName, typeClass, verseKey, text, isSnippet = false) => {
+    const [slot1, slot2] = slotMap[type] || [];
+    let setBtns = '';
+    if (slot1 && slot2 && sourceId) {
+      const btn1Label = isId ? `Pasang sebagai ${typeLabel[type]} 1` : `Set as ${typeLabel[type]} 1`;
+      const btn2Label = isId ? `Pasang sebagai ${typeLabel[type]} 2` : `Set as ${typeLabel[type]} 2`;
+      setBtns = `
+        <span class="excerpt-set-btns">
+          <button class="btn-set-source" onclick="setSearchSource('${slot1}','${sourceId}','${verseKey}')">${btn1Label}</button>
+          <button class="btn-set-source" onclick="setSearchSource('${slot2}','${sourceId}','${verseKey}')">${btn2Label}</button>
+        </span>
+      `;
+    }
+
+    const titleLink = (sourceId && type)
+      ? `<a class="search-excerpt-source ${typeClass} search-excerpt-source-link" href="#" title="Open ayah with this source" onclick="return goToVerseWithSource('${sourceId}','${type}','${verseKey}')">${displayName}</a>`
+      : `<span class="search-excerpt-source ${typeClass}">${displayName}</span>`;
+
+    const snippetText = isSnippet ? `...${highlightText(text, query)}...` : highlightText(text, query);
+
+    return `
+      <div class="search-excerpt-item">
+        <div class="search-excerpt-source-row">
+          ${titleLink}
+          ${setBtns}
+        </div>
+        <div class="search-excerpt-text">${snippetText}</div>
+      </div>
+    `;
+  };
+
   if (searchContextSnippets && searchContextSnippets[verseKey]) {
     let snippets = [];
     try {
@@ -1453,7 +1496,6 @@ function getSearchExcerpts(verseKey, query) {
     if (Array.isArray(snippets) && snippets.length > 0) {
       snippets.forEach(s => {
         if (s && s.text) {
-          const highlighted = highlightText(s.text, query);
           const typeClass = s.source_type === 'Tafsir' ? 'tafsir-source' : 
                             s.source_type === 'Asbabun Nuzul' ? 'nuzul-source' : 'translation-source';
 
@@ -1491,16 +1533,7 @@ function getSearchExcerpts(verseKey, query) {
           if (s.source_name) seenSources.add(s.source_name.toLowerCase());
           if (s.source_id) seenSources.add(s.source_id);
 
-          const sourceHeader = (matchedRegistryItem || (sourceId && type))
-            ? `<a class="search-excerpt-source ${typeClass} search-excerpt-source-link" href="#" title="Open ayah with this source" onclick="return goToVerseWithSource('${sourceId}','${type}','${verseKey}')">${displayName}</a>`
-            : `<span class="search-excerpt-source ${typeClass}">${displayName}</span>`;
-
-          html += `
-            <div class="search-excerpt-item">
-              ${sourceHeader}
-              <div class="search-excerpt-text">...${highlighted}...</div>
-            </div>
-          `;
+          html += createExcerptRow(sourceId, type, displayName, typeClass, verseKey, s.text, true);
         }
       });
     }
@@ -1515,12 +1548,7 @@ function getSearchExcerpts(verseKey, query) {
       if (textMatchesQuery(text, query)) {
         seenSources.add(t.id);
         seenSources.add(t.name.toLowerCase());
-        html += `
-          <div class="search-excerpt-item">
-            <a class="search-excerpt-source translation-source search-excerpt-source-link" href="#" title="Open ayah with this translation" onclick="return goToVerseWithSource('${t.id}','translations','${verseKey}')">${t.name}</a>
-            <div class="search-excerpt-text">${highlightText(text, query)}</div>
-          </div>
-        `;
+        html += createExcerptRow(t.id, 'translations', t.name, 'translation-source', verseKey, text, false);
       }
     }
   });
@@ -1534,12 +1562,7 @@ function getSearchExcerpts(verseKey, query) {
       if (textMatchesQuery(text, query)) {
         seenSources.add(t.id);
         seenSources.add(t.name.toLowerCase());
-        html += `
-          <div class="search-excerpt-item">
-            <a class="search-excerpt-source tafsir-source search-excerpt-source-link" href="#" title="Open ayah with this tafsir" onclick="return goToVerseWithSource('${t.id}','tafsirs','${verseKey}')">${t.name}</a>
-            <div class="search-excerpt-text">${highlightText(text, query)}</div>
-          </div>
-        `;
+        html += createExcerptRow(t.id, 'tafsirs', t.name, 'tafsir-source', verseKey, text, false);
       }
     }
   });
@@ -1553,12 +1576,7 @@ function getSearchExcerpts(verseKey, query) {
       if (textMatchesQuery(text, query)) {
         seenSources.add(n.id);
         seenSources.add(n.name.toLowerCase());
-        html += `
-          <div class="search-excerpt-item">
-            <a class="search-excerpt-source nuzul-source search-excerpt-source-link" href="#" title="Open ayah with this asbabun nuzul" onclick="return goToVerseWithSource('${n.id}','asbabun_nuzul','${verseKey}')">${n.name}</a>
-            <div class="search-excerpt-text">${highlightText(text, query)}</div>
-          </div>
-        `;
+        html += createExcerptRow(n.id, 'asbabun_nuzul', n.name, 'nuzul-source', verseKey, text, false);
       }
     }
   });
@@ -1569,7 +1587,7 @@ function getSearchExcerpts(verseKey, query) {
     tagIds.forEach(id => {
       const name = tagLookup.get(id) || id;
       if (textMatchesQuery(name, query)) {
-        const tagSourceTitle = state.uiLang === 'id' ? 'Topik / Tag' : 'Topic Tag';
+        const tagSourceTitle = isId ? 'Topik / Tag' : 'Topic Tag';
         html += `
           <div class="search-excerpt-item">
             <a class="search-excerpt-source search-excerpt-source-link" href="#topic/${id}" title="Open topic" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">${tagSourceTitle}</a>
@@ -1581,7 +1599,7 @@ function getSearchExcerpts(verseKey, query) {
   }
 
   if (html) {
-    const title = state.uiLang === 'id' ? 'Kecocokan Pencarian:' : 'Search Matches:';
+    const title = isId ? 'Kecocokan Pencarian:' : 'Search Matches:';
     return `
       <div class="search-excerpts-box">
         <div class="search-excerpts-title">${title}</div>

@@ -2746,10 +2746,13 @@ async function triggerRouting() {
       }
     }
 
-    // Reset context snippets
+    // Reset context snippets and match frequency scores
     searchContextSnippets = {};
+    const verseMatchScores = {};
 
-    const combinedKeysSet = new Set();
+    const addHit = (vk, weight = 1) => {
+      verseMatchScores[vk] = (verseMatchScores[vk] || 0) + weight;
+    };
 
     showProgress(isId ? 'Mencari...' : 'Searching...');
 
@@ -2781,7 +2784,7 @@ async function triggerRouting() {
         const algoliaData = await algoliaRes.json();
         if (algoliaData.hits && algoliaData.hits.length > 0) {
           algoliaData.hits.forEach(h => {
-            combinedKeysSet.add(h.verse_key);
+            addHit(h.verse_key, 2);
             const hl = h._highlightResult;
             const snippetField = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`]);
             if (snippetField && snippetField.value) {
@@ -2808,7 +2811,7 @@ async function triggerRouting() {
 
         if (!rpcErr && results && Array.isArray(results)) {
           results.forEach(r => {
-            combinedKeysSet.add(r.verse_key);
+            addHit(r.verse_key, 2);
             if (r.context_snippet && !searchContextSnippets[r.verse_key]) {
               searchContextSnippets[r.verse_key] = r.context_snippet;
             }
@@ -2850,7 +2853,7 @@ async function triggerRouting() {
             if (entryStr) {
               const pairs = entryStr.split(',');
               for (const pair of pairs) {
-                combinedKeysSet.add(pair.split('_')[0]);
+                addHit(pair.split('_')[0], 1);
               }
             }
           }
@@ -2866,7 +2869,7 @@ async function triggerRouting() {
           for (const key in data) {
             const txt = data[key];
             if (typeof txt === 'string' && textMatchesQuery(txt, query)) {
-              combinedKeysSet.add(key);
+              addHit(key, 1);
             }
           }
         }
@@ -2880,13 +2883,20 @@ async function triggerRouting() {
         .map(t => t.id);
       for (const key in db.verseTags) {
         if (db.verseTags[key].some(t => matchingTagIds.includes(t))) {
-          combinedKeysSet.add(key);
+          addHit(key, 1);
         }
       }
     }
 
-    // ── 4. Sort Merged Results & Render Header ─────────────────────────────
-    const mergedResults = Array.from(combinedKeysSet).sort((a, b) => {
+    // ── 4. Relevance Ranking & Sequential Sort ─────────────────────────────
+    // Primary sort: Match frequency score descending (verses matching multiple engines/sources rank higher)
+    // Secondary sort: Surah & Ayah number ascending (sequential order within each relevance tier)
+    const mergedResults = Object.keys(verseMatchScores).sort((a, b) => {
+      const scoreA = verseMatchScores[a] || 0;
+      const scoreB = verseMatchScores[b] || 0;
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA;
+      }
       const [s1, v1] = a.split(':').map(Number);
       const [s2, v2] = b.split(':').map(Number);
       if (s1 !== s2) return s1 - s2;

@@ -2946,11 +2946,45 @@ async function triggerRouting() {
     }
 
     // ── 4. Relevance Ranking & Sequential Sort ─────────────────────────────
-    // Primary sort: Match frequency score descending (verses matching multiple engines/sources rank higher)
+    // Calculate keyword coverage bonus: verses containing MORE distinct keywords from the query
+    // receive a +10 point bonus per matched keyword, boosting multi-keyword matches above single-keyword matches.
+    const getKeywordCoverageCount = (verseKey) => {
+      if (meaningfulQWords.length <= 1) return 0;
+      let count = 0;
+      const combinedText = [];
+      if (db.cache && db.registry) {
+        db.registry.translations.forEach(t => {
+          const data = db.cache.get(t.file);
+          if (data && data[verseKey]) combinedText.push(data[verseKey]);
+        });
+        db.registry.tafsirs.forEach(t => {
+          const data = getTafsirData(t);
+          if (data) {
+            const txt = resolveTafsirText(data, verseKey);
+            if (txt) combinedText.push(txt);
+          }
+        });
+      }
+      const fullTxtLower = combinedText.join(' ').toLowerCase();
+      meaningfulQWords.forEach(w => {
+        if (fullTxtLower.includes(w) || (KNOWN_RELATED_MAP[w] && KNOWN_RELATED_MAP[w].some(rel => fullTxtLower.includes(rel)))) {
+          count++;
+        }
+      });
+      return count;
+    };
+
+    const getFinalScore = (vk) => {
+      const baseScore = verseMatchScores[vk] || 0;
+      const coverageCount = getKeywordCoverageCount(vk);
+      return baseScore + (coverageCount * 10);
+    };
+
+    // Primary sort: Final relevance score descending (multi-keyword & multi-engine matches rank highest)
     // Secondary sort: Surah & Ayah number ascending (sequential order within each relevance tier)
     const mergedResults = Object.keys(verseMatchScores).sort((a, b) => {
-      const scoreA = verseMatchScores[a] || 0;
-      const scoreB = verseMatchScores[b] || 0;
+      const scoreA = getFinalScore(a);
+      const scoreB = getFinalScore(b);
       if (scoreB !== scoreA) {
         return scoreB - scoreA;
       }

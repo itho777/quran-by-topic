@@ -1700,6 +1700,7 @@ body.has-player {
 .search-excerpt-source.translation-source { color: var(--blue); }
 .search-excerpt-source.tafsir-source { color: var(--green); }
 .search-excerpt-source.nuzul-source { color: #d97a4a; }
+.search-excerpt-source.tag-source { color: var(--accent, #10b981); }
 
 /* Clickable source label hyperlink */
 .search-excerpt-source-link {

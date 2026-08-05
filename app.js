@@ -1610,7 +1610,7 @@ function getSearchExcerpts(verseKey, query) {
         const tagSourceTitle = isId ? 'Topik / Tag' : 'Topic Tag';
         html += `
           <div class="search-excerpt-item">
-            <a class="search-excerpt-source search-excerpt-source-link" href="#topic/${id}" title="Open topic" style="background:#e0f2fe;color:#0369a1;border-color:#bae6fd;">${tagSourceTitle}</a>
+            <a class="search-excerpt-source tag-source search-excerpt-source-link" href="#topic/${id}" title="Open topic">${tagSourceTitle}</a>
             <div class="search-excerpt-text">${highlightText(name, query)}</div>
           </div>
         `;

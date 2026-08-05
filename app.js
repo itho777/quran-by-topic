@@ -1338,12 +1338,12 @@ function getRelatedSearchTerms(query) {
   const q = query.toLowerCase().trim();
   const terms = new Set();
 
-  // 1. Direct dictionary lookup
+  // 1. Direct dictionary lookup for full query
   if (KNOWN_RELATED_MAP[q]) {
     KNOWN_RELATED_MAP[q].forEach(t => terms.add(t));
   }
 
-  // Check individual words if multi-word query
+  // 2. Check individual words for multi-word queries
   const words = q.split(/\s+/);
   words.forEach(w => {
     if (KNOWN_RELATED_MAP[w]) {
@@ -1353,16 +1353,7 @@ function getRelatedSearchTerms(query) {
     }
   });
 
-  // 2. Vocabulary validation helper: only allow terms that actually exist in index or topic tags
-  const isValidVocabularyWord = (term) => {
-    if (!term || term.length < 3) return false;
-    if (db.tags && db.tags.some(t => t.name.toLowerCase() === term)) return true;
-    if (db.searchIndex && db.searchIndex[term]) return true;
-    return false;
-  };
-
-  // Filter terms to strictly valid vocabulary words or curated dictionary entries
-  return Array.from(terms).filter(t => t !== q && (KNOWN_RELATED_MAP[q] || isValidVocabularyWord(t))).slice(0, 3);
+  return Array.from(terms).filter(t => t !== q).slice(0, 3);
 }
 
 function textMatchesQuery(text, query) {
@@ -1384,13 +1375,14 @@ function textMatchesQuery(text, query) {
     if (textLower.includes(ep)) return true;
   }
   
-  // Match if ANY broad word matches (or stem variation)
+  // Match if ANY broad word (or curated dictionary variant) matches
   for (const bw of broadWords) {
     if (bw.length < 2) continue;
     if (textLower.includes(bw)) return true;
-    if (bw.length >= 4) {
-      const stem = (bw.endsWith('ah') || bw.endsWith('an') || bw.endsWith('in')) ? bw.slice(0, -2) : bw;
-      if (stem.length >= 3 && textLower.includes(stem)) return true;
+    if (KNOWN_RELATED_MAP[bw]) {
+      for (const rel of KNOWN_RELATED_MAP[bw]) {
+        if (textLower.includes(rel)) return true;
+      }
     }
   }
 
@@ -1420,20 +1412,12 @@ function highlightSnippet(text, q) {
   const highlightTerms = [...exactPhrases, ...broadWords].filter(t => t.length >= 2);
   const extraStems = [];
   for (const t of highlightTerms) {
-    if (t.length >= 4) {
-      if (t.endsWith('ah') || t.endsWith('an') || t.endsWith('in')) {
-        extraStems.push(t.slice(0, -2));
-      } else if (t.endsWith('iya') || t.endsWith('yah')) {
-        extraStems.push(t.slice(0, -3));
-      } else {
-        extraStems.push(t + 'a');
-        extraStems.push(t + 'ah');
-        extraStems.push(t + 'an');
-      }
+    if (KNOWN_RELATED_MAP[t]) {
+      KNOWN_RELATED_MAP[t].forEach(r => extraStems.push(r));
     }
   }
   extraStems.forEach(s => {
-    if (s.length >= 3 && !highlightTerms.includes(s)) highlightTerms.push(s);
+    if (s.length >= 2 && !highlightTerms.includes(s)) highlightTerms.push(s);
   });
 
   if (highlightTerms.length === 0) return cleanText.slice(0, 150) + '...';

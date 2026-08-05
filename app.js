@@ -343,13 +343,12 @@ class Database {
 
     onProgress(100, state.uiLang === 'id' ? i18n.id.ready : i18n.en.ready);
 
-    // Load pre-built stop word list (non-blocking, tiny 10 KB file)
-    fetch('data/stop_words_corpus.json')
-      .then(r => r.json())
-      .then(d => {
-        this.stopWords = new Set(d.words || []);
-      })
-      .catch(() => { /* graceful degradation — stop words just won't filter */ });
+    // Load pre-built stop word list — awaited so it's ready before first search
+    try {
+      const swRes = await fetch('data/stop_words_corpus.json');
+      const swData = await swRes.json();
+      this.stopWords = new Set(swData.words || []);
+    } catch (_) { /* graceful degradation — filtering skipped if file missing */ }
   }
 
   // Load tags dataset — verseTags always from local JSON (complete), tags list from Supabase or local
@@ -1383,9 +1382,14 @@ function textMatchesQuery(text, query) {
   for (const ep of exactPhrases) {
     if (textLower.includes(ep)) return true;
   }
+
+  // Filter out stop words for broad word matching if non-stop words exist
+  const stopWords = db.stopWords || new Set();
+  const meaningfulWords = broadWords.filter(w => w.length >= 2 && !stopWords.has(w));
+  const wordsToCheck = (meaningfulWords.length > 0) ? meaningfulWords : broadWords;
   
   // Match if ANY broad word (or curated dictionary variant) matches
-  for (const bw of broadWords) {
+  for (const bw of wordsToCheck) {
     if (bw.length < 2) continue;
     if (textLower.includes(bw)) return true;
     if (KNOWN_RELATED_MAP[bw]) {
@@ -1418,7 +1422,12 @@ function highlightSnippet(text, q) {
     else if (match[2]) broadWords.push(match[2].trim());
   }
 
-  const highlightTerms = [...exactPhrases, ...broadWords].filter(t => t.length >= 2);
+  // Filter out stop words for snippet highlighting if non-stop words exist
+  const stopWords = db.stopWords || new Set();
+  const meaningfulWords = broadWords.filter(w => w.length >= 2 && !stopWords.has(w));
+  const wordsToHighlight = (meaningfulWords.length > 0) ? meaningfulWords : broadWords;
+
+  const highlightTerms = [...exactPhrases, ...wordsToHighlight].filter(t => t.length >= 2);
   const extraStems = [];
   for (const t of highlightTerms) {
     if (KNOWN_RELATED_MAP[t]) {

@@ -184,11 +184,20 @@ const NLP_EN = [
   'yours','yourself','yourselves'
 ];
 
-// ── Quran search UI meta-words (not Islamic terms) ───────────────────────────
+// ── Quran search UI meta-words & Indonesian particles ────────────────────────
 const META = [
-  'verse','surah','quran','ayah','ayat','surat','contains','regarding',
-  'find','show','search','cari','berisi','tampilkan','tunjukkan','carikan',
-  'tentang','mengenai','bantu','tolong'
+  // Indonesian Enclitics & Particles
+  'nya', 'lah', 'kah', 'tah', 'kan', 'ku', 'mu', 'si', 'sang', 'para',
+  'nih', 'dong', 'kok', 'deh', 'sih', 'yuk', 'tuh', 'oh', 'eh', 'ah', 'ya', 'iya',
+
+  // Conversational & Question Meta-Words
+  'kenapa', 'dimana', 'dimanakah', 'kemana', 'kemanakah', 'darimana', 'darimanakah',
+  'apakah', 'adakah', 'manakah', 'siapakah', 'bagaimana', 'bagaimanakah', 'mengapa',
+
+  // UI & Action Meta-Words
+  'verse', 'surah', 'quran', 'ayah', 'ayat', 'surat', 'contains', 'regarding',
+  'find', 'show', 'search', 'cari', 'berisi', 'tampilkan', 'tunjukkan', 'carikan',
+  'tentang', 'mengenai', 'bantu', 'tolong'
 ];
 
 // ── Corpus-derived layer ─────────────────────────────────────────────────────

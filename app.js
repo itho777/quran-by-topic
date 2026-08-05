@@ -320,6 +320,7 @@ class Database {
     this.tags = null;
     this.verseTags = null;
     this.searchIndex = null;
+    this.stopWords    = null;  // pre-built stop word set (data/stop_words_corpus.json)
   }
 
   async init(onProgress) {
@@ -341,6 +342,14 @@ class Database {
     await this._loadTagsFromSupabase(state.activeTags);
 
     onProgress(100, state.uiLang === 'id' ? i18n.id.ready : i18n.en.ready);
+
+    // Load pre-built stop word list (non-blocking, tiny 10 KB file)
+    fetch('data/stop_words_corpus.json')
+      .then(r => r.json())
+      .then(d => {
+        this.stopWords = new Set(d.words || []);
+      })
+      .catch(() => { /* graceful degradation — stop words just won't filter */ });
   }
 
   // Load tags dataset — verseTags always from local JSON (complete), tags list from Supabase or local
@@ -2857,187 +2866,12 @@ async function triggerRouting() {
     }
 
 
-    // ── Stop word computation (hybrid: NLP list + corpus-derived) ───────────
-    // Two sources combined:
-    // 1. Established NLP stop word list (stopwords-iso/stopwords-id, peer-reviewed)
-    // 2. Corpus-derived: words appearing in >15% of all verses in db.searchIndex are
-    //    auto-detected as stop words (the same principle used in social media text
-    //    mining / TF-IDF). Cached in db.derivedStopWords after first computation.
-    const NLP_STOP_WORDS_ID = new Set([
-      'ada','adalah','adanya','adapun','agak','agaknya','agar','akan','akankah',
-      'akhir','akhiri','akhirnya','aku','akulah','amat','amatlah','anda','andalah',
-      'antar','antara','antaranya','apa','apaan','apabila','apakah','apalagi',
-      'apatah','artinya','asal','asalkan','atas','atau','ataukah','ataupun',
-      'awal','awalnya','bagai','bagaikan','bagaimana','bagaimanakah','bagaimanapun',
-      'bagi','bagian','bahkan','bahwa','bahwasanya','baik','bakal','bakalan',
-      'balik','banyak','bapak','baru','bawah','beberapa','begini','beginian',
-      'beginikah','beginilah','begitu','begitukah','begitulah','begitupun',
-      'bekerja','belakang','belakangan','belum','belumlah','benar','benarkah',
-      'benarlah','berada','berakhir','berakhirlah','berakhirnya','berapa',
-      'berapakah','berapalah','berapapun','berarti','berawal','berbagai',
-      'berdatangan','beri','berikan','berikut','berikutnya','berjumlah',
-      'berkali-kali','berkata','berkehendak','berkeinginan','berkenaan',
-      'berlainan','berlalu','berlangsung','berlebihan','bermacam','bermacam-macam',
-      'bermaksud','bermula','bersama','bersama-sama','bersiap','bersiap-siap',
-      'bertanya','bertanya-tanya','berturut','berturut-turut','bertutur','berujar',
-      'berupa','besar','betul','betulkah','biasa','biasanya','bila','bilakah',
-      'bisa','bisakah','boleh','bolehkah','bolehlah','buat','bukan','bukankah',
-      'bukanlah','bukannya','bulan','bung','cara','caranya','cukup','cukupkah',
-      'cukuplah','cuma','dahulu','dalam','dan','dapat','dari','daripada','datang',
-      'dekat','demi','demikian','demikianlah','dengan','depan','di','dia',
-      'diakhiri','diakhirinya','dialah','diantara','diantaranya','diberi',
-      'diberikan','diberikannya','dibuat','dibuatnya','didapat','didatangkan',
-      'digunakan','diibaratkan','diibaratkannya','diingat','diingatkan',
-      'diinginkan','dijawab','dijelaskan','dijelaskannya','dikarenakan',
-      'dikatakan','dikatakannya','dikerjakan','diketahui','diketahuinya','dikira',
-      'dilakukan','dilalui','dilihat','dimaksud','dimaksudkan','dimaksudkannya',
-      'dimaksudnya','diminta','dimintai','dimisalkan','dimulai','dimulailah',
-      'dimulainya','dimungkinkan','dini','dipastikan','diperbuat','diperbuatnya',
-      'dipergunakan','diperkirakan','diperlihatkan','diperlukan','diperlukannya',
-      'dipersoalkan','dipertanyakan','dipunyai','diri','dirinya','disampaikan',
-      'disebut','disebutkan','disebutkannya','disini','disinilah','ditambahkan',
-      'ditandaskan','ditanya','ditanyai','ditanyakan','ditegaskan','ditujukan',
-      'ditunjuk','ditunjuki','ditunjukkan','ditunjukkannya','ditunjuknya',
-      'dituturkan','dituturkannya','diucapkan','diucapkannya','diungkapkan',
-      'dong','dua','dulu','empat','enggak','enggaknya','entah','entahlah',
-      'guna','gunakan','hal','hampir','hanya','hanyalah','hari','harus',
-      'haruslah','harusnya','ia','ialah','ibaratkan','ibaratnya','ibu','ikut',
-      'ingat','ingat-ingat','ingin','inginkan','ini','inilah','itu','itulah',
-      'jadi','jadikan','jadinya','jangan','jangankan','janganlah','jauh','jawab',
-      'jawaban','jawabnya','jelas','jelaskan','jelaslah','jelasnya','jika',
-      'jikalau','juga','jumlah','jumlahnya','justru','kala','kalau','kalaulah',
-      'kalaupun','kalian','kami','kamilah','kamu','kamulah','kapan',
-      'kapankah','kapanpun','karena','karenanya','kasus','kata','katakan',
-      'katakanlah','katanya','ke','keadaan','kebetulan','kebanyakan','keduanya',
-      'keinginan','kelamaan','kembali','kemudian','kepada','kepadanya','kesamaan',
-      'ketika','khususnya','kini','kiranya','kita','kitalah','kok','kurang',
-      'lagi','lagian','lain','lainnya','lakukan','lalu','lama','langsung',
-      'lebih','lewat','lima','luar','maka','makanya','makin','malah','malahan',
-      'mampu','mampukah','mana','manakala','masing-masing','maupun','melainkan',
-      'melakukan','melalui','melihat','memang','memberikan','membuat','memiliki',
-      'memungkinkan','menaiki','mencari','mendapat','mendapatkan','mengenai',
-      'menghendaki','menginginkan','mengira','mengucapkan','menjadi','merupakan',
-      'meski','meskipun','minta','mohon','mu','mulai','mungkin','namun','nanti',
-      'nantinya','nyatanya','oleh','pada','padahal','padanya','paling','pasti',
-      'pastikan','pastinya','pernah','pertanyaan','pihak','pula','pun','rupanya',
-      'saat','saatnya','saja','sama','sama-sama','sampai','sangat','sangatlah',
-      'seandainya','sebab','sebabnya','sebagai','sebagaimana','sebagian',
-      'sebelum','sebelumnya','sebenarnya','sedang','sedangkan','sedikit',
-      'seharusnya','sejak','sekadar','sekarang','seketika','sekiranya','sekitar',
-      'sela','selain','selalu','selama','seluruh','semua','seorang','seringkali',
-      'seseorang','sesudah','setelah','setidaknya','siapa','siapakah','sudah',
-      'sudahkah','sudahlah','supaya','tadi','tadinya','tak','tampak','tanpa',
-      'tanya','tanyakan','tanyanya','tapi','tegas','tegaskan','telah','tentang',
-      'tentu','tentunya','tepat','terdapat','terhadap','terjadinya','tersebut',
-      'terutama','tetapi','tiap','tidak','tidakkah','tidaklah','toh','turut',
-      'untuk','walaupun','yang',
-      // English stop words (stopwords-iso/stopwords-en, peer-reviewed, 575 words)
-      'a',"a's",'able','about','above','abroad','according','accordingly','across',
-      'act','actually','adj','after','afterwards','again','against','ago','ah',
-      'ahead','ain\'t','all','allow','allows','almost','alone','along','already',
-      'also','although','always','am','amid','amidst','among','amongst','amount',
-      'an','and','another','any','anybody','anyhow','anymore','anyone','anything',
-      'anyway','anyways','anywhere','apart','apparently','appear','appreciate',
-      'approximately','are',"aren't",'arise','around','as','aside','ask','asked',
-      'asking','asks','associated','at','available','away','awfully',
-      'back','backward','backwards','be','became','because','become','becomes',
-      'becoming','been','before','beforehand','began','begin','beginning',
-      'beginnings','begins','behind','being','beings','believe','below','beside',
-      'besides','best','better','between','beyond','big','both','bottom','brief',
-      'briefly','but','by',
-      'call','came','can',"can't",'cannot','cant','case','cases','cause','causes',
-      'certain','certainly','changes','clearly','cmon','come','comes','concerning',
-      'consequently','consider','considering','contain','containing','contains',
-      'could',"could've","couldn't",'couldnt','course','currently',
-      'dare',"daren't",'date','dear','definitely','describe','described','despite',
-      'did',"didn't",'didnt','differ','different','differently','directly',
-      'do','does',"doesn't",'doesnt','doing',"don't",'done','dont','doubtful',
-      'down','downed','downing','downs','downwards','due','during',
-      'each','early','ed','effect','eight','eighty','either','eleven','else',
-      'elsewhere','empty','end','ended','ending','ends','enough','entirely',
-      'especially','even','evenly','ever','evermore','every','everybody',
-      'everyone','everything','everywhere','exactly','except',
-      'fairly','far','farther','felt','few','fewer','fifteen','fifth','fifty',
-      'fill','find','finds','first','five','followed','following','follows',
-      'for','forever','former','formerly','forth','forty','forward','found',
-      'four','from','front','full','fully','further','furthermore',
-      'gave','general','generally','get','gets','getting','give','given','gives',
-      'giving','go','goes','going','gone','got','gotten','great','greater',
-      'greatest','greetings',
-      'had',"hadn't",'hadnt','half','happens','hardly','has',"hasn't",'hasnt',
-      'have',"haven't",'havent','having','he',"he'd","he'll","he's",'hed',
-      'hello','help','hence','her','here',"here's",'hereafter','hereby',
-      'herein','hereupon','hers','herself','hes','hid','high','higher','highest',
-      'him','himself','his','home','hopefully','how',"how'd","how'll","how's",
-      'howbeit','however','hundred',
-      'i',"i'd","i'll","i'm","i've",'if','ill','immediate','immediately',
-      'importance','important','in','inasmuch','indeed','indicate','indicated',
-      'indicates','information','inner','inside','insofar','instead','interest',
-      'interested','interesting','interests','into','inward','is',"isn't",'isnt',
-      'it',"it'd","it'll","it's",'itd','itll','its','itself','ive',
-      'just','keep','keeps','kept','kind','knew','know','known','knows',
-      'large','largely','last','lately','later','latest','latter','least',
-      'less','lest','let',"let's",'like','likely','likewise','little','long',
-      'longer','longest','look','looking','looks','low','lower','ltd',
-      'made','mainly','make','makes','many','may','maybe','me','meanwhile',
-      'member','members','might',"mightn't",'mine','minus','miss','more',
-      'moreover','most','mostly','mr','mrs','much','must',"mustn't",'my',
-      'myself','name','namely','nd','near','nearly','necessary','need','needs',
-      'neither','never','nevertheless','new','next','nine','no','nobody','non',
-      'none','nor','not','nothing','now','nowhere','obviously','of','off','often',
-      'on','once','one','ones','only','onto','or','other','others','otherwise',
-      'ought','our','ours','ourselves','out','outside','over','overall','own',
-      'particular','particularly','per','perhaps','placed','please','plus',
-      'possible','presumably','probably','provided',
-      'quite','rather','really','reasonably','regarding','regardless','relatively',
-      'respectively','right','round','same','say','says','second','secondly',
-      'see','seeing','seem','seemed','seeming','seems','seen','self','selves',
-      'sensibly','serious','seriously','seven','several','shall',"shan't",
-      'she',"she'd","she'll","she's",'shed','should',"should've","shouldn't",
-      'since','six','so','some','somebody','someday','somehow','something',
-      'sometime','sometimes','somewhat','somewhere','soon','sorry','specified',
-      'specify','specifying','still','sub','such','sup','sure',
-      'take','taken','tell','tends','than','thank','thanks','that',"that's",
-      'the','their','theirs','them','themselves','then','thence','there',
-      "there's",'thereafter','thereby','therefore','therein','thereupon','these',
-      'they',"they'd","they'll","they're","they've",'this','thorough',
-      'thoroughly','those','though','through','throughout','thru','thus','to',
-      'together','too','took','toward','towards','tried','tries','truly','try',
-      'trying','twice',
-      'under','unless','until','up','upon','us','use','used','uses','using',
-      'usually','value','various','very','via','was',"wasn't",'we',"we'd",
-      "we'll","we're","we've",'welcome','well','went','were',"weren't",'what',
-      "what's",'whatever','when','whence','whenever','where',"where's",
-      'whereafter','whereas','whereby','wherein','whereupon','wherever','whether',
-      'which','while','who',"who's",'whoever','whom','whose','why','will',
-      'willing','wish','with','within','without',"won't",'wonder','would',
-      "would've","wouldn't",'you',"you'd","you'll","you're","you've",'your',
-      'yours','yourself','yourselves',
-      // Quran search UI meta-words (not Islamic terms)
-      'verse','surah','quran','ayah','ayat','surat','contains','regarding',
-      'find','show','search','cari','berisi','tampilkan','tunjukkan','carikan',
-      'tentang','mengenai','bantu','tolong'
-    ]);
-
-    // Corpus-derived stop words: computed once from db.searchIndex, cached in db.derivedStopWords
-    if (!db.derivedStopWords && db.searchIndex) {
-      const STOP_THRESHOLD = 0.15; // 15% of all verses = auto stop word
-      const TOTAL_VERSES = 6236;   // approximate total Quran verse count
-      const minVerseCount = Math.floor(TOTAL_VERSES * STOP_THRESHOLD);
-      db.derivedStopWords = new Set();
-      for (const word in db.searchIndex) {
-        const entryStr = db.searchIndex[word];
-        if (!entryStr) continue;
-        const verseKeys = new Set(entryStr.split(',').map(p => p.split('_')[0]));
-        if (verseKeys.size >= minVerseCount) {
-          db.derivedStopWords.add(word);
-        }
-      }
-      console.log(`[Search] Corpus stop words: ${db.derivedStopWords.size} words cover >${Math.round(STOP_THRESHOLD*100)}% of verses`);
-    }
-
-    // Merge NLP list + corpus-derived into one effective stop word set for this search
-    const STOP_WORDS = new Set([...NLP_STOP_WORDS_ID, ...(db.derivedStopWords || [])]);
+    // ── Stop words loaded from pre-built static file (data/stop_words_corpus.json) ─
+    // Generated by: node scripts/build_corpus_stopwords.js
+    // Sources: stopwords-iso/stopwords-id (258) + stopwords-iso/stopwords-en (575)
+    //          + Quran search UI meta-words + corpus-derived layer
+    // Re-run the build script any time the search index is rebuilt.
+    const STOP_WORDS = db.stopWords || new Set();
 
     if (db.searchIndex) {
       const exactPhrases = [];

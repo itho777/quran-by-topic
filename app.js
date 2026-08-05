@@ -2856,6 +2856,31 @@ async function triggerRouting() {
       } catch (_) {}
     }
 
+    // ── Stop words: common words that exist in nearly every verse ───────────
+    // Filtering these out prevents long sentence queries like "ayat mana saja yang berisi..."
+    // from scanning the entire index via meaningless tokens.
+    const STOP_WORDS = new Set([
+      // Indonesian
+      'yang', 'dan', 'di', 'ke', 'dari', 'ini', 'itu', 'dengan', 'untuk',
+      'pada', 'adalah', 'dalam', 'tidak', 'ada', 'akan', 'juga', 'atau',
+      'oleh', 'serta', 'maka', 'agar', 'bahwa', 'lebih', 'sudah', 'telah',
+      'bisa', 'dapat', 'bila', 'jika', 'mana', 'saja', 'pun', 'tentang',
+      'sebagai', 'setelah', 'sebelum', 'karena', 'ketika', 'namun', 'tetapi',
+      'ayat', 'surah', 'surat', 'semua', 'setiap', 'masing',
+      'mereka', 'kamu', 'kami', 'kita', 'dia', 'nya', 'mu', 'ku', 'ia',
+      'apa', 'siapa', 'bagaimana', 'berapa', 'mengapa', 'kapan', 'mau',
+      'bagi', 'pula', 'lagi', 'harus', 'sangat', 'cari', 'berisi', 'bantu',
+      'tolong', 'tunjukkan', 'tampilkan', 'carikan',
+      // English
+      'the', 'a', 'an', 'and', 'or', 'of', 'in', 'on', 'to', 'for',
+      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
+      'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+      'may', 'might', 'must', 'that', 'this', 'these', 'those', 'with',
+      'from', 'by', 'as', 'at', 'it', 'its', 'which', 'who', 'what',
+      'how', 'when', 'where', 'why', 'all', 'any', 'some', 'about',
+      'verse', 'surah', 'quran', 'ayah', 'contains', 'regarding', 'find', 'show'
+    ]);
+
     if (db.searchIndex) {
       const exactPhrases = [];
       const broadWords = [];
@@ -2865,7 +2890,14 @@ async function triggerRouting() {
         if (match[1]) exactPhrases.push(match[1].trim());
         else if (match[2]) broadWords.push(match[2].trim());
       }
-      for (const bw of broadWords) {
+
+      // Filter stop words — only scan the index using meaningful words
+      const meaningfulWords = broadWords.filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+      const wordsToScan = exactPhrases.length > 0
+        ? [...meaningfulWords, ...exactPhrases]
+        : meaningfulWords;
+
+      for (const bw of wordsToScan) {
         if (bw.length < 2) continue;
         for (const word in db.searchIndex) {
           if (word.includes(bw)) {
@@ -2881,14 +2913,18 @@ async function triggerRouting() {
       }
     }
 
-    // Check loaded tafsirs for exact commentary matches (e.g., "Abu Hanifah")
-    if (db.registry && db.registry.tafsirs) {
+    // Check loaded tafsirs — only run if meaningful (non-stop) words exist in query
+    const qWords = qLower.split(/\s+/);
+    const meaningfulQWords = qWords.filter(w => w.length >= 2 && !STOP_WORDS.has(w));
+    if (meaningfulQWords.length > 0 && db.registry && db.registry.tafsirs) {
+      // Use focused query (meaningful words only) to avoid broad false matches
+      const focusedQuery = meaningfulQWords.join(' ');
       db.registry.tafsirs.forEach(t => {
         const data = getTafsirData(t);
         if (data) {
           for (const key in data) {
             const txt = data[key];
-            if (typeof txt === 'string' && textMatchesQuery(txt, query)) {
+            if (typeof txt === 'string' && textMatchesQuery(txt, focusedQuery)) {
               addHit(key, 1);
             }
           }

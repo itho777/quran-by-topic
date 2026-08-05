@@ -1,0 +1,42 @@
+name: Rebuild Stop Words Corpus
+
+on:
+  push:
+    branches:
+      - full-web
+    paths:
+      - 'data/search_index.json'
+      - 'data/search_index_full.json'
+      - 'scripts/build_corpus_stopwords.js'
+
+jobs:
+  build-stop-words:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run stop word build script
+        run: node scripts/build_corpus_stopwords.js
+
+      - name: Check if stop_words_corpus.json changed
+        id: diff
+        run: |
+          git diff --quiet data/stop_words_corpus.json && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push updated stop_words_corpus.json
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/stop_words_corpus.json
+          git commit -m "chore(auto): rebuild stop_words_corpus.json from updated search index [skip ci]"
+          git push

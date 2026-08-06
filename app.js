@@ -3075,9 +3075,27 @@ async function triggerRouting() {
         `;
       }
 
+      // Build a dynamic subtitle listing only the active filter categories
+      const _fso = state.searchOptions;
+      const _fParts_id = [];
+      const _fParts_en = [];
+      if (_fso.quran)   { _fParts_id.push('Teks Qur\'an');    _fParts_en.push('Qur\'an Text'); }
+      if (_fso.trans)   { _fParts_id.push('Terjemahan');      _fParts_en.push('Translations'); }
+      if (_fso.tafsir)  { _fParts_id.push('Tafsir');          _fParts_en.push('Tafsirs'); }
+      if (_fso.nuzul)   { _fParts_id.push('Asbabun Nuzul');   _fParts_en.push('Asbabun Nuzul'); }
+      if (_fso.tags)    { _fParts_id.push('Tag / Topik');     _fParts_en.push('Tags & Topics'); }
+      if (_fso.translit){ _fParts_id.push('Transliterasi');   _fParts_en.push('Transliteration'); }
+
+      const formatParts = (parts) => {
+        if (parts.length === 0) return isId ? 'semua sumber' : 'all sources';
+        if (parts.length === 1) return parts[0];
+        return parts.slice(0, -1).join(', ') + (isId ? ' & ' : ' & ') + parts[parts.length - 1];
+      };
+      const sourcesLabel = isId ? formatParts(_fParts_id) : formatParts(_fParts_en);
+
       header.innerHTML = `
         <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
-        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari semua terjemahan, tafsir, asbabun nuzul & topik' : 'verses across all translations, tafsirs, asbabun nuzul & topics'}</div>
+        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}</div>
         ${noteHtml}
       `;
     }

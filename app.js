@@ -75,6 +75,7 @@ const defaultState = {
     tafsir: true,
     nuzul: true,
     tags: true,
+    translit: true,
     semantic: false,
     lang: 'all'
   }
@@ -276,7 +277,8 @@ const i18n = {
     searchTrans: "Translations",
     searchTafsir: "Tafsirs",
     searchNuzul: "Asbabun Nuzul",
-    searchTags: "Tags"
+    searchTags: "Tags",
+    searchTranslit: "Transliteration"
   },
   id: {
     heroTitle: "Al-Qur'an & Alat Kajian Tafsir",
@@ -304,7 +306,8 @@ const i18n = {
     searchTrans: "Terjemahan",
     searchTafsir: "Tafsir",
     searchNuzul: "Asbabun Nuzul",
-    searchTags: "Tag / Topik"
+    searchTags: "Tag / Topik",
+    searchTranslit: "Transliterasi"
   }
 };
 
@@ -626,6 +629,7 @@ function applyLocalization() {
   updateLabelText('adv-search-tafsir', dict.searchTafsir);
   updateLabelText('adv-search-nuzul', dict.searchNuzul);
   updateLabelText('adv-search-tags', dict.searchTags);
+  updateLabelText('adv-search-translit', dict.searchTranslit);
 }
 
 // --- 4. Lazy-loading Required Datasets ---
@@ -2822,9 +2826,32 @@ async function triggerRouting() {
         const algoliaData = await algoliaRes.json();
         if (algoliaData.hits && algoliaData.hits.length > 0) {
           algoliaData.hits.forEach(h => {
-            addHit(h.verse_key, 2);
+            // ── Apply per-category filters using Algolia _highlightResult ──
             const hl = h._highlightResult;
-            const snippetField = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`]);
+            const matched = (f) => hl && hl[f] && hl[f].matchLevel && hl[f].matchLevel !== 'none';
+            const quranMatch  = matched('text_ar') || (h.text_ar && h.text_ar.includes(query.trim()));
+            const transMatch  = matched(`text_${targetLang}`);
+            const translitMatch = matched(`translit_${targetLang}`);
+            const tagsMatch   = matched(`tags_${targetLang}`);
+
+            const opts = state.searchOptions;
+            // Check if any enabled filter has a match; if no hl data, fall back to allowing the hit
+            const hasHlData = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`] || hl.text_ar);
+            const passesFilter = !hasHlData ||
+              (opts.quran   && quranMatch)   ||
+              (opts.trans   && transMatch)   ||
+              (opts.translit && translitMatch) ||
+              (opts.tags    && tagsMatch);
+
+            if (!passesFilter) return; // skip hits that don't match any enabled filter
+
+            addHit(h.verse_key, 2);
+            // Prefer translation snippet; fall back to transliteration if translit is the match
+            const snippetField = hl && (
+              (opts.trans    && hl[`text_${targetLang}`])    ||
+              (opts.translit && hl[`translit_${targetLang}`]) ||
+              hl[`text_${targetLang}`]
+            );
             if (snippetField && snippetField.value) {
               searchContextSnippets[h.verse_key] = snippetField.value
                 .replace(/<em>/g, '<mark class="highlight">')
@@ -2849,6 +2876,18 @@ async function triggerRouting() {
 
         if (!rpcErr && results && Array.isArray(results)) {
           results.forEach(r => {
+            // ── Apply per-category filters using match_note from RPC ──
+            const note = r.match_note || '';
+            const opts = state.searchOptions;
+            const noteFilterPasses =
+              !note ||                                       // no note → always include
+              (opts.quran  && (note === 'Arabic'))           ||
+              (opts.trans  && (note === 'Translation'))      ||
+              (opts.tafsir && (note === 'Tafsir'))           ||
+              (opts.nuzul  && (note === 'Asbabun Nuzul'))    ||
+              (opts.tags   && (note === 'Tag' || note === 'Topic'));
+            if (!noteFilterPasses) return;
+
             addHit(r.verse_key, 2);
             if (r.context_snippet && !searchContextSnippets[r.verse_key]) {
               searchContextSnippets[r.verse_key] = r.context_snippet;
@@ -2863,6 +2902,13 @@ async function triggerRouting() {
     // ── 3. Local Search Index & Tafsir Scan ────────────────────────────────
     await ensureActiveDatasets();
     const qLower = query.toLowerCase().trim();
+
+    // Pre-fetch transliteration files if translit search is enabled
+    if (state.searchOptions.translit && db.registry && db.registry.transliterations) {
+      await Promise.all(
+        db.registry.transliterations.map(t => db.cache.has(t.file) ? null : db.getResource(t.file).catch(() => null))
+      );
+    }
 
     // Check pre-built search index
     if (!db.searchIndex) {
@@ -2914,10 +2960,10 @@ async function triggerRouting() {
       }
     }
 
-    // Check loaded tafsirs — only run if meaningful (non-stop) words exist in query
+    // Check loaded tafsirs — only run if tafsir filter is enabled and meaningful words exist
     const qWords = qLower.split(/\s+/);
     const meaningfulQWords = qWords.filter(w => w.length >= 2 && !STOP_WORDS.has(w));
-    if (meaningfulQWords.length > 0 && db.registry && db.registry.tafsirs) {
+    if (state.searchOptions.tafsir && meaningfulQWords.length > 0 && db.registry && db.registry.tafsirs) {
       // Use focused query (meaningful words only) to avoid broad false matches
       const focusedQuery = meaningfulQWords.join(' ');
       db.registry.tafsirs.forEach(t => {
@@ -2933,14 +2979,30 @@ async function triggerRouting() {
       });
     }
 
-    // Check topic tags
-    if (db.tags && db.verseTags) {
+    // Check topic tags — only run if tags filter is enabled
+    if (state.searchOptions.tags && db.tags && db.verseTags) {
       const matchingTagIds = db.tags
         .filter(t => t.name.toLowerCase().includes(qLower))
         .map(t => t.id);
       for (const key in db.verseTags) {
         if (db.verseTags[key].some(t => matchingTagIds.includes(t))) {
           addHit(key, 1);
+        }
+      }
+    }
+
+    // Check transliteration data — only run if translit filter is enabled
+    if (state.searchOptions.translit && meaningfulQWords.length > 0 && db.registry && db.registry.transliterations) {
+      const focusedQuery = meaningfulQWords.join(' ');
+      for (const trItem of db.registry.transliterations) {
+        const data = db.cache.get(trItem.file);
+        if (data) {
+          for (const key in data) {
+            const txt = data[key];
+            if (typeof txt === 'string' && textMatchesQuery(txt, focusedQuery)) {
+              addHit(key, 1);
+            }
+          }
         }
       }
     }
@@ -4471,7 +4533,7 @@ function initAdvancedSearch() {
   applyMode(savedMode);
 
   // ── Source checkboxes ────────────────────────────────────────────────
-  const sourceOpts = ['quran', 'trans', 'tafsir', 'nuzul', 'tags'];
+  const sourceOpts = ['quran', 'trans', 'tafsir', 'nuzul', 'tags', 'translit'];
   sourceOpts.forEach(opt => {
     const el = document.getElementById(`adv-search-${opt}`);
     if (el) {

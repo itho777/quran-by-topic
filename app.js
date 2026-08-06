@@ -1683,11 +1683,11 @@ function getSearchExcerpts(verseKey, query) {
           if (entryStr) {
             const pairs = entryStr.split(',');
             for (const pair of pairs) {
-              const parts = pair.split('_');
-              if (parts[0] === verseKey) {
-                for (let i = 1; i < parts.length; i++) {
-                  matchedIndices.add(Number(parts[i]));
-                }
+              const lastColon = pair.lastIndexOf(':');
+              const vk = lastColon !== -1 ? pair.slice(0, lastColon) : pair.split('_')[0];
+              if (vk === verseKey) {
+                // Verse matches in pre-built index
+                matchedIndices.add(vk);
               }
             }
           }
@@ -2953,7 +2953,7 @@ async function triggerRouting() {
             if (entryStr) {
               const pairs = entryStr.split(',');
               for (const pair of pairs) {
-                const colonIdx = pair.indexOf(':');
+                const colonIdx = pair.lastIndexOf(':');
                 if (colonIdx !== -1) {
                   const vk = pair.slice(0, colonIdx);
                   const cats = pair.slice(colonIdx + 1);

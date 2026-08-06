@@ -2793,6 +2793,7 @@ async function triggerRouting() {
     const verseMatchScores = {};
 
     const addHit = (vk, weight = 1) => {
+      if (!vk || typeof vk !== 'string' || !vk.includes(':')) return;
       verseMatchScores[vk] = (verseMatchScores[vk] || 0) + weight;
     };
 
@@ -2965,8 +2966,11 @@ async function triggerRouting() {
                     (cats.includes('r') && opts.translit);
                   if (passesCategory) addHit(vk, 1);
                 } else {
-                  // Fallback for legacy format
-                  addHit(pair.split('_')[0], 1);
+                  // Fallback for legacy format (e.g., "4_23_0_1")
+                  const parts = pair.split('_');
+                  if (parts.length >= 2) {
+                    addHit(`${parts[0]}:${parts[1]}`, 1);
+                  }
                 }
               }
             }
@@ -3059,7 +3063,9 @@ async function triggerRouting() {
 
     // Primary sort: Final relevance score descending (multi-keyword & multi-engine matches rank highest)
     // Secondary sort: Surah & Ayah number ascending (sequential order within each relevance tier)
-    const mergedResults = Object.keys(verseMatchScores).sort((a, b) => {
+    const mergedResults = Object.keys(verseMatchScores)
+      .filter(vk => vk && typeof vk === 'string' && vk.includes(':'))
+      .sort((a, b) => {
       const scoreA = getFinalScore(a);
       const scoreB = getFinalScore(b);
       if (scoreB !== scoreA) {

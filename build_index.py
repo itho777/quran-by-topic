@@ -50,22 +50,42 @@ print("Reading registry.json...")
 with open('data/registry.json', encoding='utf-8-sig') as f:
     registry = json.load(f)
 
-all_sources = (
-    registry.get('translations', []) +
-    registry.get('tafsirs', []) +
-    registry.get('asbabun_nuzul', [])
-)
-sources = [s for s in all_sources if s.get('lang') in ('en', 'id', 'ar')]
+sources = []
+# Quran Arabic text
+quran_file = registry.get('quran_arabic', 'data/quran_arabic.json')
+if os.path.exists(quran_file):
+    sources.append({'name': 'Qur\'an Arabic', 'file': quran_file, 'cat': 'q'})
+
+# Translations (EN/ID/AR)
+for s in registry.get('translations', []):
+    if s.get('lang') in ('en', 'id', 'ar'):
+        sources.append({'name': s.get('name', s.get('id')), 'file': s.get('file'), 'cat': 't'})
+
+# Tafsirs (EN/ID/AR)
+for s in registry.get('tafsirs', []):
+    if s.get('lang') in ('en', 'id', 'ar'):
+        sources.append({'name': s.get('name', s.get('id')), 'file': s.get('file'), 'cat': 'f'})
+
+# Asbabun Nuzul (EN/ID/AR)
+for s in registry.get('asbabun_nuzul', []):
+    if s.get('lang') in ('en', 'id', 'ar'):
+        sources.append({'name': s.get('name', s.get('id')), 'file': s.get('file'), 'cat': 'n'})
+
+# Transliterations
+for s in registry.get('transliterations', []):
+    sources.append({'name': s.get('name', s.get('id')), 'file': s.get('file'), 'cat': 'r'})
+
 total = len(sources)
-print(f"Total sources to index (EN/ID/AR): {total}\n")
+print(f"Total sources to index (EN/ID/AR + Translit + Arabic): {total}\n")
 
 temp_index = {}
 t0 = time.time()
 
 for idx, source in enumerate(sources):
-    name = source.get('name', source.get('id', '?'))
+    name = source.get('name', '?')
     file = source.get('file', '')
-    print(f"  [{idx+1:3d}/{total}] {name}", flush=True)
+    cat  = source.get('cat', 't')
+    print(f"  [{idx+1:3d}/{total}] [{cat}] {name}", flush=True)
 
     if not os.path.exists(file):
         print(f"           ⚠ File not found: {file}")
@@ -85,14 +105,14 @@ for idx, source in enumerate(sources):
             if word not in temp_index:
                 temp_index[word] = {}
             if verse_key not in temp_index[word]:
-                temp_index[word][verse_key] = []
-            temp_index[word][verse_key].append(idx)
+                temp_index[word][verse_key] = set()
+            temp_index[word][verse_key].add(cat)
 
 elapsed = time.time() - t0
 print(f"\n✓ Raw indexing finished in {elapsed:.1f}s")
 
 # Compact serialization & filtering common words (> 500 verses)
-print("Filtering common words and compacting...")
+print("Filtering common words and compacting with category tags...")
 compact_index = {}
 filtered_count = 0
 for w, verses in temp_index.items():
@@ -100,9 +120,9 @@ for w, verses in temp_index.items():
         filtered_count += 1
         continue
     parts = []
-    for vk, srcs in verses.items():
-        src_str = '_'.join(str(s) for s in srcs)
-        parts.append(f'{vk}_{src_str}')
+    for vk, cats in verses.items():
+        cat_str = ''.join(sorted(cats))
+        parts.append(f'{vk}:{cat_str}')
     compact_index[w] = ','.join(parts)
 
 out_path = 'data/search_index.json'
@@ -112,6 +132,6 @@ with open(out_path, 'w', encoding='utf-8') as f:
 
 size_mb = os.path.getsize(out_path) / 1e6
 print(f"\n✅ Done! Wrote: {out_path}")
-print(f"   Index size: {size_mb:.1f} MB")
+print(f"   Index size: {size_mb:.2f} MB")
 print(f"   Unique words kept: {len(compact_index):,}")
 print(f"   Common words filtered (>500 verses): {filtered_count}")

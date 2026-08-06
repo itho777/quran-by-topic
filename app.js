@@ -2927,15 +2927,8 @@ async function triggerRouting() {
     // Re-run the build script any time the search index is rebuilt.
     const STOP_WORDS = db.stopWords || new Set();
 
-    // The pre-built search index bundles all source types (translations, tafsirs, nuzul)
-    // into one file with no per-type metadata, so it cannot be filtered selectively.
-    // Only run it when ALL filters are enabled (full search) or NONE are enabled (treat as all).
-    // When filters are selective, Algolia + Supabase handle per-type results correctly.
-    const _so = state.searchOptions;
-    const allFiltersOn = _so.quran && _so.trans && _so.tafsir && _so.nuzul && _so.tags && _so.translit;
-    const noFiltersOn  = !_so.quran && !_so.trans && !_so.tafsir && !_so.nuzul && !_so.tags && !_so.translit;
-
-    if (db.searchIndex && (allFiltersOn || noFiltersOn)) {
+    // ── Search pre-built index with per-category filtering ──────────────────
+    if (db.searchIndex) {
       const exactPhrases = [];
       const broadWords = [];
       const regexParse = /"([^"]+)"|(\S+)/g;
@@ -2951,6 +2944,7 @@ async function triggerRouting() {
         ? [...meaningfulWords, ...exactPhrases]
         : meaningfulWords;
 
+      const opts = state.searchOptions;
       for (const bw of wordsToScan) {
         if (bw.length < 2) continue;
         for (const word in db.searchIndex) {
@@ -2959,7 +2953,21 @@ async function triggerRouting() {
             if (entryStr) {
               const pairs = entryStr.split(',');
               for (const pair of pairs) {
-                addHit(pair.split('_')[0], 1);
+                const colonIdx = pair.indexOf(':');
+                if (colonIdx !== -1) {
+                  const vk = pair.slice(0, colonIdx);
+                  const cats = pair.slice(colonIdx + 1);
+                  const passesCategory =
+                    (cats.includes('q') && opts.quran)   ||
+                    (cats.includes('t') && opts.trans)   ||
+                    (cats.includes('f') && opts.tafsir)  ||
+                    (cats.includes('n') && opts.nuzul)   ||
+                    (cats.includes('r') && opts.translit);
+                  if (passesCategory) addHit(vk, 1);
+                } else {
+                  // Fallback for legacy format
+                  addHit(pair.split('_')[0], 1);
+                }
               }
             }
           }

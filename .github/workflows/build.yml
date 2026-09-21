@@ -30,7 +30,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.3'
+          channel: 'stable'
           cache: true
 
       - name: Configure Flutter JDK
@@ -55,6 +55,13 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Patch older Android plugins for v1 embedding removal
+        run: |
+          sed -i '/import io.flutter.plugin.common.PluginRegistry.Registrar;/d' $PUB_CACHE/hosted/pub.dev/path_provider_android-2.2.3/android/src/main/java/io/flutter/plugins/pathprovider/PathProviderPlugin.java || true
+          sed -i '/public static void registerWith(/,+4d' $PUB_CACHE/hosted/pub.dev/path_provider_android-2.2.3/android/src/main/java/io/flutter/plugins/pathprovider/PathProviderPlugin.java || true
+          sed -i '/import io.flutter.plugin.common.PluginRegistry.Registrar;/d' $PUB_CACHE/hosted/pub.dev/shared_preferences_android-2.2.2/android/src/main/java/io/flutter/plugins/sharedpreferences/SharedPreferencesPlugin.java || true
+          sed -i '/public static void registerWith(/,+4d' $PUB_CACHE/hosted/pub.dev/shared_preferences_android-2.2.2/android/src/main/java/io/flutter/plugins/sharedpreferences/SharedPreferencesPlugin.java || true
 
       - name: Prepare local.properties
         run: |
@@ -127,7 +134,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.3'
+          channel: 'stable'
           cache: true
 
       - name: Install dependencies

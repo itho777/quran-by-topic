@@ -133,7 +133,6 @@ class _ShellScaffoldState extends ConsumerState<ShellScaffold> {
         }
       },
       child: Scaffold(
-        extendBody: true,
         body: widget.child,
         bottomNavigationBar: hideNavBar
             ? null

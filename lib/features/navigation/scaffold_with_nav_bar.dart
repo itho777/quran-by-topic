@@ -71,7 +71,6 @@ class ScaffoldWithNavBar extends ConsumerWidget {
           );
         } else {
           return Scaffold(
-            extendBody: true,
             body: navigationShell,
             bottomNavigationBar: hideNavBar ? null : BottomNavigationBar(
               type: BottomNavigationBarType.fixed,

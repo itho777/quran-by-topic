@@ -19,7 +19,7 @@ if (hasReleaseKeystore) {
 
 android {
     namespace = "id.tafseer.app"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21

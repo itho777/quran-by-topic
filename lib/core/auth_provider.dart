@@ -9,7 +9,9 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
 });
 
 // ── Current User (null = guest) ─────────────────────────────────────────────
+// Watches authStateProvider so any sign-in/sign-out event triggers a rebuild.
 final currentUserProvider = Provider<User?>((ref) {
+  ref.watch(authStateProvider); // reactive — invalidates on auth change
   return Supabase.instance.client.auth.currentUser;
 });
 

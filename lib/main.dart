@@ -46,11 +46,21 @@ class _TafseerAppState extends ConsumerState<TafseerApp> {
       _syncWidgetsOnStartup();
     });
 
-    // If a session is already active on startup, pull cloud preferences
+    // If a session is already active on startup, pull cloud preferences + sync bookmarks
     final user = Supabase.instance.client.auth.currentUser;
     if (user != null) {
-      Future.microtask(() => ref.read(settingsProvider.notifier).loadFromCloud());
+      Future.microtask(() async {
+        await ref.read(settingsProvider.notifier).loadFromCloud();
+        await BookmarksManager.syncOnLogin();
+      });
     }
+
+    // Listen for sign-in events to sync bookmarks after login
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn) {
+        BookmarksManager.syncOnLogin();
+      }
+    });
   }
 
   Future<void> _syncWidgetsOnStartup() async {

@@ -3,13 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/home_widget_service.dart';
 
-/// Hybrid bookmark manager: always writes to local SharedPreferences;
-/// syncs to Supabase when a user is logged in.
+/// Hybrid bookmark manager. Supabase is source of truth when logged in.
 ///
-/// Merge strategy (on login):
-///   - Pull all remote bookmarks → upsert missing ones locally.
-///   - Push all local bookmarks → upsert missing ones remotely.
-/// Guest users: local only (no Supabase calls).
+/// Sync scheme:
+///   - getBookmarks(): pull from Supabase → overwrite local cache.
+///   - toggleBookmark(): await Supabase upsert/delete, then update local cache.
+///   - syncOnLogin(): bidirectional merge — push local-only up, pull remote-only down.
+///   - Guest: local only, zero Supabase calls.
 class BookmarksManager {
   static const String _key = 'bookmarks';
   static const String _lastReadKey = 'last_read';
@@ -132,7 +132,7 @@ class BookmarksManager {
     if (idx >= 0) {
       current.removeAt(idx);
       added = false;
-      await _remoteDelete(verseKey); // fire-and-forget
+      await _remoteDelete(verseKey); // awaited
     } else {
       final entry = {
         'surahId': surahId,
@@ -145,7 +145,7 @@ class BookmarksManager {
       };
       current.add(entry);
       added = true;
-      await _remoteUpsert(entry); // fire-and-forget
+      await _remoteUpsert(entry); // awaited
     }
 
     await _localSet(current);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -136,6 +137,8 @@ class SettingsState {
 }
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
+  Timer? _syncDebounce;
+
   SettingsNotifier()
       : super(SettingsState(
           arabicFontSize: 32.0,
@@ -149,6 +152,18 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           enableAdzanSound: true,
         )) {
     _loadSettings();
+  }
+
+  /// Debounced auto-push — fires 800ms after the last setting change.
+  void _scheduleCloudSync() {
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 800), _cloudSync);
+  }
+
+  @override
+  void dispose() {
+    _syncDebounce?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -227,24 +242,28 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(arabicFontSize: size);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('arabic_font_size', size);
+    _scheduleCloudSync();
   }
 
   Future<void> setTranslationFontSize(double size) async {
     state = state.copyWith(translationFontSize: size);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('translation_font_size', size);
+    _scheduleCloudSync();
   }
 
   Future<void> setShowTransliteration(bool show) async {
     state = state.copyWith(showTransliteration: show);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('show_transliteration', show);
+    _scheduleCloudSync();
   }
 
   Future<void> setDefaultTranslationSource(String source) async {
     state = state.copyWith(defaultTranslationSource: source);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('default_translation_source', source);
+    _scheduleCloudSync();
   }
 
   Future<void> setAppLanguage(String lang) async {
@@ -259,13 +278,14 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     // Propagate language change to home-screen widgets immediately
     await HomeWidgetService.instance.syncLanguage(lang);
     await HomeWidgetService.instance.syncFeaturedAyah(lang: lang);
+    _scheduleCloudSync();
   }
 
   Future<void> setSelectedReciter(String reciter) async {
     state = state.copyWith(selectedReciter: reciter);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selected_reciter', reciter);
-    await _cloudSync();
+    _scheduleCloudSync();
   }
 
   // mushafFullWidth is persisted to storage.
@@ -416,7 +436,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     );
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    await _cloudSync();
+    _scheduleCloudSync();
   }
 
   // ── Cloud sync ─────────────────────────────────────────────────────────────

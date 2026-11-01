@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -7,6 +8,206 @@ import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/auth_provider.dart';
 import '../../core/static_index_service.dart';
+
+void _showDonatePopup(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (ctx) {
+      return Dialog(
+        backgroundColor: AppTheme.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.volunteer_activism_rounded, color: AppTheme.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Support Tafseer.id',
+                    style: TextStyle(
+                      color: AppTheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, color: AppTheme.outline, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This app is free and ad-free. Your donation helps keep it alive and growing. JazakAllah khairan!',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.outline, fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+
+              // ── IDR / QRIS ──────────────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '🇮🇩  Donasi (IDR)',
+                      style: TextStyle(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Scan via GoPay, OVO, Dana, QRIS',
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/qr_qris.png',
+                        width: 220,
+                        height: 220,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── USDT / BNB ──────────────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '🌍  Donate (USDT)',
+                      style: TextStyle(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'BNB Smart Chain (BEP20)',
+                      style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/qr_bnb.jpg',
+                        width: 220,
+                        height: 220,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Wallet address copy
+                    _DonateAddressTile(
+                      address: '0x48dba8551b9c7270ba98eb7667444bcbb216ed95',
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              Text(
+                '❤️  May Allah reward you abundantly',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.outline,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _DonateAddressTile extends StatefulWidget {
+  final String address;
+  const _DonateAddressTile({required this.address});
+  @override
+  State<_DonateAddressTile> createState() => _DonateAddressTileState();
+}
+
+class _DonateAddressTileState extends State<_DonateAddressTile> {
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.address));
+    setState(() => _copied = true);
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) setState(() => _copied = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _copy,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.background,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _copied
+                ? AppTheme.primary.withValues(alpha: 0.6)
+                : AppTheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.address,
+                style: TextStyle(
+                  color: AppTheme.onSurface,
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              _copied ? Icons.check_circle_outline : Icons.copy_outlined,
+              size: 18,
+              color: _copied ? AppTheme.primary : AppTheme.outline,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 void _showCreditsPopup(BuildContext context) {
   showDialog(
@@ -682,6 +883,14 @@ class MoreScreen extends ConsumerWidget {
                 ),
               );
             },
+          ),
+          const SizedBox(height: 12),
+          _SettingsTile(
+            icon: Icons.volunteer_activism_rounded,
+            iconColor: Colors.pinkAccent,
+            title: 'Support / Donate',
+            subtitle: 'Help keep Tafseer.id free & ad-free',
+            onTap: () => _showDonatePopup(context),
           ),
           const SizedBox(height: 12),
           _SettingsTile(

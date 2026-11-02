@@ -4858,6 +4858,15 @@ function setupEventBindings() {
       } else {
         if (sidebar) sidebar.classList.remove('collapsed');
       }
+      setTimeout(() => {
+        const sn = document.getElementById('sidebar-nav');
+        const sl = document.getElementById('nav-scroll-left');
+        const sr = document.getElementById('nav-scroll-right');
+        if (sn && sl && sr) {
+          sl.style.display = sn.scrollLeft <= 4 ? 'none' : '';
+          sr.style.display = sn.scrollLeft >= sn.scrollWidth - sn.clientWidth - 4 ? 'none' : '';
+        }
+      }, 50);
     };
   }
   if (sidebarClose) {
@@ -5196,7 +5205,7 @@ function setupEventBindings() {
     navScrollRight.onclick = () => sidebarNav.scrollBy({ left: 120, behavior: 'smooth' });
     updateNavArrows();
     // Re-check after fonts/layout settle
-    setTimeout(updateNavArrows, 300);
+    setTimeout(updateNavArrows, 500);
   }
 
   // Credits modal bindings

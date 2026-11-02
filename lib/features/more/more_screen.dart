@@ -78,7 +78,7 @@ void _showDonatePopup(BuildContext context) {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.asset(
-                        'assets/images/qr_qris.png',
+                        'assets/images/qr_qris.jpg',
                         width: 220,
                         height: 220,
                         fit: BoxFit.contain,
@@ -118,7 +118,7 @@ void _showDonatePopup(BuildContext context) {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.asset(
-                        'assets/images/qr_bnb.jpg',
+                        'assets/images/qr_bnb.png',
                         width: 220,
                         height: 220,
                         fit: BoxFit.contain,

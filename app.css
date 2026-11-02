@@ -249,17 +249,29 @@ body {
   position: relative;
 }
 .sidebar-nav::-webkit-scrollbar { display: none; }
-/* Fade hint — shows more tabs exist to the right */
-.sidebar-nav::after {
-  content: '';
-  position: sticky;
-  right: 0;
+
+/* Nav scroll arrow buttons */
+.sidebar-nav-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
   flex-shrink: 0;
-  width: 28px;
-  background: linear-gradient(to right, transparent, var(--bg-sidebar, var(--bg-primary)));
-  pointer-events: none;
-  align-self: stretch;
 }
+.nav-scroll-btn {
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 6px;
+  cursor: pointer;
+  z-index: 2;
+  transition: color var(--trans), background var(--trans);
+}
+.nav-scroll-btn:hover { color: var(--text-primary); }
+.nav-scroll-left { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.nav-scroll-right { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .nav-tab {
   flex: 0 0 auto;
   min-width: 60px;

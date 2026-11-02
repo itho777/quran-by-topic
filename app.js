@@ -5180,6 +5180,25 @@ function setupEventBindings() {
     gotoCancelBtn.onclick = closeGotoModal;
   }
 
+  // Nav scroll arrows
+  const sidebarNav = document.getElementById('sidebar-nav');
+  const navScrollLeft = document.getElementById('nav-scroll-left');
+  const navScrollRight = document.getElementById('nav-scroll-right');
+  if (sidebarNav && navScrollLeft && navScrollRight) {
+    const updateNavArrows = () => {
+      const atStart = sidebarNav.scrollLeft <= 4;
+      const atEnd = sidebarNav.scrollLeft >= sidebarNav.scrollWidth - sidebarNav.clientWidth - 4;
+      navScrollLeft.style.display = atStart ? 'none' : '';
+      navScrollRight.style.display = atEnd ? 'none' : '';
+    };
+    sidebarNav.addEventListener('scroll', updateNavArrows, { passive: true });
+    navScrollLeft.onclick = () => sidebarNav.scrollBy({ left: -120, behavior: 'smooth' });
+    navScrollRight.onclick = () => sidebarNav.scrollBy({ left: 120, behavior: 'smooth' });
+    updateNavArrows();
+    // Re-check after fonts/layout settle
+    setTimeout(updateNavArrows, 300);
+  }
+
   // Credits modal bindings
   const creditsClose = document.getElementById('credits-modal-close');
   const creditsBackdrop = document.getElementById('credits-modal-backdrop');

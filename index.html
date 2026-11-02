@@ -89,7 +89,9 @@
     </div>
 
     <!-- Nav tabs -->
-    <nav class="sidebar-nav">
+        <div class="sidebar-nav-wrap">
+          <button class="nav-scroll-btn nav-scroll-left" id="nav-scroll-left" aria-label="Scroll left" style="display:none">&#8249;</button>
+          <nav class="sidebar-nav" id="sidebar-nav">
       <button class="nav-tab active" data-view="sura-list" id="tab-sura-list">
         <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Sura List
@@ -127,6 +129,8 @@
         Admin
       </button>
     </nav>
+    <button class="nav-scroll-btn nav-scroll-right" id="nav-scroll-right" aria-label="Scroll right">&#8250;</button>
+    </div>
 
     <!-- Sidebar content panels -->
     <div class="sidebar-content" id="sidebar-content">

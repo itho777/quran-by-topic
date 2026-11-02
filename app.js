@@ -4858,15 +4858,6 @@ function setupEventBindings() {
       } else {
         if (sidebar) sidebar.classList.remove('collapsed');
       }
-      setTimeout(() => {
-        const sn = document.getElementById('sidebar-nav');
-        const sl = document.getElementById('nav-scroll-left');
-        const sr = document.getElementById('nav-scroll-right');
-        if (sn && sl && sr) {
-          sl.style.display = sn.scrollLeft <= 4 ? 'none' : '';
-          sr.style.display = sn.scrollLeft >= sn.scrollWidth - sn.clientWidth - 4 ? 'none' : '';
-        }
-      }, 50);
     };
   }
   if (sidebarClose) {
@@ -5189,23 +5180,25 @@ function setupEventBindings() {
     gotoCancelBtn.onclick = closeGotoModal;
   }
 
-  // Nav scroll arrows
+  // Nav scroll arrows — ResizeObserver so Chrome catches layout
   const sidebarNav = document.getElementById('sidebar-nav');
   const navScrollLeft = document.getElementById('nav-scroll-left');
   const navScrollRight = document.getElementById('nav-scroll-right');
   if (sidebarNav && navScrollLeft && navScrollRight) {
     const updateNavArrows = () => {
+      const overflow = sidebarNav.scrollWidth > sidebarNav.clientWidth + 4;
       const atStart = sidebarNav.scrollLeft <= 4;
       const atEnd = sidebarNav.scrollLeft >= sidebarNav.scrollWidth - sidebarNav.clientWidth - 4;
-      navScrollLeft.style.display = atStart ? 'none' : '';
-      navScrollRight.style.display = atEnd ? 'none' : '';
+      navScrollLeft.style.display = (!overflow || atStart) ? 'none' : '';
+      navScrollRight.style.display = (!overflow || atEnd) ? 'none' : '';
     };
     sidebarNav.addEventListener('scroll', updateNavArrows, { passive: true });
     navScrollLeft.onclick = () => sidebarNav.scrollBy({ left: -120, behavior: 'smooth' });
     navScrollRight.onclick = () => sidebarNav.scrollBy({ left: 120, behavior: 'smooth' });
+    // ResizeObserver fires whenever nav's rendered size changes (sidebar open/collapse/resize)
+    const ro = new ResizeObserver(updateNavArrows);
+    ro.observe(sidebarNav);
     updateNavArrows();
-    // Re-check after fonts/layout settle
-    setTimeout(updateNavArrows, 500);
   }
 
   // Credits modal bindings

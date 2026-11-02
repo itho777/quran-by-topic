@@ -2144,6 +2144,19 @@ function copyVerse(verseKey, card) {
   });
 }
 
+function copyBnbAddress() {
+  const addr = '0x48dba8551b9c7270ba98eb7667444bcbb216ed95';
+  navigator.clipboard.writeText(addr).then(() => {
+    const icon = document.getElementById('bnb-copy-icon');
+    if (icon) {
+      icon.innerHTML = `<path d="M20 6 9 17l-5-5" stroke="var(--green)" stroke-width="3"/>`;
+      setTimeout(() => {
+        icon.innerHTML = `<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>`;
+      }, 2000);
+    }
+  }).catch(() => {});
+}
+
 function shareVerse(type, key, card) {
   const [suraId, ayaId] = key.split(':');
   const shareUrl = `${window.location.origin}${window.location.pathname}#sura/${suraId}/verse/${ayaId}`;
@@ -4625,6 +4638,12 @@ function setupEventBindings() {
         return;
       }
 
+      if (viewName === 'donate') {
+        const donateModal = document.getElementById('donate-modal');
+        if (donateModal) donateModal.classList.add('open');
+        return;
+      }
+
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
 
@@ -5004,6 +5023,18 @@ function setupEventBindings() {
       if (creditsModal) creditsModal.classList.remove('open');
     };
   }
+
+  // Donate modal bindings
+  const donateClose = document.getElementById('donate-modal-close');
+  const donateBackdrop = document.getElementById('donate-modal-backdrop');
+  const donateModal = document.getElementById('donate-modal');
+  if (donateClose) {
+    donateClose.onclick = () => { if (donateModal) donateModal.classList.remove('open'); };
+  }
+  if (donateBackdrop) {
+    donateBackdrop.onclick = () => { if (donateModal) donateModal.classList.remove('open'); };
+  }
+
   if (gotoSubmitBtn) {
     gotoSubmitBtn.onclick = submitGotoModal;
   }

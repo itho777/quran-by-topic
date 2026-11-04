@@ -2510,16 +2510,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       // System safe-area only — the only truly stable inset.
                       // Used for the stationary path so nothing dynamic can shift the page.
                       final safeBottom = mediaQuery.padding.bottom;
-                      final navBarOffset = _menusVisible ? 56.0 : 0.0;
+                      // navBarOffset removed — menus are floating overlays, page must never resize for them
+                      const navBarOffset = 0.0;
 
-                      // Study panel uses fixed 220px — navBarOffset is NOT added here
-                      // because the panel is at bottom:0 and overlaps the nav bar area.
-                      // Adding navBarOffset created an exact 56px gap between page bottom
-                      // and panel top. Keep bottomInset = panel height only.
                       final bottomInset = showStudyPanel
                           ? _actualPanelHeight
                           : (20.0 + safeBottom);
-                      final topInset = _menusVisible ? 90.0 : 0.0;
+                      // topInset fixed at 0 — top toolbar floats over page, never pushes it
+                      const topInset = 0.0;
                       final availViewportH = screenH - topInset - bottomInset;
 
                       // ── Page size computed against raw screen — no component heights subtracted.
@@ -2659,7 +2657,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         alignment: Alignment.topCenter,
                         child: Padding(
                           padding: EdgeInsets.only(
-                            top: _menusVisible ? 90.0 : 0.0,
+                            top: 0.0,
                             bottom: bottomInset,
                           ),
                           child: fullWidth

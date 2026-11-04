@@ -3884,143 +3884,21 @@ async function loadMushafPage(pageNum) {
           const ayahNum = parseInt(ayah, 10);
           state.currentSuraId = suraNum;
           state.currentAyahNum = ayahNum;
-
+          
           if (state.mushafSplitMode) {
             window.location.hash = `#sura/${suraNum}/verse/${ayahNum}`;
           } else {
-            // Highlight the verse
-            syncMushafHighlight();
-            // Show floating pill near the tap point
-            showMushafPill(suraNum, ayahNum, e.clientX, e.clientY);
+            showMushafVerseDetail(suraNum, ayahNum);
           }
           return;
         }
         t = t.parentElement;
       }
-      // Tap on blank area — dismiss pill
-      dismissMushafPill();
     });
   } catch (err) {
     container.innerHTML = `<img src="https://quran.ksu.edu.sa/png_big/${pageNum}.png" style="max-width:100%;max-height:calc(100vh - 160px);display:block;margin:auto;" alt="Quran Page ${pageNum}" />`;
   }
 }
-
-// ── Mushaf floating action pill ──────────────────────────────────────────────
-let _mushafPillDismissHandler = null;
-
-function dismissMushafPill() {
-  const pill = document.getElementById('mushaf-pill');
-  if (pill) pill.remove();
-  if (_mushafPillDismissHandler) {
-    document.removeEventListener('click', _mushafPillDismissHandler, true);
-    document.removeEventListener('keydown', _mushafPillDismissHandler, true);
-    _mushafPillDismissHandler = null;
-  }
-}
-
-function showMushafPill(surahNum, ayahNum, clientX, clientY) {
-  dismissMushafPill(); // remove any existing pill
-
-  const verseKey = `${surahNum}:${ayahNum}`;
-  const isBookmarked = bookmarks.has(verseKey);
-
-  const pill = document.createElement('div');
-  pill.id = 'mushaf-pill';
-  pill.setAttribute('role', 'menu');
-  pill.innerHTML = `
-    <button class="mpill-btn" data-action="tafsir" title="Tafsir">
-      <span class="mpill-icon">📖</span><span class="mpill-label">Tafsir</span>
-    </button>
-    <div class="mpill-sep"></div>
-    <button class="mpill-btn" data-action="bookmark" title="Bookmark">
-      <span class="mpill-icon">${isBookmarked ? '🔖' : '🔖'}</span>
-      <span class="mpill-label" id="mpill-bm-label">${isBookmarked ? 'Saved' : 'Bookmark'}</span>
-    </button>
-    <div class="mpill-sep"></div>
-    <button class="mpill-btn" data-action="share" title="Share">
-      <span class="mpill-icon">🔗</span><span class="mpill-label">Share</span>
-    </button>
-    <div class="mpill-sep"></div>
-    <button class="mpill-btn" data-action="menu" title="Show menu">
-      <span class="mpill-icon">☰</span><span class="mpill-label">Menu</span>
-    </button>
-  `;
-
-  document.body.appendChild(pill);
-
-  // Position: above tap point, clamped to viewport
-  const pillW = 320; // approx
-  const pillH = 48;
-  const margin = 12;
-  let left = clientX - pillW / 2;
-  let top  = clientY - pillH - margin;
-  left = Math.max(margin, Math.min(left, window.innerWidth  - pillW - margin));
-  top  = Math.max(margin, Math.min(top,  window.innerHeight - pillH - margin));
-  pill.style.left = left + 'px';
-  pill.style.top  = top  + 'px';
-
-  // Animate in
-  requestAnimationFrame(() => pill.classList.add('mpill-visible'));
-
-  // Button actions
-  pill.addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const action = btn.dataset.action;
-
-    if (action === 'tafsir') {
-      dismissMushafPill();
-      await showMushafVerseDetail(surahNum, ayahNum);
-
-    } else if (action === 'bookmark') {
-      toggleBookmark(verseKey);
-      const isBm = bookmarks.has(verseKey);
-      const lbl = document.getElementById('mpill-bm-label');
-      if (lbl) lbl.textContent = isBm ? 'Saved' : 'Bookmark';
-      btn.classList.toggle('mpill-btn-active', isBm);
-
-    } else if (action === 'share') {
-      dismissMushafPill();
-      const shareUrl = `${location.origin}/#sura/${surahNum}/verse/${ayahNum}`;
-      if (navigator.share) {
-        navigator.share({ title: `Quran ${verseKey}`, url: shareUrl }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          const btn2 = document.querySelector('#mushaf-pill [data-action="share"] .mpill-label');
-          if (btn2) { btn2.textContent = 'Copied!'; setTimeout(() => dismissMushafPill(), 1000); }
-        });
-      }
-
-    } else if (action === 'menu') {
-      dismissMushafPill();
-      // Show sidebar (existing behavior)
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar && window.innerWidth <= 900) {
-        sidebar.classList.add('open');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (overlay) overlay.classList.add('active');
-      } else if (sidebar) {
-        sidebar.classList.remove('collapsed');
-      }
-    }
-
-    e.stopPropagation();
-  });
-
-  // Dismiss on outside click or Escape
-  _mushafPillDismissHandler = (e) => {
-    if (e.type === 'keydown' && e.key !== 'Escape') return;
-    if (e.type === 'click' && pill.contains(e.target)) return;
-    dismissMushafPill();
-  };
-  setTimeout(() => {
-    document.addEventListener('click', _mushafPillDismissHandler, true);
-    document.addEventListener('keydown', _mushafPillDismissHandler, true);
-  }, 0);
-}
-
-window.dismissMushafPill = dismissMushafPill;
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function showMushafVerseDetail(surahNum, ayahNum) {
   state.currentSuraId = surahNum;

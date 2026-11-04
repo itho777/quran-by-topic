@@ -128,6 +128,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   bool _isZoomed = false;
   String? _lastSyncedMurajaahVerseKey;
 
+  // Last tap global position (captured onTapDown, used for pill placement)
+  Offset _lastTapGlobal = Offset.zero;
+  OverlayEntry? _versePillOverlay;
+
   // Scrolling reference
 
   final Map<int, GlobalKey> _verseKeys = {};
@@ -403,6 +407,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     WakelockPlus.disable().ignore();
     _menuCollapseTimer?.cancel();
     _studyMenuCollapseTimer?.cancel();
+    _dismissVersePill();
     for (final c in _transformControllers.values) {
       c.dispose();
     }
@@ -1358,10 +1363,6 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     if (_pageVerses.isEmpty) return;
 
-    // Map relative click position to SVG coordinate space (viewBox 0 0 345 550).
-
-    // relX / relY are already anchored to the actual image content area (letterbox-corrected).
-
     final clickX = relX * 345.0;
 
     final clickY = relY * 550.0;
@@ -1408,12 +1409,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (match.isNotEmpty) {
 
-        // Study panel is only manually toggled — do NOT open on verse tap
-        setState(() {
-          _menusVisible = true;
-        });
-        ref.read(hideNavBarProvider.notifier).state = false;
         _selectVerse(match);
+        _showVersePill(match, _lastTapGlobal);
 
       }
 
@@ -1435,15 +1432,80 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     if (match.isNotEmpty) {
 
-      // Study panel is only manually toggled — do NOT open on verse select
-      setState(() {
-        _menusVisible = true;
-      });
-      ref.read(hideNavBarProvider.notifier).state = false;
       _selectVerse(match);
 
     }
 
+  }
+
+  void _dismissVersePill() {
+    _versePillOverlay?.remove();
+    _versePillOverlay = null;
+  }
+
+  void _showVersePill(Map<String, dynamic> verse, Offset globalPos) {
+    _dismissVersePill();
+
+    final verseKey = verse['verse_key'] as String? ?? '';
+    final surahId  = verse['sura_id'] as int? ?? 1;
+    final ayahNum  = verse['ayah_number'] as int? ?? 1;
+
+    final overlay = Overlay.of(context);
+    final screenSize = MediaQuery.of(context).size;
+
+    const pillW = 300.0;
+    const pillH = 48.0;
+    const margin = 12.0;
+
+    double left = globalPos.dx - pillW / 2;
+    double top  = globalPos.dy - pillH - margin;
+    left = left.clamp(margin, screenSize.width  - pillW - margin);
+    top  = top .clamp(margin, screenSize.height - pillH - margin);
+
+    _versePillOverlay = OverlayEntry(builder: (ctx) {
+      return _MushafPill(
+        left: left,
+        top: top,
+        verseKey: verseKey,
+        isBookmarked: _isBookmarked,
+        onDismiss: _dismissVersePill,
+        onTafsir: () {
+          _dismissVersePill();
+          setState(() {
+            _menusVisible = true;
+            _studyPanelOpen = true;
+          });
+          ref.read(hideNavBarProvider.notifier).state = false;
+        },
+        onBookmark: () async {
+          final surahName = _surahNames[surahId]?['name_en'] ?? 'Surah $surahId';
+          final textAr = verse['text_ar'] as String? ?? '';
+          final translation = _translations[verse['id'] as int?] ?? '';
+          await BookmarksManager.toggleBookmark(
+            surahId: surahId,
+            ayahNumber: ayahNum,
+            surahName: surahName,
+            verseKey: verseKey,
+            textAr: textAr,
+            translation: translation,
+          );
+          _checkBookmarkStatus();
+          _dismissVersePill();
+        },
+        onShare: () {
+          _dismissVersePill();
+          _copyActiveAyah();
+        },
+        onMenu: () {
+          _dismissVersePill();
+          setState(() { _menusVisible = true; _studyMenuBarVisible = true; });
+          ref.read(hideNavBarProvider.notifier).state = false;
+          _startMenuCollapseTimer();
+        },
+      );
+    });
+
+    overlay.insert(_versePillOverlay!);
   }
 
   void _copyActiveAyah() {
@@ -2395,7 +2457,14 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
           GestureDetector(
 
-            onTap: _toggleMenus,
+            onTap: () {
+              _dismissVersePill();
+              _toggleMenus();
+            },
+
+            onTapDown: (details) {
+              _lastTapGlobal = details.globalPosition;
+            },
 
             behavior: HitTestBehavior.translucent,
 
@@ -3900,6 +3969,162 @@ class MouseDragScrollBehavior extends MaterialScrollBehavior {
       };
 
 }
+
+// ── Mushaf floating action pill ──────────────────────────────────────────────
+class _MushafPill extends StatefulWidget {
+  final double left;
+  final double top;
+  final String verseKey;
+  final bool isBookmarked;
+  final VoidCallback onDismiss;
+  final VoidCallback onTafsir;
+  final Future<void> Function() onBookmark;
+  final VoidCallback onShare;
+  final VoidCallback onMenu;
+
+  const _MushafPill({
+    required this.left,
+    required this.top,
+    required this.verseKey,
+    required this.isBookmarked,
+    required this.onDismiss,
+    required this.onTafsir,
+    required this.onBookmark,
+    required this.onShare,
+    required this.onMenu,
+  });
+
+  @override
+  State<_MushafPill> createState() => _MushafPillState();
+}
+
+class _MushafPillState extends State<_MushafPill>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _opacity;
+  late Animation<Offset> _slide;
+  late bool _bookmarked;
+
+  @override
+  void initState() {
+    super.initState();
+    _bookmarked = widget.isBookmarked;
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 150));
+    _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide   = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg    = theme.colorScheme.surface;
+    final fg    = theme.colorScheme.onSurface;
+    final sep   = theme.dividerColor;
+
+    return Positioned(
+      left: widget.left,
+      top:  widget.top,
+      child: FadeTransition(
+        opacity: _opacity,
+        child: SlideTransition(
+          position: _slide,
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              height: 44,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: sep, width: 1),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 16,
+                      offset: Offset(0, 4)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PillBtn(icon: '📖', label: 'Tafsir', fg: fg, onTap: widget.onTafsir),
+                  _PillDivider(color: sep),
+                  _PillBtn(
+                    icon: '🔖',
+                    label: _bookmarked ? 'Saved' : 'Bookmark',
+                    fg: _bookmarked ? const Color(0xFFc9973a) : fg,
+                    onTap: () {
+                      setState(() => _bookmarked = !_bookmarked);
+                      widget.onBookmark();
+                    },
+                  ),
+                  _PillDivider(color: sep),
+                  _PillBtn(icon: '🔗', label: 'Share', fg: fg, onTap: widget.onShare),
+                  _PillDivider(color: sep),
+                  _PillBtn(icon: '☰', label: 'Menu', fg: fg, onTap: widget.onMenu),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PillBtn extends StatelessWidget {
+  final String icon;
+  final String label;
+  final Color fg;
+  final VoidCallback onTap;
+
+  const _PillBtn({
+    required this.icon,
+    required this.label,
+    required this.fg,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(fontSize: 12, color: fg, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PillDivider extends StatelessWidget {
+  final Color color;
+  const _PillDivider({required this.color});
+
+  @override
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 20, color: color);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 
 

@@ -1484,12 +1484,13 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         top: top,
         verseKey: verseKey,
         isBookmarked: _isBookmarked,
+        studyPanelOpen: _studyPanelOpen,
         onDismiss: _dismissVersePill,
         onTafsir: () {
           _dismissVersePill();
           setState(() {
             _menusVisible = true;
-            _studyPanelOpen = true;
+            _studyPanelOpen = !_studyPanelOpen;
           });
           ref.read(hideNavBarProvider.notifier).state = false;
         },
@@ -3995,6 +3996,7 @@ class _MushafPill extends StatefulWidget {
   final double top;
   final String verseKey;
   final bool isBookmarked;
+  final bool studyPanelOpen;
   final VoidCallback onDismiss;
   final VoidCallback onTafsir;
   final Future<void> Function() onBookmark;
@@ -4006,6 +4008,7 @@ class _MushafPill extends StatefulWidget {
     required this.top,
     required this.verseKey,
     required this.isBookmarked,
+    required this.studyPanelOpen,
     required this.onDismiss,
     required this.onTafsir,
     required this.onBookmark,
@@ -4023,34 +4026,38 @@ class _MushafPillState extends State<_MushafPill>
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
   late bool _bookmarked;
+  Timer? _autoDismiss;
 
   @override
   void initState() {
     super.initState();
     _bookmarked = widget.isBookmarked;
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 150));
+        vsync: this, duration: const Duration(milliseconds: 180));
     _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slide   = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.25),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _ctrl.forward();
+    // auto-dismiss after 4 s of no interaction
+    _autoDismiss = Timer(const Duration(seconds: 4), widget.onDismiss);
+  }
+
+  void _cancelAutoDismiss() {
+    _autoDismiss?.cancel();
+    _autoDismiss = null;
   }
 
   @override
   void dispose() {
+    _autoDismiss?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bg    = theme.colorScheme.surface;
-    final fg    = theme.colorScheme.onSurface;
-    final sep   = theme.dividerColor;
-
     return Positioned(
       left: widget.left,
       top:  widget.top,
@@ -4058,40 +4065,64 @@ class _MushafPillState extends State<_MushafPill>
         opacity: _opacity,
         child: SlideTransition(
           position: _slide,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: sep, width: 1),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Colors.black38,
-                      blurRadius: 16,
-                      offset: Offset(0, 4)),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _PillBtn(icon: '📖', label: 'Tafsir', fg: fg, onTap: widget.onTafsir),
-                  _PillDivider(color: sep),
-                  _PillBtn(
-                    icon: '🔖',
-                    label: _bookmarked ? 'Saved' : 'Bookmark',
-                    fg: _bookmarked ? const Color(0xFFc9973a) : fg,
-                    onTap: () {
-                      setState(() => _bookmarked = !_bookmarked);
-                      widget.onBookmark();
-                    },
+          child: GestureDetector(
+            // any interaction cancels the auto-dismiss timer
+            onTapDown: (_) => _cancelAutoDismiss(),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.60),
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Colors.black45,
+                          blurRadius: 12,
+                          offset: Offset(0, 4)),
+                    ],
                   ),
-                  _PillDivider(color: sep),
-                  _PillBtn(icon: '🔗', label: 'Share', fg: fg, onTap: widget.onShare),
-                  _PillDivider(color: sep),
-                  _PillBtn(icon: '☰', label: 'Menu', fg: fg, onTap: widget.onMenu),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _PillIcon(
+                        icon: widget.studyPanelOpen
+                            ? Icons.chrome_reader_mode
+                            : Icons.chrome_reader_mode_outlined,
+                        active: widget.studyPanelOpen,
+                        activeColor: AppTheme.primary,
+                        tooltip: widget.studyPanelOpen ? 'Close panel' : 'Open study panel',
+                        onTap: () { _cancelAutoDismiss(); widget.onTafsir(); },
+                      ),
+                      _PillSep(),
+                      _PillIcon(
+                        icon: _bookmarked ? Icons.bookmark : Icons.bookmark_border,
+                        active: _bookmarked,
+                        activeColor: Colors.amber,
+                        tooltip: _bookmarked ? 'Remove bookmark' : 'Bookmark',
+                        onTap: () {
+                          _cancelAutoDismiss();
+                          setState(() => _bookmarked = !_bookmarked);
+                          widget.onBookmark();
+                        },
+                      ),
+                      _PillSep(),
+                      _PillIcon(
+                        icon: Icons.share,
+                        tooltip: 'Share',
+                        onTap: () { _cancelAutoDismiss(); widget.onShare(); },
+                      ),
+                      _PillSep(),
+                      _PillIcon(
+                        icon: Icons.more_vert,
+                        tooltip: 'Menu',
+                        onTap: () { _cancelAutoDismiss(); widget.onMenu(); },
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -4101,47 +4132,45 @@ class _MushafPillState extends State<_MushafPill>
   }
 }
 
-class _PillBtn extends StatelessWidget {
-  final String icon;
-  final String label;
-  final Color fg;
+class _PillIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
   final VoidCallback onTap;
+  final bool active;
+  final Color activeColor;
 
-  const _PillBtn({
+  const _PillIcon({
     required this.icon,
-    required this.label,
-    required this.fg,
+    required this.tooltip,
     required this.onTap,
+    this.active = false,
+    this.activeColor = Colors.white,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(fontSize: 12, color: fg, fontWeight: FontWeight.w500)),
-          ],
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+          child: Icon(
+            icon,
+            size: 22,
+            color: active ? activeColor : Colors.white,
+          ),
         ),
       ),
     );
   }
 }
 
-class _PillDivider extends StatelessWidget {
-  final Color color;
-  const _PillDivider({required this.color});
-
+class _PillSep extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 20, color: color);
+      Container(width: 1, height: 20, color: Colors.white24);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

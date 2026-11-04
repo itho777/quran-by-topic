@@ -1488,11 +1488,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         onDismiss: _dismissVersePill,
         onTafsir: () {
           _dismissVersePill();
-          setState(() {
-            _menusVisible = true;
-            _studyPanelOpen = !_studyPanelOpen;
-          });
-          ref.read(hideNavBarProvider.notifier).state = false;
+          setState(() => _studyPanelOpen = !_studyPanelOpen);
         },
         onBookmark: () async {
           final surahName = _surahNames[surahId]?['name_en'] ?? 'Surah $surahId';

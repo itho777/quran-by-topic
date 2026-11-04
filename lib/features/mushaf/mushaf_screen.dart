@@ -131,6 +131,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   // Last tap global position (captured onTapDown, used for pill placement)
   Offset _lastTapGlobal = Offset.zero;
   OverlayEntry? _versePillOverlay;
+  bool _verseTappedThisCycle = false; // prevents outer GestureDetector from toggling menus on verse tap
 
   // Scrolling reference
 
@@ -1409,6 +1410,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       if (match.isNotEmpty) {
 
+        _verseTappedThisCycle = true;
         _selectVerse(match);
         _showVersePill(match, _lastTapGlobal);
 
@@ -2458,6 +2460,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           GestureDetector(
 
             onTap: () {
+              if (_verseTappedThisCycle) {
+                _verseTappedThisCycle = false;
+                return; // verse tap handled — don't toggle menus
+              }
               _dismissVersePill();
               _toggleMenus();
             },

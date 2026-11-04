@@ -2834,3 +2834,61 @@ body.has-player {
   font-size: 0.8rem;
   line-height: 1.4;
 }
+
+/* ── Mushaf floating action pill ───────────────────────────────────────────── */
+#mushaf-pill {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  background: var(--card, #1e1e2e);
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 999px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+  padding: 4px 6px;
+  gap: 2px;
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+#mushaf-pill.mpill-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.mpill-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--text-primary, #e2e8f0);
+  font-size: 0.8rem;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.12s;
+  line-height: 1;
+}
+.mpill-btn:hover {
+  background: var(--bg-hover, rgba(255,255,255,0.08));
+}
+.mpill-btn.mpill-btn-active {
+  color: var(--accent, #c9973a);
+}
+.mpill-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+.mpill-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border, rgba(255,255,255,0.12));
+  flex-shrink: 0;
+}
+/* ─────────────────────────────────────────────────────────────────────────── */

@@ -1440,6 +1440,20 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
+  // Called on mobile (WebView) verse tap — has real screen-global position for pill
+  void _onVerseTappedGlobal(int surah, int ayah, Offset globalPos) {
+    if (_pageVerses.isEmpty) return;
+    final match = _pageVerses.firstWhere(
+      (v) => (v['sura_id'] as int) == surah && (v['ayah_number'] as int) == ayah,
+      orElse: () => {},
+    );
+    if (match.isNotEmpty) {
+      _verseTappedThisCycle = true;
+      _selectVerse(match);
+      _showVersePill(match, globalPos);
+    }
+  }
+
   void _dismissVersePill() {
     _versePillOverlay?.remove();
     _versePillOverlay = null;
@@ -2572,6 +2586,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                         onTap: _onUserInteraction,
                         onTapWithPosition: _onImageTapped,
                         onVerseTapped: _onVerseSelectedBySurahAyah,
+                        onVerseTappedGlobal: _onVerseTappedGlobal,
                         selectedVerseId: effectiveSelectedVerseId,
                         playingVerseId: effectivePlayingVerseId,
                         fullWidth: fullWidth,

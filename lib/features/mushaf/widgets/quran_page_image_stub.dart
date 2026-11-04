@@ -47,7 +47,7 @@ function _initSvg() {
       var s = t.getAttribute('surah');
       var a = t.getAttribute('ayah');
       if (s && a && s !== '' && a !== '') {
-        window.location.href = 'verse://' + s + '/' + a;
+        window.location.href = 'verse://' + s + '/' + a + '?x=' + Math.round(e.clientX) + '&y=' + Math.round(e.clientY);
         return;
       }
       t = t.parentElement;
@@ -180,16 +180,13 @@ Widget buildQuranPageImage(
   VoidCallback? onTap,
   void Function(double relX, double relY)? onTapWithPosition,
   void Function(int surah, int ayah)? onVerseTapped,
+  void Function(int surah, int ayah, Offset globalPos)? onVerseTappedGlobal,
   int? selectedVerseId,
   int? playingVerseId,
   bool fullWidth = false,
   double? viewportWidth,
   double panelHeight = 0.0,
 }) {
-  // In fullWidth mode we size the widget to the SVG's true aspect ratio so that
-  // Flutter's InteractiveViewer can pan the entire page natively — no gesture
-  // conflict and no clipping.  In fit-to-page mode the widget fills the parent
-  // and the SVG scales down to fit the viewport.
   if (fullWidth) {
     final w = viewportWidth ?? MediaQuery.of(context).size.width;
     final h = w * _kPageAspectRatio;
@@ -197,22 +194,24 @@ Widget buildQuranPageImage(
       width:  w,
       height: h,
       child:  _QuranPageWebView(
-        pageNum:         pageNum,
-        onTap:           onTap,
-        onVerseTapped:   onVerseTapped,
-        selectedVerseId: selectedVerseId,
-        playingVerseId:  playingVerseId,
-        fullWidth:       fullWidth,
+        pageNum:              pageNum,
+        onTap:                onTap,
+        onVerseTapped:        onVerseTapped,
+        onVerseTappedGlobal:  onVerseTappedGlobal,
+        selectedVerseId:      selectedVerseId,
+        playingVerseId:       playingVerseId,
+        fullWidth:            fullWidth,
       ),
     );
   }
   return _QuranPageWebView(
-    pageNum:         pageNum,
-    onTap:           onTap,
-    onVerseTapped:   onVerseTapped,
-    selectedVerseId: selectedVerseId,
-    playingVerseId:  playingVerseId,
-    fullWidth:       fullWidth,
+    pageNum:             pageNum,
+    onTap:               onTap,
+    onVerseTapped:       onVerseTapped,
+    onVerseTappedGlobal: onVerseTappedGlobal,
+    selectedVerseId:     selectedVerseId,
+    playingVerseId:      playingVerseId,
+    fullWidth:           fullWidth,
   );
 }
 
@@ -220,6 +219,7 @@ class _QuranPageWebView extends StatefulWidget {
   final int pageNum;
   final VoidCallback? onTap;
   final void Function(int surah, int ayah)? onVerseTapped;
+  final void Function(int surah, int ayah, Offset globalPos)? onVerseTappedGlobal;
   final int? selectedVerseId;
   final int? playingVerseId;
   final bool fullWidth;
@@ -228,6 +228,7 @@ class _QuranPageWebView extends StatefulWidget {
     required this.pageNum,
     this.onTap,
     this.onVerseTapped,
+    this.onVerseTappedGlobal,
     this.selectedVerseId,
     this.playingVerseId,
     this.fullWidth = false,
@@ -257,10 +258,23 @@ class _QuranPageWebViewState extends State<_QuranPageWebView> {
           if (uri == null) return NavigationDecision.navigate;
 
           if (uri.scheme == 'verse') {
-            widget.onTap?.call();
             final surah = int.tryParse(uri.host) ?? 0;
             final ayah  = int.tryParse(uri.pathSegments.firstOrNull ?? '') ?? 0;
-            if (surah > 0 && ayah > 0) widget.onVerseTapped?.call(surah, ayah);
+            // Parse tap position — clientX/Y in WebView pixels
+            final cx = double.tryParse(uri.queryParameters['x'] ?? '') ?? -1;
+            final cy = double.tryParse(uri.queryParameters['y'] ?? '') ?? -1;
+            // Convert to screen-global Offset for pill placement
+            Offset? globalPos;
+            if (cx >= 0 && cy >= 0) {
+              final box = context.findRenderObject() as RenderBox?;
+              if (box != null && box.hasSize) {
+                globalPos = box.localToGlobal(Offset(cx, cy));
+              }
+            }
+            if (surah > 0 && ayah > 0) {
+              widget.onVerseTapped?.call(surah, ayah);
+              if (globalPos != null) widget.onVerseTappedGlobal?.call(surah, ayah, globalPos);
+            }
             return NavigationDecision.prevent;
           }
           if (uri.scheme == 'tap') {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tafseer-pwa-v70';
+const CACHE_NAME = 'tafseer-pwa-v71';
 const ASSETS = [
   './',
   './index.html',

@@ -17,3 +17,8 @@
 -keep class io.github.jan.supabase.** { *; }
 -keepattributes Signature
 -keepattributes *Annotation*
+
+# Flutter deferred components reference Play Core — not used, suppress missing class errors
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.android.play.core.**

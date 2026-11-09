@@ -890,7 +890,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   }
 
-  Future<void> _selectVerse(Map<String, dynamic> verse, {bool fetchDetails = true}) async {
+  Future<void> _selectVerse(Map<String, dynamic> verse, {bool fetchDetails = true, bool autoScroll = false}) async {
     final vId = verse['id'] as int;
 
     final vKey = (verse['verse_key'] as String?) ?? '';
@@ -923,7 +923,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     }
 
-    _scrollToActiveVerse(vId, alignment: 0.0);
+    if (autoScroll) _scrollToActiveVerse(vId, alignment: 0.0);
 
     final surahId = verse['sura_id'] as int? ?? 1;
 
@@ -1090,7 +1090,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
             key!.currentContext!,
             duration: const Duration(milliseconds: 100),
             curve: Curves.easeOut,
-            alignment: 0.1,
+            alignment: 0.0,
           );
         }
       });
@@ -1138,7 +1138,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     _scrollToActiveVerse(vId, alignment: 0.0);
 
     // Fix #2: Fully select the active playing verse so the study panel is in sync.
-    _selectVerse(verse, fetchDetails: true);
+    _selectVerse(verse, fetchDetails: true, autoScroll: true);
 
     final s = _surahNames[surahId];
 
@@ -1491,14 +1491,20 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
     final overlay = Overlay.of(context);
     final screenSize = MediaQuery.of(context).size;
 
-    const pillW = 300.0;
+    const pillW = 220.0; // icons-only pill is narrower
     const pillH = 48.0;
     const margin = 12.0;
 
     double left = globalPos.dx - pillW / 2;
-    double top  = globalPos.dy - pillH - margin;
-    left = left.clamp(margin, screenSize.width  - pillW - margin);
-    top  = top .clamp(margin, screenSize.height - pillH - margin);
+    left = left.clamp(margin, screenSize.width - pillW - margin);
+
+    // Prefer below the tap so pill doesn't cover the ayah start
+    double top = globalPos.dy + margin;
+    if (top + pillH > screenSize.height - margin) {
+      // Not enough space below — go above
+      top = globalPos.dy - pillH - margin;
+    }
+    top = top.clamp(margin, screenSize.height - pillH - margin);
 
     _versePillOverlay = OverlayEntry(builder: (ctx) {
       return _MushafPill(
@@ -1507,7 +1513,12 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         verseKey: verseKey,
         isBookmarked: _isBookmarked,
         studyPanelOpen: _studyPanelOpen,
+        isPlaying: _isPlaying,
         onDismiss: _dismissVersePill,
+        onPlayPause: () {
+          _toggleAudio();
+          _dismissVersePill();
+        },
         onTafsir: () {
           _dismissVersePill();
           setState(() => _studyPanelOpen = !_studyPanelOpen);
@@ -4015,7 +4026,9 @@ class _MushafPill extends StatefulWidget {
   final String verseKey;
   final bool isBookmarked;
   final bool studyPanelOpen;
+  final bool isPlaying;
   final VoidCallback onDismiss;
+  final VoidCallback onPlayPause;
   final VoidCallback onTafsir;
   final Future<void> Function() onBookmark;
   final VoidCallback onShare;
@@ -4027,7 +4040,9 @@ class _MushafPill extends StatefulWidget {
     required this.verseKey,
     required this.isBookmarked,
     required this.studyPanelOpen,
+    required this.isPlaying,
     required this.onDismiss,
+    required this.onPlayPause,
     required this.onTafsir,
     required this.onBookmark,
     required this.onShare,
@@ -4059,7 +4074,7 @@ class _MushafPillState extends State<_MushafPill>
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _ctrl.forward();
     // auto-dismiss after 4 s of no interaction
-    _autoDismiss = Timer(const Duration(seconds: 4), widget.onDismiss);
+    _autoDismiss = Timer(const Duration(seconds: 3), widget.onDismiss);
   }
 
   void _cancelAutoDismiss() {
@@ -4105,6 +4120,12 @@ class _MushafPillState extends State<_MushafPill>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _PillIcon(
+                        icon: widget.isPlaying ? Icons.pause : Icons.play_arrow,
+                        tooltip: widget.isPlaying ? 'Pause' : 'Play',
+                        onTap: () { _cancelAutoDismiss(); widget.onPlayPause(); },
+                      ),
+                      _PillSep(),
                       _PillIcon(
                         icon: widget.studyPanelOpen
                             ? Icons.chrome_reader_mode

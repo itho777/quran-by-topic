@@ -1168,6 +1168,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       }
 
+      // Prefetch next ayah while this one plays — eliminates gap on completion
+      _prefetchNextAyah(verse);
+
     } catch (e) {
 
       debugPrint('Error playing audio on $surahId:$ayahNum: $e');
@@ -1182,6 +1185,25 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     }
 
+  }
+
+  /// Prefetch the next verse audio so the gap between ayahs is near-zero.
+  void _prefetchNextAyah(Map<String, dynamic> currentVerse) {
+    if (_pageVerses.isEmpty) return;
+    final currentIndex = _pageVerses.indexWhere((v) => v['id'] == currentVerse['id']);
+    if (currentIndex == -1) return;
+    Map<String, dynamic>? nextVerse;
+    if (currentIndex + 1 < _pageVerses.length) {
+      nextVerse = _pageVerses[currentIndex + 1];
+    } else if (_currentPage < 604) {
+      // Can't prefetch cross-page easily — skip
+      return;
+    }
+    if (nextVerse == null) return;
+    final surahId = nextVerse['sura_id'] as int;
+    final ayahNum = nextVerse['ayah_number'] as int;
+    final nextUrl = _getAudioUrl(surahId, ayahNum);
+    _audioPlayer.prefetch(nextUrl); // fire and forget — async internally
   }
 
   Future<void> _toggleAudio() async {

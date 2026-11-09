@@ -59,12 +59,12 @@ function _initSvg() {
 // Called by Flutter via runJavaScript to live-update highlights and scroll them into view
 window.updateHighlight = function(sel, play) {
   if (_styleEl) _styleEl.textContent = _buildCss(sel, play);
-  var activeId = play !== null ? play : sel;
-  if (activeId !== null) {
+  // Only scroll when audio is playing — user tap means the verse is already visible
+  if (play !== null) {
     setTimeout(function() {
-      var el = document.getElementById('verse-' + activeId);
+      var el = document.getElementById('verse-' + play);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
       }
     }, 80);
   }

@@ -20,7 +20,6 @@ if (hasReleaseKeystore) {
 android {
     namespace = "id.tafseer.app"
     compileSdk = 37
-    ndkVersion = "28.2.13676358"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21

@@ -35,10 +35,6 @@ jobs:
       - name: Configure Flutter JDK
         run: flutter config --jdk-dir $JAVA_HOME
 
-      - name: Install Android SDK 36
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" || true
-
       - name: Setup Keystore & key.properties (if secret available)
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then

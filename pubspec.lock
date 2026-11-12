@@ -592,6 +592,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.8.0"
+  jni:
+    dependency: transitive
+    description:
+      name: jni
+      sha256: "2e91e6087291affd10b31b6c872f3e3ac7dc5d93b51b5ba485d930c8f08bde6c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
+  jni_flutter:
+    dependency: transitive
+    description:
+      name: jni_flutter
+      sha256: "0dd33d67797560f66e961a6053882d4df54bd345bf063b8fe7ea133f7ad8b191"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4+1"
+  jni_util:
+    dependency: transitive
+    description:
+      name: jni_util
+      sha256: "1ba86da04a5f2bf18fde2edb235587e70c5b0fc5bd4ba955f46b00942c3fc35f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   json_annotation:
     dependency: transitive
     description:
@@ -696,6 +720,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.4.1"
+  package_config:
+    dependency: transitive
+    description:
+      name: package_config
+      sha256: ffcf4cf3d6c0b74ac43708d9f56625506e8a68aa935abe9d267a7330f320eb5d
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   package_info_plus:
     dependency: "direct main"
     description:
@@ -748,10 +780,10 @@ packages:
     dependency: "direct main"
     description:
       name: path_provider_android
-      sha256: "51f0d2c554cfbc9d6a312ab35152fc77e2f0b758ce9f1a444a3a1e5b8f3c6b7f"
+      sha256: "69cbd515a62b94d32a7944f086b2f82b4ac40a1d45bebfc00813a430ab2dabcd"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.3"
+    version: "2.3.1"
   path_provider_foundation:
     dependency: transitive
     description:
@@ -940,10 +972,10 @@ packages:
     dependency: "direct main"
     description:
       name: shared_preferences_android
-      sha256: "1ee8bf911094a1b592de7ab29add6f826a7331fb854273d55918693d5364a1f2"
+      sha256: "137dedccacb394b8f470d6c9b435ffc3d33faaa6ce2949c4f54a61007d64396d"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.2"
+    version: "2.5.5"
   shared_preferences_foundation:
     dependency: transitive
     description:

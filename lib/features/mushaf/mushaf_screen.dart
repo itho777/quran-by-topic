@@ -2604,7 +2604,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                           : 0.0;
 
                       final activeSvgId = effectivePlayingVerseId ?? effectiveSelectedVerseId;
-                      if (fullWidth && activeSvgId != null) {
+                      // Landscape: a tapped verse is already visible, so only follow
+                      // audio playback. Re-centering on tap shifted the page.
+                      final followActiveVerse = !isMobileLandscape || effectivePlayingVerseId != null;
+                      if (fullWidth && activeSvgId != null && followActiveVerse) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           _scrollFullWidthToSvgVerse(activeSvgId, pageH, panelHeightPx);
                         });

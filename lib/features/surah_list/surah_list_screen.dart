@@ -6,7 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
+import '../../core/juz_data.dart';
 import '../../shared/widgets/islamic_star.dart';
+import '../../shared/widgets/juz_picker_sheet.dart';
 import '../../core/local_db.dart';
 
 class SurahListScreen extends ConsumerStatefulWidget {
@@ -277,12 +279,28 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
-          ),
-        ],
-      ),
+                      icon: Icon(Icons.settings_outlined, color: AppTheme.outline),
+                      tooltip: 'Settings',
+                      onPressed: () => context.push('/settings'),
+                    ),
+                    // Juz Picker
+                    IconButton(
+                      icon: Icon(Icons.menu_book, color: AppTheme.primary),
+                      tooltip: isEn ? 'Juz (Paras)' : 'Juz',
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: AppTheme.surface,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (_) => JuzPickerSheet(currentLang: _currentLang),
+                        );
+                      },
+                    ),
+                  ],
+                ),
       body: _loading
           ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
           : CustomScrollView(

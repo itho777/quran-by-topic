@@ -51,3 +51,6 @@ android/app/*.b64
 android/app/*.jks
 android/key.properties
 android/app/src/main/java/
+
+# Gradle/Android build outputs
+android/build/

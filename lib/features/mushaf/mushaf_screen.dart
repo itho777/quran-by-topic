@@ -33,6 +33,7 @@ import '../../core/quran_verse_utils.dart';
 import '../../core/juz_data.dart';
 
 import '../../shared/widgets/reciter_picker_sheet.dart';
+import '../../shared/widgets/juz_marker_icon.dart';
 
 import 'widgets/quran_page_image.dart';
 
@@ -2119,7 +2120,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
             required String label,
 
-            required IconData icon,
+            required Widget icon,
 
             required bool active,
 
@@ -2169,7 +2170,10 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                     children: [
 
-                      Icon(icon, size: 16, color: color),
+                      IconTheme.merge(
+                        data: IconThemeData(color: color, size: 16),
+                        child: icon,
+                      ),
 
                       const SizedBox(width: 6),
 
@@ -2281,7 +2285,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                         Text(
 
-                          '$juz',
+                          JuzData.toArabic(juz),
 
                           style: TextStyle(
 
@@ -2297,7 +2301,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                         Text(
 
-                          start,
+                          JuzData.toArabic(start),
 
                           style: TextStyle(
 
@@ -2349,7 +2353,17 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                 Row(
 
+                  crossAxisAlignment: CrossAxisAlignment.center,
+
                   children: [
+
+                    const Padding(
+
+                      padding: EdgeInsets.only(right: 12),
+
+                      child: JuzMarkerIcon(height: 64, label: '\u062c\u0632\u0621'),
+
+                    ),
 
                     Expanded(
 
@@ -2395,7 +2409,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       label: 'SURAH',
 
-                      icon: Icons.menu_book,
+                      icon: const Icon(Icons.menu_book, size: 16),
 
                       active: !juzMode,
 
@@ -2409,7 +2423,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       label: 'JUZ',
 
-                      icon: Icons.view_module,
+                      icon: const JuzMarkerIcon(height: 17, label: null),
 
                       active: juzMode,
 

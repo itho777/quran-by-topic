@@ -8,6 +8,7 @@ import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../shared/widgets/islamic_star.dart';
 import '../../shared/widgets/juz_picker_sheet.dart';
+import '../../shared/widgets/juz_marker_icon.dart';
 import '../../core/local_db.dart';
 
 class SurahListScreen extends ConsumerStatefulWidget {
@@ -284,7 +285,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                     ),
                     // Juz Picker
                     IconButton(
-                      icon: Icon(Icons.view_module, color: AppTheme.primary),
+                      icon: JuzMarkerIcon(height: 22, color: AppTheme.primary),
                       tooltip: isEn ? 'Juz (Paras)' : 'Juz',
                       onPressed: () {
                         showModalBottomSheet(

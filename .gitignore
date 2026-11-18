@@ -54,3 +54,6 @@ android/app/src/main/java/
 
 # Gradle/Android build outputs
 android/build/
+
+# Golden images produced by test/juz_marker_preview_test.dart
+test/goldens/

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../core/juz_data.dart';
+import 'juz_marker_icon.dart';
 
 class JuzPickerSheet extends StatefulWidget {
   final String currentLang;
@@ -46,7 +47,7 @@ class _JuzPickerSheetState extends State<JuzPickerSheet> {
           // Header
           Row(
             children: [
-              Icon(Icons.menu_book, color: AppTheme.primary, size: 22),
+              JuzMarkerIcon(height: 46, color: AppTheme.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -132,10 +133,17 @@ class _JuzPickerSheetState extends State<JuzPickerSheet> {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                            color: isSelected ? AppTheme.primary : AppTheme.outline,
-                            size: 18,
+                          SizedBox(
+                            width: 28,
+                            child: Text(
+                              JuzData.toArabic(juzNum),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? AppTheme.primary : AppTheme.outline,
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(

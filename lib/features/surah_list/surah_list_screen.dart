@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
-import '../../core/juz_data.dart';
 import '../../shared/widgets/islamic_star.dart';
 import '../../shared/widgets/juz_picker_sheet.dart';
 import '../../core/local_db.dart';
@@ -285,7 +284,7 @@ class _SurahListScreenState extends ConsumerState<SurahListScreen> {
                     ),
                     // Juz Picker
                     IconButton(
-                      icon: Icon(Icons.menu_book, color: AppTheme.primary),
+                      icon: Icon(Icons.view_module, color: AppTheme.primary),
                       tooltip: isEn ? 'Juz (Paras)' : 'Juz',
                       onPressed: () {
                         showModalBottomSheet(

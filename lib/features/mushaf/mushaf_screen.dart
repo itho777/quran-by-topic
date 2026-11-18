@@ -30,6 +30,7 @@ import '../../core/quran_sources.dart';
 
 import '../../core/quran_coords.dart';
 import '../../core/quran_verse_utils.dart';
+import '../../core/juz_data.dart';
 
 import '../../shared/widgets/reciter_picker_sheet.dart';
 
@@ -1740,11 +1741,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
   // Navigate to Mushaf page for the selected surah:ayah
 
-  void _doJumpToAyah() async {
-
-    final ayah = int.tryParse(_jumpAyahController.text) ?? 1;
-
-    final clamped = ayah.clamp(1, _jumpMaxAyas);
+  Future<void> _jumpToVerse(int surahId, int ayahNumber) async {
 
     // Fetch the page number for the target verse
 
@@ -1754,9 +1751,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
         .select('page_number')
 
-        .eq('sura_id', _selectedJumpSurahId)
+        .eq('sura_id', surahId)
 
-        .eq('ayah_number', clamped)
+        .eq('ayah_number', ayahNumber)
 
         .maybeSingle();
 
@@ -1770,9 +1767,11 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       await _loadPageData(targetPage);
 
+      if (!mounted) return;
+
       final verse = _pageVerses.firstWhere(
 
-        (v) => v['sura_id'] == _selectedJumpSurahId && v['ayah_number'] == clamped,
+        (v) => v['sura_id'] == surahId && v['ayah_number'] == ayahNumber,
 
         orElse: () => _pageVerses.first,
 
@@ -1781,6 +1780,62 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       await _selectVerse(verse);
 
     }
+
+  }
+
+  void _doJumpToAyah() {
+
+    final ayah = int.tryParse(_jumpAyahController.text) ?? 1;
+
+    final clamped = ayah.clamp(1, _jumpMaxAyas).toInt();
+
+    _jumpToVerse(_selectedJumpSurahId, clamped);
+
+  }
+
+  /// Jump to the first ayah of a Juz (1-30)
+
+  void _doJumpToJuz(int juz) {
+
+    final data = JuzData.getJuz(juz);
+
+    if (data == null) return;
+
+    final (suraId, ayahNumber) = JuzData.parseStart(data['start'] as String);
+
+    _jumpToVerse(suraId, ayahNumber);
+
+  }
+
+  /// Juz number of the first verse on the current mushaf page (0 = unknown)
+
+  int get _currentJuz {
+
+    if (_pageVerses.isEmpty) return 0;
+
+    final suraId = _pageVerses.first['sura_id'] as int? ?? 0;
+
+    final ayahNumber = _pageVerses.first['ayah_number'] as int? ?? 0;
+
+    var current = 0;
+
+    for (final j in JuzData.juzList) {
+
+      final (js, ja) = JuzData.parseStart(j['start'] as String);
+
+      if (js < suraId || (js == suraId && ja <= ayahNumber)) {
+
+        current = j['juz'] as int;
+
+      } else {
+
+        break;
+
+      }
+
+    }
+
+    return current;
 
   }
 
@@ -2054,7 +2109,219 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
       builder: (ctx) {
 
+        bool juzMode = false;
+
+        final currentJuz = _currentJuz;
+
         return StatefulBuilder(builder: (ctx2, setSheet) {
+
+          Widget modeChip({
+
+            required String label,
+
+            required IconData icon,
+
+            required bool active,
+
+            required VoidCallback onTap,
+
+          }) {
+
+            final color = active ? AppTheme.primary : AppTheme.outline;
+
+            return Expanded(
+
+              child: GestureDetector(
+
+                onTap: onTap,
+
+                behavior: HitTestBehavior.opaque,
+
+                child: Container(
+
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+
+                  decoration: BoxDecoration(
+
+                    color: active
+
+                        ? AppTheme.primary.withValues(alpha: 0.15)
+
+                        : AppTheme.surfaceContainer,
+
+                    borderRadius: BorderRadius.circular(10),
+
+                    border: Border.all(
+
+                      color: active
+
+                          ? AppTheme.primary
+
+                          : AppTheme.outlineVariant.withValues(alpha: 0.5),
+
+                    ),
+
+                  ),
+
+                  child: Row(
+
+                    mainAxisAlignment: MainAxisAlignment.center,
+
+                    children: [
+
+                      Icon(icon, size: 16, color: color),
+
+                      const SizedBox(width: 6),
+
+                      Text(
+
+                        label,
+
+                        style: TextStyle(
+
+                          fontSize: 11,
+
+                          fontWeight: FontWeight.bold,
+
+                          letterSpacing: 0.5,
+
+                          color: color,
+
+                        ),
+
+                      ),
+
+                    ],
+
+                  ),
+
+                ),
+
+              ),
+
+            );
+
+          }
+
+          Widget juzGrid() {
+
+            return GridView.builder(
+
+              shrinkWrap: true,
+
+              padding: EdgeInsets.zero,
+
+              physics: const NeverScrollableScrollPhysics(),
+
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+
+                crossAxisCount: 6,
+
+                mainAxisSpacing: 8,
+
+                crossAxisSpacing: 8,
+
+                childAspectRatio: 1.0,
+
+              ),
+
+              itemCount: JuzData.juzList.length,
+
+              itemBuilder: (c, i) {
+
+                final data = JuzData.juzList[i];
+
+                final juz = data['juz'] as int;
+
+                final isCurrent = juz == currentJuz;
+
+                final start = data['start'] as String;
+
+                return InkWell(
+
+                  borderRadius: BorderRadius.circular(10),
+
+                  onTap: () {
+
+                    Navigator.pop(ctx2);
+
+                    _doJumpToJuz(juz);
+
+                  },
+
+                  child: Container(
+
+                    decoration: BoxDecoration(
+
+                      color: isCurrent
+
+                          ? AppTheme.primary.withValues(alpha: 0.18)
+
+                          : AppTheme.surfaceContainer,
+
+                      borderRadius: BorderRadius.circular(10),
+
+                      border: Border.all(
+
+                        color: isCurrent
+
+                            ? AppTheme.primary
+
+                            : AppTheme.outlineVariant.withValues(alpha: 0.5),
+
+                      ),
+
+                    ),
+
+                    child: Column(
+
+                      mainAxisAlignment: MainAxisAlignment.center,
+
+                      children: [
+
+                        Text(
+
+                          '$juz',
+
+                          style: TextStyle(
+
+                            fontSize: 15,
+
+                            fontWeight: FontWeight.bold,
+
+                            color: isCurrent ? AppTheme.primary : AppTheme.onSurface,
+
+                          ),
+
+                        ),
+
+                        Text(
+
+                          start,
+
+                          style: TextStyle(
+
+                            fontSize: 8,
+
+                            color: AppTheme.outline,
+
+                          ),
+
+                        ),
+
+                      ],
+
+                    ),
+
+                  ),
+
+                );
+
+              },
+
+            );
+
+          }
 
           return Padding(
 
@@ -2088,7 +2355,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
                       child: Text(
 
-                        isEn ? 'Jump to Ayah' : 'Lompat ke Ayat',
+                        isEn ? 'Jump to Surah / Juz' : 'Lompat ke Surah / Juz',
 
                         style: TextStyle(
 
@@ -2117,6 +2384,50 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 ),
 
                 const SizedBox(height: 16),
+
+                // Mode toggle: Surah / Juz
+
+                Row(
+
+                  children: [
+
+                    modeChip(
+
+                      label: 'SURAH',
+
+                      icon: Icons.menu_book,
+
+                      active: !juzMode,
+
+                      onTap: () => setSheet(() => juzMode = false),
+
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    modeChip(
+
+                      label: 'JUZ',
+
+                      icon: Icons.view_module,
+
+                      active: juzMode,
+
+                      onTap: () => setSheet(() => juzMode = true),
+
+                    ),
+
+                  ],
+
+                ),
+
+                const SizedBox(height: 14),
+
+                if (juzMode)
+
+                  juzGrid()
+
+                else
 
                 // Surah selector + Ayah input + Go button (same layout as Home)
 
@@ -3091,7 +3402,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                                   child: Row(children: [
                                     Icon(Icons.explore_outlined, size: 18, color: AppTheme.primary),
                                     const SizedBox(width: 10),
-                                    Text(isEn ? 'Jump to Page / Surah' : 'Loncat ke Halaman / Surah',
+                                    Text(isEn ? 'Jump to Surah / Juz' : 'Loncat ke Surah / Juz',
                                         style: const TextStyle(fontSize: 13)),
                                   ]),
                                 ),

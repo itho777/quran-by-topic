@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import '../../core/theme.dart';
-
 /// Juz (Paras) data — 30 Juz, each with start surah:ayah and name
 class JuzData {
   static const List<Map<String, dynamic>> juzList = [

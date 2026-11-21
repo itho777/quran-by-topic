@@ -2815,17 +2815,28 @@ async function triggerRouting() {
 
     // --- 1. Load search index once (then kept in memory for the session) ---
     const isOtherLang = state.searchOptions.lang !== 'en' && state.searchOptions.lang !== 'id' && state.searchOptions.lang !== 'all';
-    if (!db.searchIndex || (isOtherLang && !db.isFullIndex)) {
+    if (!db.searchIndex || (isOtherLang && !db.isFullIndex && !db.fullIndexUnavailable)) {
       showProgress(isId ? 'Memuat indeks pencarian...' : 'Loading search index...');
-      try {
-        const indexFile = isOtherLang ? 'data/search_index_full.json' : 'data/search_index.json';
-        console.log('[Search] Fetching index file:', indexFile);
-        const res = await fetch(indexFile);
-        db.searchIndex = await res.json();
-        db.isFullIndex = isOtherLang;
-      } catch (e) {
-        console.warn('Search index unavailable, falling back to raw scan:', e);
-        db.searchIndex = null;
+      // search_index_full.json is optional. Fall back to the standard index
+      // so non-en/id searches still work instead of scanning raw sources.
+      const candidates = isOtherLang
+        ? ['data/search_index_full.json', 'data/search_index.json']
+        : ['data/search_index.json'];
+      for (const indexFile of candidates) {
+        try {
+          console.log('[Search] Fetching index file:', indexFile);
+          const res = await fetch(indexFile);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          db.searchIndex = await res.json();
+          db.isFullIndex = (indexFile === 'data/search_index_full.json');
+          break;
+        } catch (e) {
+          if (indexFile === 'data/search_index_full.json') db.fullIndexUnavailable = true;
+          if (indexFile === candidates[candidates.length - 1]) {
+            console.warn('Search index unavailable, falling back to raw scan:', e);
+            db.searchIndex = null;
+          }
+        }
       }
     } else {
       showProgress(isId ? 'Mencari...' : 'Searching...');

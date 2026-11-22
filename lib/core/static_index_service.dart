@@ -3,9 +3,10 @@
 // Provides keyword search over the full pre-built static search index.
 // The index is loaded from:
 //   1. A locally downloaded file (app documents dir):  search_index.json.gz
-//   2. Fallback: Supabase Storage (online only, old compressed copy)
+//   2. Fallback: the public R2 tree (search_index_mobile.json.gz), then the
+//      raw GitHub copy.
 //
-// The user can trigger a download of the latest index from GitHub via
+// The user can trigger a download of the latest index from settings via
 // downloadFromGitHub(), which stores it locally for offline use.
 
 import 'dart:async';
@@ -26,13 +27,22 @@ class StaticIndexService extends ChangeNotifier {
   StaticIndexService._();
   static final StaticIndexService instance = StaticIndexService._();
 
-  // Primary: raw GitHub (rich, always fresh, no size limit)
+  // Primary: public R2 tree (mobile-optimised gzip index)
+  static const String _r2IndexUrl =
+      'https://data.tafseer.id/v1/search_index_mobile.json.gz';
+
+  // Fallback: raw GitHub (rich copy)
   static const String _githubIndexUrl =
       'https://raw.githubusercontent.com/itho777/quran-by-topic/main/data/search_index.json.gz';
 
-  // Fallback: Supabase Storage (old copy)
-  static const String _supabaseIndexUrl =
-      'https://zgeygoclduqotqveperx.supabase.co/storage/v1/object/public/assets/search_index.json.gz';
+  /// Cloudflare rejects default library User-Agents with HTTP 1010.
+  static const String _userAgent =
+      'tafseer_id-mobile/3.2 (+https://tafseer.id)';
+
+  static const Map<String, String> _headers = {
+    'User-Agent': _userAgent,
+    'Accept': 'application/json, application/gzip, */*',
+  };
 
   static const String _localFileName = 'search_index.json.gz';
 
@@ -104,7 +114,7 @@ class StaticIndexService extends ChangeNotifier {
         }
       }
 
-      // 2. Online: Try Supabase Storage fallback (no progress — background warm-up)
+      // 2. Online: no progress — background warm-up
       if (!kIsWeb) {
         // On mobile, skip auto-online download; require explicit user download.
         debugPrint('[StaticIndex] No local index found. User must download it from settings.');
@@ -112,17 +122,26 @@ class StaticIndexService extends ChangeNotifier {
         return;
       }
 
-      // Web: download from Supabase directly
-      debugPrint('[StaticIndex] Downloading from Supabase Storage...');
-      final response = await http.get(Uri.parse(_supabaseIndexUrl)).timeout(
-        const Duration(seconds: 90),
-      );
-      if (response.statusCode == 200) {
-        await _parseBytes(response.bodyBytes);
-        debugPrint('[StaticIndex] Loaded from Supabase. Keys: ${_indexData?.length}');
-      } else {
-        throw Exception('HTTP ${response.statusCode}');
+      // Web: download from the R2 tree, falling back to raw GitHub
+      String? lastError;
+      for (final url in [_r2IndexUrl, _githubIndexUrl]) {
+        try {
+          debugPrint('[StaticIndex] Downloading $url');
+          final response = await http
+              .get(Uri.parse(url), headers: _headers)
+              .timeout(const Duration(seconds: 90));
+          if (response.statusCode == 200) {
+            await _parseBytes(response.bodyBytes);
+            debugPrint('[StaticIndex] Loaded from $url. Keys: ${_indexData?.length}');
+            lastError = null;
+            break;
+          }
+          lastError = 'HTTP ${response.statusCode} ($url)';
+        } catch (e) {
+          lastError = e.toString();
+        }
       }
+      if (lastError != null) throw Exception(lastError);
     } catch (e) {
       _loadError = e.toString();
       debugPrint('[StaticIndex] Load error: $e');
@@ -144,7 +163,8 @@ class StaticIndexService extends ChangeNotifier {
 
   // ─── Download from GitHub with progress ──────────────────────────────────
 
-  /// Downloads the latest search index from GitHub raw URL (with Supabase fallback) and stores it locally.
+  /// Downloads the latest search index from the R2 tree (with raw GitHub
+  /// fallback) and stores it locally.
   /// Calls [onProgress] with (received, total) bytes. Returns null on success,
   /// or an error message on failure.
   Future<String?> downloadFromGitHub({
@@ -165,14 +185,15 @@ class StaticIndexService extends ChangeNotifier {
         return 'Cannot access local storage';
       }
 
-      // Try GitHub primary URL first, fall back to Supabase Storage if GitHub returns error
-      final urlsToTry = [_githubIndexUrl, _supabaseIndexUrl];
+      // Try the R2 tree first, fall back to raw GitHub if R2 returns an error
+      final urlsToTry = [_r2IndexUrl, _githubIndexUrl];
       http.StreamedResponse? response;
       String? lastError;
 
       for (final url in urlsToTry) {
         try {
           final request = http.Request('GET', Uri.parse(url));
+          request.headers.addAll(_headers);
           final res = await http.Client().send(request).timeout(const Duration(seconds: 300));
           if (res.statusCode == 200) {
             response = res;

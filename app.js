@@ -311,12 +311,78 @@ const i18n = {
   }
 };
 
-// --- 2. Database Manager (Supabase-Powered) ---
+// --- 1b. R2 Static Data Tree ---
+// All verse-level datasets live in the public R2 bucket as per-surah files:
+//   translations/{sourceId}/{nnn}.json   transliterations/{sourceId}/{nnn}.json
+//   tafsirs/{sourceId}/{nnn}.json        asbabun_nuzul/{sourceId}/{nnn}.json
+//   quran_arabic/{nnn}.json              verse_meta/{nnn}.json
+//   verse_tags/{lang}/{nnn}.json         sura_list.json   tags/{lang}.json
+// nnn is the 1-based surah number padded to 3 digits (001..114). Every per-surah
+// file is a flat { "sura:ayah": value } map. A sparse surah answers 404, which
+// is treated as an empty map. Registry + stop words + search index stay local.
+const R2_BASE = 'https://data.tafseer.id/v1/';
+const R2_SURA_COUNT = 114;
+const R2_MAX_CONCURRENCY = 12;
+
+const R2_SURA_NUMBERS = Array.from({ length: R2_SURA_COUNT }, (_, i) => i + 1);
+
+function r2PadSura(n) {
+  return String(n).padStart(3, '0');
+}
+
+// Global in-flight gate — caps total R2 pressure at 12 sockets even when
+// several sources are loading at once.
+let r2ActiveRequests = 0;
+const r2Waiting = [];
+
+function r2AcquireSlot() {
+  if (r2ActiveRequests < R2_MAX_CONCURRENCY) {
+    r2ActiveRequests++;
+    return Promise.resolve();
+  }
+  return new Promise(resolve => r2Waiting.push(resolve));
+}
+
+function r2ReleaseSlot() {
+  const next = r2Waiting.shift();
+  if (next) next();              // hand the slot straight to the next waiter
+  else r2ActiveRequests--;
+}
+
+// Fetch one JSON document from the R2 tree. Retries once on network/HTTP error.
+// `emptyOn404` maps a missing file to {} — per-surah files are legitimately
+// absent for sparse sources.
+async function fetchR2Json(path, emptyOn404 = false) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await r2AcquireSlot();
+    try {
+      const res = await fetch(R2_BASE + path);
+      if (res.status === 404) {
+        if (emptyOn404) return {};
+        throw new Error(`R2 404 ${path}`);
+      }
+      if (!res.ok) throw new Error(`R2 ${res.status} ${path}`);
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+    } finally {
+      r2ReleaseSlot();
+    }
+  }
+  throw lastErr;
+}
+
+// --- 2. Database Manager (R2-backed) ---
 class Database {
   constructor() {
     this.cache = new Map();
     // chunkedSuraLoaded tracks which sura IDs are loaded for each chunked source
     this.chunkedSuraLoaded = new Map(); // cacheKey -> Set<suraNum>
+    // sourceId -> R2 directory ('translations' | 'transliterations' | 'tafsirs' | 'asbabun_nuzul')
+    this.sourceCategory = new Map();
+    // cacheKey -> in-flight load promise, so concurrent callers share one fetch sweep
+    this._inflight = new Map();
     this.registry = null;
     this.suraList = null;
     this.quranArabic = null;
@@ -328,20 +394,20 @@ class Database {
 
   async init(onProgress) {
     onProgress(10, state.uiLang === 'id' ? i18n.id.loadingDb : i18n.en.loadingDb);
-    // Registry, sura list, and Arabic text are static — always load locally
+    // Registry is the one dataset that stays local — it maps source ids to
+    // languages/names and is not part of the R2 tree.
     const regRes = await fetch('data/registry.json');
     this.registry = await regRes.json();
+    this._buildSourceIndex();
 
     onProgress(30, state.uiLang === 'id' ? i18n.id.loadingChapters : i18n.en.loadingChapters);
-    const suraRes = await fetch(this.registry.sura_list);
-    this.suraList = await suraRes.json();
+    this.suraList = await fetchR2Json('sura_list.json');
 
     onProgress(60, state.uiLang === 'id' ? i18n.id.loadingScript : i18n.en.loadingScript);
-    const arRes = await fetch(this.registry.quran_arabic);
-    this.quranArabic = await arRes.json();
+    this.quranArabic = await this._loadPerSurahDir('quran_arabic');
 
     onProgress(85, state.uiLang === 'id' ? i18n.id.loadingTags : i18n.en.loadingTags);
-    // Load tags from Supabase if available, else fall back to local files
+    // Load tags from Supabase if available, else fall back to the R2 tree
     await this._loadTagsFromSupabase(state.activeTags);
 
     onProgress(100, state.uiLang === 'id' ? i18n.id.ready : i18n.en.ready);
@@ -354,21 +420,57 @@ class Database {
     } catch (_) { /* graceful degradation — filtering skipped if file missing */ }
   }
 
-  // Load tags dataset — verseTags always from local JSON (complete), tags list from Supabase or local
+  // Build sourceId -> R2 directory from the registry source lists. The file
+  // path is NOT a reliable guide: transliteration files sit under
+  // data/translations/ in the registry but live in transliterations/ on R2.
+  _buildSourceIndex() {
+    this.sourceCategory = new Map();
+    const add = (list, category) => {
+      (list || []).forEach(item => {
+        if (item && item.id) this.sourceCategory.set(item.id, category);
+      });
+    };
+    const r = this.registry || {};
+    add(r.translations, 'translations');
+    add(r.tafsirs, 'tafsirs');
+    add(r.asbabun_nuzul, 'asbabun_nuzul');
+    // Registered last: a transliteration id always resolves to transliterations/
+    add(r.transliterations, 'transliterations');
+  }
+
+  // Merge every per-surah file under an R2 directory into one flat map
+  // ({ "sura:ayah": value }), e.g. quran_arabic/ or verse_tags/id/.
+  async _loadPerSurahDir(dir) {
+    const merged = {};
+    const parts = await Promise.all(R2_SURA_NUMBERS.map(async n => {
+      try {
+        return await fetchR2Json(`${dir}/${r2PadSura(n)}.json`, true);
+      } catch (e) {
+        console.warn(`[DB] R2 load failed for ${dir}/${r2PadSura(n)}.json:`, e);
+        return null;
+      }
+    }));
+    parts.forEach(part => {
+      if (part && typeof part === 'object') Object.assign(merged, part);
+    });
+    return merged;
+  }
+
+  // Load tags dataset — verseTags from the R2 per-surah tree (complete),
+  // tags list from Supabase or R2
   async _loadTagsFromSupabase(lang) {
     const effectiveLang = lang || 'id';
 
-    // Always load verseTags from local JSON — the Supabase table has 110k+ rows
-    // and the default REST page size (1000) silently truncates the result,
-    // causing missing tag-to-verse mappings for most surahs.
+    let tagInfo = null;
     if (this.registry && this.registry.tags && this.registry.tags.length > 0) {
-      let tagInfo = this.registry.tags.find(t => t.id === effectiveLang);
-      if (!tagInfo) tagInfo = this.registry.tags[0];
-      const mapRes = await fetch(tagInfo.verse_map);
-      this.verseTags = await mapRes.json();
-    } else {
-      this.verseTags = {};
+      tagInfo = this.registry.tags.find(t => t.id === effectiveLang) || this.registry.tags[0];
     }
+    const tagLang = (tagInfo && (tagInfo.lang || tagInfo.id)) || effectiveLang;
+
+    // Verse → tag-id map, merged from verse_tags/{lang}/{nnn}.json. The Supabase
+    // table has 110k+ rows and its default REST page size (1000) silently
+    // truncates, so R2 is the only complete source here.
+    this.verseTags = await this._loadPerSurahDir(`verse_tags/${tagLang}`);
 
     // Try Supabase for the compact tags list (tag names only — small, ~few hundred rows)
     if (supabaseClient) {
@@ -381,140 +483,129 @@ class Database {
           this.tags = tagsData;
           return;
         }
-        console.warn('[DB] Tags list from Supabase empty, falling back to local file.');
+        console.warn('[DB] Tags list from Supabase empty, falling back to R2.');
       } catch (e) {
-        console.warn('[DB] Tags list Supabase load failed, using local file:', e);
+        console.warn('[DB] Tags list Supabase load failed, using R2:', e);
       }
     }
 
-    // Local fallback for tags list
-    if (this.registry && this.registry.tags && this.registry.tags.length > 0) {
-      let tagInfo = this.registry.tags.find(t => t.id === effectiveLang);
-      if (!tagInfo) tagInfo = this.registry.tags[0];
-      const tagsRes = await fetch(tagInfo.file);
-      this.tags = await tagsRes.json();
-    } else {
+    // R2 fallback for tags list
+    try {
+      const tagsList = await fetchR2Json(`tags/${tagLang}.json`);
+      this.tags = Array.isArray(tagsList) ? tagsList : [];
+    } catch (e) {
+      console.warn(`[DB] R2 tags/${tagLang}.json load failed:`, e);
       this.tags = [];
     }
   }
 
 
-  // Derive table name and source_id from a registry file path
-  _parseFilePath(file) {
-    if (file.startsWith('data/translations/') || file.startsWith('data/transliteration/')) {
-      const sourceId = file.replace(/^data\/(translations|transliteration)\//, '').replace(/\.json$/, '');
-      return { table: 'translations', sourceId };
-    }
-    if (file.startsWith('data/tafsirs/')) {
-      const sourceId = file.replace(/^data\/tafsirs\//, '').replace(/(\.chunks)?\.json$/, '');
-      return { table: 'tafsirs', sourceId };
-    }
-    if (file.startsWith('data/asbabun_nuzul/')) {
-      const sourceId = file.replace(/^data\/asbabun_nuzul\//, '').replace(/\.json$/, '');
-      return { table: 'asbabun_nuzul', sourceId };
-    }
-    return null;
+  // Normalised cache key — chunked metadata files share the key of the full dataset
+  _cacheKey(file) {
+    return file.replace('.chunks.json', '.json');
   }
 
-  // Fetch a full source dataset from Supabase and cache as { verseKey: text }
+  // Strip the local path down to a registry source id:
+  // 'data/tafsirs/en.tabari.chunks.json' -> 'en.tabari'
+  _sourceIdFromFile(file) {
+    if (!file) return null;
+    return file
+      .replace(/^data\//, '')
+      .replace(/^[^/]+\//, '')
+      .replace(/\.chunks\.json$/, '')
+      .replace(/\.json$/, '');
+  }
+
+  // Load a full source dataset from the R2 per-surah tree and cache it as
+  // { verseKey: text }. Shared by every caller that wants the whole source;
+  // concurrent calls for the same source share one in-flight sweep.
   async getResource(file) {
-    const cacheKey = file.replace('.chunks.json', '.json');
-    if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+    const cacheKey = this._cacheKey(file);
+    // A map filled only by getChunkedResource is partial — treat it as a miss
+    // so the rest of the source still gets loaded.
+    const loaded = this.chunkedSuraLoaded.get(cacheKey);
+    const complete = !!(loaded && loaded.size >= R2_SURA_COUNT);
+    if (this.cache.has(cacheKey) && complete) return this.cache.get(cacheKey);
+    if (this._inflight.has(cacheKey)) return this._inflight.get(cacheKey);
 
-    const parsed = this._parseFilePath(file);
-    if (supabaseClient && parsed) {
-      try {
-        const result = {};
-        let from = 0;
-        const pageSize = 1000;
-        while (true) {
-          const { data, error } = await supabaseClient
-            .from(parsed.table)
-            .select('verse_key, text')
-            .eq('source_id', parsed.sourceId)
-            .range(from, from + pageSize - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          data.forEach(row => { result[row.verse_key] = row.text; });
-          if (data.length < pageSize) break;
-          from += pageSize;
-        }
-
-        // Validate completeness of database response before caching it:
-        const count = Object.keys(result).length;
-        let isComplete = false;
-        if (parsed.table === 'translations' || parsed.table === 'tafsirs') {
-          const isChunked = file.includes('.chunks.json');
-          if (isChunked) {
-            isComplete = (count > 0);
-          } else {
-            isComplete = (count >= 6000);
-          }
-        } else if (parsed.table === 'asbabun_nuzul') {
-          if (parsed.sourceId === 'en.wahidi') isComplete = (count >= 630);
-          else if (parsed.sourceId === 'id.kemenag_nuzul') isComplete = (count >= 100);
-          else isComplete = (count > 0);
-        } else {
-          isComplete = (count > 0);
-        }
-
-        if (isComplete) {
-          this.cache.set(cacheKey, result);
-          return result;
-        } else {
-          console.warn(`[DB] Supabase source ${parsed.sourceId} has incomplete/empty rows (${count}), falling back to local file`);
-        }
-      } catch (e) {
-        console.warn(`[DB] Supabase getResource failed for ${file}, falling back:`, e);
-      }
-    }
-    // Local file fallback
-    // If it's a chunks.json metadata file, fetch the corresponding .json file instead (which contains the full dataset)
-    const localFile = file.replace('.chunks.json', '.json');
-    const res = await fetch(localFile);
-    const data = await res.json();
-    this.cache.set(cacheKey, data);
-    return data;
+    const pending = this._loadFullSource(file, cacheKey)
+      .finally(() => this._inflight.delete(cacheKey));
+    this._inflight.set(cacheKey, pending);
+    return pending;
   }
 
-  // Load surah-level data for a chunked source (tafsir) via Supabase
+  async _loadFullSource(file, cacheKey) {
+    const sourceId = this._sourceIdFromFile(file);
+    const category = this.sourceCategory.get(sourceId);
+    if (!category) {
+      console.warn(`[DB] No R2 category for source "${sourceId}" (${file}) — returning empty map`);
+      if (!this.cache.has(cacheKey)) this.cache.set(cacheKey, {});
+      return this.cache.get(cacheKey);
+    }
+
+    // One request per surah, bounded concurrency. A 404 means the source is
+    // sparse for that surah and contributes nothing.
+    const parts = await Promise.all(R2_SURA_NUMBERS.map(async n => {
+      try {
+        return await fetchR2Json(`${category}/${sourceId}/${r2PadSura(n)}.json`, true);
+      } catch (e) {
+        console.warn(`[DB] R2 load failed for ${category}/${sourceId}/${r2PadSura(n)}.json:`, e);
+        return null;
+      }
+    }));
+
+    // Merge into the live map so any reference handed out by
+    // getChunkedResource keeps working.
+    const merged = this.cache.get(cacheKey) || {};
+    parts.forEach(part => {
+      if (part && typeof part === 'object') Object.assign(merged, part);
+    });
+
+    if (Object.keys(merged).length === 0) {
+      console.warn(`[DB] R2 source ${category}/${sourceId} returned no verses`);
+    }
+
+    this.cache.set(cacheKey, merged);
+    // The whole source is in memory now, so every surah counts as loaded
+    this.chunkedSuraLoaded.set(cacheKey, new Set(R2_SURA_NUMBERS));
+    return merged;
+  }
+
+  // Load a single surah for a source from R2 and merge it into the shared
+  // cache map. Works for any category, not just tafsirs.
   async getChunkedResource(src, suraNum) {
-    const cacheKey = src.file.replace('.chunks.json', '.json');
+    const cacheKey = this._cacheKey(src.file);
     if (!this.cache.has(cacheKey)) this.cache.set(cacheKey, {});
     if (!this.chunkedSuraLoaded.has(cacheKey)) this.chunkedSuraLoaded.set(cacheKey, new Set());
 
+    const unified = this.cache.get(cacheKey);
     const loaded = this.chunkedSuraLoaded.get(cacheKey);
-    if (loaded.has(suraNum)) return this.cache.get(cacheKey);
+    const n = Number(suraNum);
+    if (loaded.has(n)) return unified;
+    if (!Number.isInteger(n) || n < 1 || n > R2_SURA_COUNT) return unified;
 
-    const parsed = this._parseFilePath(src.file);
-    if (supabaseClient && parsed) {
-      try {
-        const { data, error } = await supabaseClient
-          .from(parsed.table)
-          .select('verse_key, text, verses!inner(sura_id)')
-          .eq('source_id', parsed.sourceId)
-          .eq('verses.sura_id', suraNum);
-        if (error) throw error;
-        if (data && data.length > 0) {
-          const unified = this.cache.get(cacheKey);
-          data.forEach(row => { unified[row.verse_key] = row.text; });
-          loaded.add(suraNum);
-          return unified;
-        } else {
-          console.warn(`[DB] Supabase chunked load returned 0 rows for ${parsed.sourceId} sura ${suraNum}, falling back to local file`);
-        }
-      } catch (e) {
-        console.warn(`[DB] Supabase chunked load failed for sura ${suraNum}:`, e);
-      }
+    const sourceId = this._sourceIdFromFile(src.file);
+    const category = this.sourceCategory.get(sourceId);
+    if (!category) {
+      console.warn(`[DB] No R2 category for source "${sourceId}" (${src.file})`);
+      loaded.add(n);
+      return unified;
     }
-    // Fallback: fetch all (non-chunked path)
-    return this.getResource(src.file);
+
+    try {
+      const part = await fetchR2Json(`${category}/${sourceId}/${r2PadSura(n)}.json`, true);
+      if (part && typeof part === 'object') Object.assign(unified, part);
+      loaded.add(n);
+    } catch (e) {
+      // Leave the surah unmarked so a later navigation retries it
+      console.warn(`[DB] R2 chunked load failed for ${category}/${sourceId} sura ${n}:`, e);
+    }
+    return unified;
   }
 
   // Return already-merged data for a chunked source
   getCachedChunked(src) {
-    const cacheKey = src.file.replace('.chunks.json', '.json');
-    return this.cache.get(cacheKey) || null;
+    return this.cache.get(this._cacheKey(src.file)) || null;
   }
 }
 
@@ -2920,7 +3011,7 @@ async function triggerRouting() {
     // Pre-fetch transliteration files if translit search is enabled
     if (state.searchOptions.translit && db.registry && db.registry.transliterations) {
       await Promise.all(
-        db.registry.transliterations.map(t => db.cache.has(t.file) ? null : db.getResource(t.file).catch(() => null))
+        db.registry.transliterations.map(t => db.cache.has(db._cacheKey(t.file)) ? null : db.getResource(t.file).catch(() => null))
       );
     }
 
@@ -3186,7 +3277,7 @@ async function triggerRouting() {
       const fetchPromises = [];
       for (const idx of neededFileIndices) {
         const src = allRegistrySources[idx];
-        if (src && !db.cache.has(src.file)) {
+        if (src && !db.cache.has(db._cacheKey(src.file))) {
           fetchPromises.push(db.getResource(src.file).catch(() => null));
         }
       }

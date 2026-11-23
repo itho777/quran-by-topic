@@ -33,13 +33,36 @@
     return (v === null || v === '') ? fallback : v;
   }
 
+  // The site's own language, not the browser's and not the language the
+  // message is typed in. tafseer.id keeps it in tafsir_settings.uiLang,
+  // hadeeth.id in hadeeth_lang and on <html data-lang>; read it on every
+  // open and every send, because the reader can flip it while we sit there.
+  function siteLang() {
+    return CONFIG.langLock ? CONFIG.lang : pageLang();
+  }
+
+  function pageLang() {
+    var v = '';
+    try {
+      var raw = localStorage.getItem('tafsir_settings');
+      if (raw) {
+        var settings = JSON.parse(raw);
+        if (settings && settings.uiLang) v = settings.uiLang;
+      }
+    } catch (e) {}
+    if (!v) { try { v = localStorage.getItem('hadeeth_lang') || ''; } catch (e) {} }
+    if (!v) v = document.documentElement.getAttribute('data-lang') || '';
+    if (!v) v = document.documentElement.getAttribute('lang') || '';
+    if (!v) v = navigator.language || '';
+    return String(v).toLowerCase().slice(0, 2) === 'id' ? 'id' : 'en';
+  }
+
   var CONFIG = {
     api: attr('data-api', 'https://razi.hadeeth.id/api/chat'),
     avatar: attr('data-avatar', 'razi-avatar.jpg'),
-    lang: (attr('data-lang', '') ||
-      document.documentElement.getAttribute('lang') ||
-      navigator.language ||
-      'en').toLowerCase().slice(0, 2) === 'id' ? 'id' : 'en',
+    lang: String(attr('data-lang', '') || pageLang()).toLowerCase().slice(0, 2) === 'id' ? 'id' : 'en',
+    // A page that states its language on the tag knows better than storage.
+    langLock: !!attr('data-lang', ''),
     requestTimeoutMs: 120000,
     slowNoticeMs: 20000,
     sessionKey: 'razi_web_session',
@@ -92,7 +115,8 @@
       disclaimer: 'Jawaban dihasilkan AI. Selalu periksa rujukannya.',
     },
   };
-  var T = STRINGS[CONFIG.lang];
+  var lang = STRINGS[CONFIG.lang] ? CONFIG.lang : 'en';
+  var T = STRINGS[lang];
 
   var CSS = [
     '#razi-chat-root{position:fixed;right:20px;bottom:20px;z-index:2147483000;',
@@ -259,8 +283,10 @@
   var head = el('div', 'razi-head');
   head.appendChild(el('img', null, { src: CONFIG.avatar, alt: '', width: '38', height: '38' }));
   var headText = el('div', 'razi-head-text');
-  headText.appendChild(el('div', 'razi-head-name', { text: T.name }));
-  headText.appendChild(el('div', 'razi-head-role', { text: T.role }));
+  var headName = el('div', 'razi-head-name', { text: T.name });
+  var headRole = el('div', 'razi-head-role', { text: T.role });
+  headText.appendChild(headName);
+  headText.appendChild(headRole);
   head.appendChild(headText);
   var closeBtn = el('button', 'razi-close', { type: 'button', 'aria-label': T.close, title: T.close, text: '\u00d7' });
   head.appendChild(closeBtn);
@@ -274,7 +300,8 @@
   inputRow.appendChild(input);
   inputRow.appendChild(sendBtn);
   foot.appendChild(inputRow);
-  foot.appendChild(el('div', 'razi-note', { text: T.disclaimer }));
+  var noteEl = el('div', 'razi-note', { text: T.disclaimer });
+  foot.appendChild(noteEl);
 
   panel.appendChild(head);
   panel.appendChild(body);
@@ -372,7 +399,7 @@
       scrollDown();
       return;
     }
-    addBot(T.intro);
+    renderBot(T.intro);
     var chips = el('div', 'razi-chips');
     T.chips.forEach(function (prompt) {
       var chip = el('button', 'razi-chip', { type: 'button', text: prompt });
@@ -384,6 +411,35 @@
     });
     body.appendChild(chips);
     scrollDown();
+  }
+
+  // Relabel the whole widget for the page language. A conversation already on
+  // screen is left alone — only the opening state is translated, because the
+  // answers themselves are already written in the language they arrived in.
+  function applyLang(next) {
+    if (!next || next === lang || !STRINGS[next]) return false;
+    lang = next;
+    T = STRINGS[lang];
+    launcher.setAttribute('aria-label', T.launcherTitle);
+    launcher.setAttribute('title', T.launcherTitle);
+    launcherImg.setAttribute('alt', T.name);
+    panel.setAttribute('aria-label', T.name + ' — ' + T.role);
+    headName.textContent = T.name;
+    headRole.textContent = T.role;
+    closeBtn.setAttribute('aria-label', T.close);
+    closeBtn.setAttribute('title', T.close);
+    input.setAttribute('placeholder', T.placeholder);
+    input.setAttribute('aria-label', T.placeholder);
+    sendBtn.setAttribute('aria-label', T.send);
+    sendBtn.setAttribute('title', T.send);
+    noteEl.textContent = T.disclaimer;
+    if (!history.length) {
+      body.textContent = '';
+      typing = null;
+      started = false;
+      seed();
+    }
+    return true;
   }
 
   /* ---------- request ---------- */
@@ -420,6 +476,7 @@
       return;
     }
 
+    applyLang(siteLang());
     addUser(message);
     input.value = '';
     autoGrow();
@@ -442,7 +499,7 @@
       var res = await fetch(CONFIG.api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message, session_id: sessionId() }),
+        body: JSON.stringify({ message: message, session_id: sessionId(), lang: lang }),
         signal: controller.signal,
       });
 
@@ -479,6 +536,7 @@
   }
 
   function open() {
+    applyLang(siteLang());
     seed();
     panel.hidden = false;
     panel.classList.remove('razi-closed');
@@ -528,6 +586,7 @@
   // Re-open when the reader left it open last visit, but never steal focus.
   try {
     if (localStorage.getItem(CONFIG.openKey) === '1') {
+      applyLang(siteLang());
       seed();
       panel.hidden = false;
       panel.classList.remove('razi-closed');

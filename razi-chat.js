@@ -40,7 +40,7 @@
       document.documentElement.getAttribute('lang') ||
       navigator.language ||
       'en').toLowerCase().slice(0, 2) === 'id' ? 'id' : 'en',
-    requestTimeoutMs: 75000,
+    requestTimeoutMs: 100000,
     slowNoticeMs: 20000,
     sessionKey: 'razi_web_session',
     openKey: 'razi_web_open',
@@ -194,8 +194,19 @@
     });
     safe = safe.replace(/`([^`\n]+)`/g, '<code>$1</code>');
     safe = safe.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>');
+    // Markdown links become anchors with a readable label, so a citation reads
+    // as "Sahih al-Bukhari #4" instead of a long URL in the narrow panel.
+    // They are parked on placeholders so the bare-URL pass cannot re-wrap them.
+    var links = [];
+    safe = safe.replace(/\[([^\]\n]{1,90})\]\((https?:\/\/[^\s)]+)\)/g, function (_m, label, url) {
+      links.push('<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + '</a>');
+      return '\u0000L' + (links.length - 1) + '\u0000';
+    });
     safe = safe.replace(/(https?:\/\/[^\s<]+)/g, function (url) {
       return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+    });
+    safe = safe.replace(/\u0000L(\d+)\u0000/g, function (_m, i) {
+      return links[+i] || '';
     });
     return safe;
   }

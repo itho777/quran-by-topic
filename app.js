@@ -5386,9 +5386,9 @@ function ensureRaziWidget() {
   if (window.__raziChatLoaded || document.getElementById('razi-chat-root')) return;
   if (document.querySelector('script[src*="razi-chat.js"]')) return;
   const s = document.createElement('script');
-  s.src = 'razi-chat.js?v=20261123_razi5';
+  s.src = 'https://razi.hadeeth.id/razi-chat.js';
   s.defer = true;
-  s.setAttribute('data-avatar', 'razi-avatar.jpg?v=20261123_razi5');
+  s.setAttribute('data-avatar', 'razi-avatar.jpg');
   document.body.appendChild(s);
 }
 

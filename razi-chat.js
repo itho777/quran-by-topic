@@ -43,6 +43,7 @@
     requestTimeoutMs: 120000,
     slowNoticeMs: 20000,
     sessionKey: 'razi_web_session',
+    historyKey: 'razi_web_history',
     openKey: 'razi_web_open',
     maxChars: 3000,
   };
@@ -293,7 +294,35 @@
   var started = false;
   var busy = false;
 
-  function addUser(text) {
+  // The transcript lives in localStorage as well as the DOM. Following a
+  // source link, reloading the page or closing the tab must not throw the
+  // conversation away — the Worker session id alone is not enough to show it.
+  var history = [];
+  try {
+    var saved = JSON.parse(localStorage.getItem(CONFIG.historyKey) || 'null');
+    if (saved && saved.session === sessionId() && Array.isArray(saved.items)) {
+      history = saved.items.filter(function (m) {
+        return m && (m.role === 'user' || m.role === 'bot') && typeof m.text === 'string';
+      }).slice(-40);
+    }
+  } catch (e) {}
+
+  function saveHistory() {
+    try {
+      localStorage.setItem(CONFIG.historyKey, JSON.stringify({
+        session: sessionId(),
+        items: history.slice(-40)
+      }));
+    } catch (e) {}
+  }
+
+  function remember(role, text) {
+    history.push({ role: role, text: String(text).slice(0, 8000), ts: Date.now() });
+    if (history.length > 40) history = history.slice(-40);
+    saveHistory();
+  }
+
+  function renderUser(text) {
     var node = el('div', 'razi-msg razi-user');
     node.textContent = text;
     body.appendChild(node);
@@ -301,12 +330,22 @@
     return node;
   }
 
-  function addBot(html) {
+  function renderBot(text) {
     var node = el('div', 'razi-msg razi-bot');
-    node.innerHTML = formatReply(html);
+    node.innerHTML = formatReply(text);
     body.appendChild(node);
     scrollDown();
     return node;
+  }
+
+  function addUser(text) {
+    remember('user', text);
+    return renderUser(text);
+  }
+
+  function addBot(html) {
+    remember('bot', html);
+    return renderBot(html);
   }
 
   function addError(text) {
@@ -325,6 +364,14 @@
   function seed() {
     if (started) return;
     started = true;
+    if (history.length) {
+      history.forEach(function (m) {
+        if (m.role === 'user') renderUser(m.text);
+        else renderBot(m.text);
+      });
+      scrollDown();
+      return;
+    }
     addBot(T.intro);
     var chips = el('div', 'razi-chips');
     T.chips.forEach(function (prompt) {
@@ -504,6 +551,8 @@
     toggle: toggle,
     reset: function () {
       try { localStorage.removeItem(CONFIG.sessionKey); } catch (e) {}
+      try { localStorage.removeItem(CONFIG.historyKey); } catch (e) {}
+      history = [];
       body.textContent = '';
       started = false;
       seed();

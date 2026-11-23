@@ -91,6 +91,23 @@ let searchPage = 1;
 
 // Semantic search similarity scores: { "sura:ayah" -> similarity (0-1) }
 let searchSimilarityScores = {};
+
+// Set when semantic mode could not actually run semantically (no query vector,
+// or zero vector hits). The keyword engine answers instead and the result
+// header says so, rather than presenting full-text matches as semantic.
+let semanticFallbackReason = '';
+
+// tafsir-web-search returns 200 even when it could not build a query vector and
+// silently dropped to Supabase full-text. Only trust a payload that really ran
+// hybrid retrieval and produced hits.
+function semanticResultUsable(d) {
+  return !!d
+    && d.success === true
+    && d.vectorGenerated === true
+    && d.searchMode === 'hybrid'
+    && Array.isArray(d.results)
+    && d.results.length > 0;
+}
 let searchContextSnippets = {};
 let lastActiveHash = '#home';
 
@@ -2835,26 +2852,38 @@ async function triggerRouting() {
         const workerData = await workerRes.json();
         if (!workerData.success) throw new Error(workerData.error || 'Worker error');
 
-        const mergedResults = [];
-        if (workerData.results && Array.isArray(workerData.results)) {
+        if (!semanticResultUsable(workerData)) {
+          // No query vector (Workers AI quota spent) or no vector hits. Fall
+          // through to the keyword engine below instead of rendering
+          // full-text matches under a "semantic" heading.
+          console.warn(
+            `Semantic search did not run (vectorGenerated=${workerData.vectorGenerated}, mode=${workerData.searchMode}); using keyword search.`,
+            workerData.aiError || ''
+          );
+          semanticFallbackReason = workerData.aiError
+            ? 'quota'
+            : (workerData.searchMode !== 'hybrid' ? 'no-vector' : 'no-hits');
+          searchSimilarityScores = {};
+        } else {
+          const mergedResults = [];
           workerData.results.forEach(r => {
             const verseKey = r.verse_key;
             // Store RRF score as similarity so existing score-badge UI still works
             searchSimilarityScores[verseKey] = r.score || 0;
             mergedResults.push(verseKey);
           });
-        }
 
-        if (header) {
-          header.innerHTML = `
-            <h2 class="search-results-title">${isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for'} &ldquo;${query}&rdquo;</h2>
-            <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan secara makna' : 'verses matching semantically'}</div>
-          `;
-        }
+          if (header) {
+            header.innerHTML = `
+              <h2 class="search-results-title">${isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for'} &ldquo;${query}&rdquo;</h2>
+              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan secara makna' : 'verses matching semantically'}</div>
+            `;
+          }
 
-        await ensureActiveDatasets();
-        renderSearchPage(mergedResults, query);
-        return;
+          await ensureActiveDatasets();
+          renderSearchPage(mergedResults, query);
+          return;
+        }
       } catch (err) {
         console.warn('Hybrid search (CF Worker) failed, falling back to legacy semantic search:', err);
         // ── Legacy fallback: old Supabase RPC (no CF AI vectors) ──────────────
@@ -2891,6 +2920,7 @@ async function triggerRouting() {
         } catch (fallbackErr) {
           console.warn('Legacy semantic search also failed, falling back to keyword search:', fallbackErr);
           searchSimilarityScores = {};
+          if (!semanticFallbackReason) semanticFallbackReason = 'unavailable';
         }
       }
     }
@@ -3189,7 +3219,7 @@ async function triggerRouting() {
 
       header.innerHTML = `
         <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
-        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}${meiliEngineNote ? ` <span class="search-engine-badge" title="${isId ? 'Kata kunci dicari di Meilisearch' : 'Keywords served by Meilisearch'}">&#9889; ${meiliEngineNote}</span>` : ''}</div>
+        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}${meiliEngineNote ? ` <span class="search-engine-badge" title="${isId ? 'Kata kunci dicari di Meilisearch' : 'Keywords served by Meilisearch'}">&#9889; ${meiliEngineNote}</span>` : ''}${semanticFallbackReason ? ` <span class="search-engine-badge" title="${isId ? 'Pencarian makna sedang tidak tersedia; ayat dicocokkan lewat kata kunci' : 'Semantic matching unavailable right now; verses matched by keyword'}">&#9888; ${isId ? 'kata kunci' : 'keyword only'}</span>` : ''}</div>
         ${noteHtml}
       `;
     }

@@ -40,7 +40,7 @@
       document.documentElement.getAttribute('lang') ||
       navigator.language ||
       'en').toLowerCase().slice(0, 2) === 'id' ? 'id' : 'en',
-    requestTimeoutMs: 100000,
+    requestTimeoutMs: 120000,
     slowNoticeMs: 20000,
     sessionKey: 'razi_web_session',
     openKey: 'razi_web_open',

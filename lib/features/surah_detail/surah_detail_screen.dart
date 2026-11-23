@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/web_audio_player.dart';
 import '../../core/theme.dart';
+import '../../core/lazy_list_jump.dart';
 import '../../core/settings_manager.dart';
 import '../../core/bookmarks_manager.dart';
 import '../../shared/widgets/islamic_star.dart';
@@ -61,6 +62,7 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   // Scrolling reference
   final ScrollController _scrollController = ScrollController();
   final Map<int, GlobalKey> _ayahKeys = {};
+  final LazyListJumper _jumper = LazyListJumper();
 
   // Go to Ayah feature state
   int _selectedSurahId = 1;
@@ -743,37 +745,27 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
   }
 
   // ── Scroll to ayah in list ─────────────────────────────────────────────
+  /// Scrolls the verse list so [ayahNumber] sits just below the pinned app bar.
+  ///
+  /// The list is lazy, so the target row usually has no `BuildContext` yet;
+  /// [LazyListJumper] estimates, jumps, then corrects until it lands.
   void _scrollToAyah(int ayahNumber) {
     if (_verses.isEmpty) return;
     final idx = _verses.indexWhere((v) => (v['ayah_number'] as int) == ayahNumber);
     if (idx < 0) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-
-      const double headerHeight = 280.0;
-      const double approxCardHeight = 180.0;
-      final approxOffset = (headerHeight + idx * approxCardHeight).clamp(
-        0.0,
-        _scrollController.position.maxScrollExtent,
+      if (!mounted) return;
+      _jumper.jumpToRow(
+        controller: _scrollController,
+        index: idx,
+        itemCount: _verses.length,
+        topInset: MediaQuery.of(context).padding.top + kToolbarHeight + 8.0,
+        keyAt: (i) {
+          if (i < 0 || i >= _verses.length) return null;
+          return _ayahKeys[_verses[i]['ayah_number'] as int];
+        },
       );
-
-      _scrollController.animateTo(
-        approxOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      ).then((_) {
-        if (!mounted) return;
-        final key = _ayahKeys[ayahNumber];
-        if (key?.currentContext != null) {
-          Scrollable.ensureVisible(
-            key!.currentContext!,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            alignment: 0.2,
-          );
-        }
-      });
     });
   }
 
@@ -1273,15 +1265,9 @@ class _SurahDetailScreenState extends ConsumerState<SurahDetailScreen> {
                         onPressed: () {
                           final aNum = int.tryParse(_ayahController.text.trim()) ?? 1;
                           final validAyah = aNum.clamp(1, _maxAyas);
+                          FocusScope.of(context).unfocus();
                           if (_selectedSurahId == widget.surahId) {
-                            final key = _ayahKeys[validAyah];
-                            if (key?.currentContext != null) {
-                              Scrollable.ensureVisible(
-                                key!.currentContext!,
-                                duration: const Duration(milliseconds: 300),
-                                alignment: 0.2,
-                              );
-                            }
+                            _scrollToAyah(validAyah);
                           } else {
                             context.go('/surahs/$_selectedSurahId/ayahs/$validAyah');
                           }

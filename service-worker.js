@@ -1,72 +1,122 @@
-const CACHE_NAME = 'tafseer-pwa-v70';
+/* tafseer.id service worker.
+ *
+ * The previous version was cache-first for EVERYTHING, including index.html,
+ * and only revalidated .js/.css//data/. A browser with the worker installed
+ * therefore kept its old app shell forever: any new <script> added to
+ * index.html (for example razi-chat.js) never reached returning visitors,
+ * which is exactly how Razi ended up invisible on mobile while a desktop
+ * without the worker showed it.
+ *
+ * Rules now:
+ *   navigation + HTML  -> network first, cache only when offline
+ *   .js/.css//data/    -> stale-while-revalidate
+ *   images/fonts       -> cache first
+ *   anything else      -> network, falling through
+ *
+ * Bump CACHE_NAME on every shell change: activate() drops older caches,
+ * and the HTML is no longer pinned by the cache anyway.
+ */
+const CACHE_NAME = 'tafseer-pwa-v71';
 const ASSETS = [
   './',
   './index.html',
   './app.css',
   './app.js',
-  './manifest.json'
+  './manifest.json',
+  './razi-chat.js',
+  './razi-avatar.jpg'
 ];
 
-// Install Event
+const isHtml = (req, url) =>
+  req.mode === 'navigate' ||
+  (req.headers.get('accept') || '').includes('text/html') ||
+  url.pathname === '/' ||
+  url.pathname.endsWith('.html');
+
+const isStaleWhileRevalidate = (url) =>
+  url.pathname.startsWith('/data/') ||
+  url.pathname.endsWith('.js') ||
+  url.pathname.endsWith('.css') ||
+  url.pathname.endsWith('.json');
+
+const isCacheFirst = (url) =>
+  /\.(png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|otf)$/i.test(url.pathname);
+
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[Service Worker] Caching App Shell');
-      return cache.addAll(ASSETS);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS.map(a => new Request(a, { cache: 'reload' }))))
+      .catch(err => console.warn('[SW] Precache incomplete', err))
   );
   self.skipWaiting();
 });
 
-// Activate Event
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.map(key => (key !== CACHE_NAME ? caches.delete(key) : null))
+    ))
   );
   self.clients.claim();
 });
 
-// Fetch Event - Cache-First Strategy
 self.addEventListener('fetch', event => {
-  // Only handle HTTP/HTTPS (ignore chrome-extension, data URIs etc.)
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Never let the chat endpoint or the worker script be served from cache.
+  if (url.pathname.endsWith('/service-worker.js')) return;
+
+  if (isHtml(req, url)) {
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  if (isStaleWhileRevalidate(url)) {
+    event.respondWith(
+      caches.match(req).then(hit => {
+        const network = fetch(req)
+          .then(res => {
+            if (res && res.status === 200) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});
+            }
+            return res;
+          })
+          .catch(() => hit);
+        return hit || network;
+      })
+    );
+    return;
+  }
+
+  if (isCacheFirst(url)) {
+    event.respondWith(
+      caches.match(req).then(hit => hit || fetch(req).then(res => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      }))
+    );
+    return;
+  }
 
   event.respondWith(
-    caches.match(event.request).then(cachedResponse => {
-      if (cachedResponse) {
-        // Return from cache, but fetch and update in background if it's a JSON file or JS/CSS
-        if (event.request.url.includes('/data/') || event.request.url.endsWith('.js') || event.request.url.endsWith('.css')) {
-          fetch(event.request).then(networkResponse => {
-            if (networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse));
-            }
-          }).catch(() => {/* Ignore network failures when offline */});
-        }
-        return cachedResponse;
-      }
-
-      return fetch(event.request).then(networkResponse => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-
-        // Cache newly fetched assets
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseToCache);
-        });
-
-        return networkResponse;
-      });
-    })
+    fetch(req).catch(() => caches.match(req))
   );
 });

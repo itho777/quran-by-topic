@@ -24,6 +24,12 @@
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
 
+/service-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/razi-avatar.jpg
+  Cache-Control: public, max-age=604800
+
 # Images — long cache
 /*.png
   Cache-Control: public, max-age=2592000

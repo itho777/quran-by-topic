@@ -4732,6 +4732,12 @@ async function initApp() {
     // 9. Register PWA Service Worker
     registerServiceWorker();
 
+    // 9b. Razi chat widget. index.html carries the script tag, but a service
+    // worker installed before the widget existed keeps serving an older shell
+    // to returning visitors, and that shell has no tag. Mount from here too so
+    // the assistant shows up on any client that can run this file.
+    ensureRaziWidget();
+
   } catch (err) {
     console.error('Initialisation failed:', err);
     if (progressText) {
@@ -5375,11 +5381,27 @@ function setupEventBindings() {
   }
 }
 
+// --- 11b. Razi chat widget ---
+function ensureRaziWidget() {
+  if (window.__raziChatLoaded || document.getElementById('razi-chat-root')) return;
+  if (document.querySelector('script[src*="razi-chat.js"]')) return;
+  const s = document.createElement('script');
+  s.src = 'razi-chat.js?v=20261123_razi4';
+  s.defer = true;
+  s.setAttribute('data-avatar', 'razi-avatar.jpg?v=20261123_razi4');
+  document.body.appendChild(s);
+}
+
 // --- 12. SW Registration ---
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(reg => console.log('[Service Worker] Scope:', reg.scope))
+    navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
+      .then(reg => {
+        console.log('[Service Worker] Scope:', reg.scope);
+        // A shell change (new script tag, new asset) only lands once the new
+        // worker takes control — ask for it explicitly instead of waiting.
+        reg.update().catch(() => {});
+      })
       .catch(err => console.error('[Service Worker] Failed:', err));
   }
 }

@@ -158,6 +158,12 @@ export async function meiliSearchVerses(query, searchOptions) {
 
   // "Tags" is a client-side category with no documents in this index; when it
   // is the only thing enabled there is nothing to ask the server for.
+  //
+  // Arabic recall is handled at index time, not here: the quran documents
+  // carry a `text_norm` field with diacritics/tatweel removed, rasm `صلوة`
+  // mapped to `صلاة`, and the superscript-alef variants emitted separately.
+  // Keep the query untouched so the same field serves modern and Uthmani
+  // spellings without a second request.
   const anyKind = Object.keys(KIND_BY_OPTION).some((k) => searchOptions && searchOptions[k]);
   if (!anyKind) return { ok: true, engine: 'meili', strategy: 'all', total: 0, hits: [] };
 
@@ -170,10 +176,17 @@ export async function meiliSearchVerses(query, searchOptions) {
     let strategy = 'all';
     let result = await request(q, filter, strategy);
 
-    // `all` is precise but unforgiving for long natural-language queries.
-    // `frequency` drops the fewest words instead of falling back to `last`,
-    // which on this corpus matches almost the entire index.
-    if (result.hits.length === 0 && q.split(/\s+/).length > 1) {
+    // `all` is mandatory: the Arabic tokenizer splits off `ال`, and `last`
+    // matches 4,205 Qur'an verses for the single word "الصلاة".
+    //
+    // Arabic queries get no retry. The `verses` index carries `text_norm`
+    // (see index_quran_verses.py) with every Uthmani spelling pre-folded, so
+    // zero hits means the word is not in the corpus — widening the query only
+    // returns verses that happened to contain the article. Latin queries keep
+    // one `frequency` retry for long natural-language phrases; `last` is
+    // never tried because it matches nearly the whole index.
+    const hasArabic = /[\u0600-\u06ff]/.test(q);
+    if (!hasArabic && result.hits.length === 0 && q.split(/\s+/).length > 1) {
       strategy = 'frequency';
       result = await request(q, filter, strategy);
     }

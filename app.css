@@ -1001,6 +1001,19 @@ body {
   margin-bottom: 4px;
 }
 .search-results-count { font-size: 0.8rem; color: var(--text-muted); }
+.search-engine-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--accent, #10b981);
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  vertical-align: middle;
+}
 
 /* ---------- 10. Comparison Panel (floating overlay) ---------- */
 .comparison-panel {

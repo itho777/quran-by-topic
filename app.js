@@ -3,6 +3,9 @@
    Supabase-Powered SPA — Read, Comprehend, Apply
    ================================================ */
 
+// --- Meilisearch keyword engine (primary; in-house index is the fallback) ---
+import { meiliSearchVerses, SNIPPET_KINDS } from './meili-search.js';
+
 // --- 0. Supabase Client ---
 const SUPABASE_URL = 'https://zgeygoclduqotqveperx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_kyxOvxsj6WxjTCadR_tpoA_Xb7sQ6Ik';
@@ -2903,74 +2906,47 @@ async function triggerRouting() {
 
     showProgress(isId ? 'Mencari...' : 'Searching...');
 
-    // ── 1. Algolia Keyword Search ──────────────────────────────────────────
+    // ── 1. Meilisearch keyword engine (primary) ─────────────────────────────
+    // Replaces the old Algolia call. The in-house index in step 3 remains the
+    // fallback: it runs whenever this yields no hits or the search box is down.
+    let meiliHandled = false;
+    let meiliEngineNote = '';
     try {
-      const ALGOLIA_APP_ID   = 'EKMF7ZL31U';
-      const ALGOLIA_SEARCH_KEY = 'fdd11b6d57ebb5060e66599e7a9738ec';
-      const targetLang = state.uiLang === 'id' ? 'id' : 'en';
+      const meili = await meiliSearchVerses(query.trim(), state.searchOptions);
+      if (meili.ok && meili.hits.length > 0) {
+        meiliHandled = true;
+        meiliEngineNote = meili.strategy === 'all' ? 'Meilisearch' : 'Meilisearch (broad)';
 
-      const algoliaRes = await fetch(
-        `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/quran_verses/query`,
-        {
-          method: 'POST',
-          headers: {
-            'X-Algolia-Application-Id': ALGOLIA_APP_ID,
-            'X-Algolia-API-Key': ALGOLIA_SEARCH_KEY,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            query: query.trim(),
-            hitsPerPage: 100,
-            attributesToRetrieve: ['verse_key', 'text_ar', `text_${targetLang}`, `translit_${targetLang}`, `tags_${targetLang}`],
-            attributesToHighlight: ['text_ar', `text_${targetLang}`, `translit_${targetLang}`, `tags_${targetLang}`],
-          })
-        }
-      );
-
-      if (algoliaRes.ok) {
-        const algoliaData = await algoliaRes.json();
-        if (algoliaData.hits && algoliaData.hits.length > 0) {
-          algoliaData.hits.forEach(h => {
-            // ── Apply per-category filters using Algolia _highlightResult ──
-            const hl = h._highlightResult;
-            const matched = (f) => hl && hl[f] && hl[f].matchLevel && hl[f].matchLevel !== 'none';
-            const quranMatch    = matched('text_ar');
-            const transMatch  = matched(`text_${targetLang}`);
-            const translitMatch = matched(`translit_${targetLang}`);
-            const tagsMatch   = matched(`tags_${targetLang}`);
-
-            const opts = state.searchOptions;
-            // Check if any enabled filter has a match; if no hl data, fall back to allowing the hit
-            const hasHlData = hl && (hl[`text_${targetLang}`] || hl[`translit_${targetLang}`] || hl.text_ar);
-            const passesFilter = !hasHlData ||
-              (opts.quran   && quranMatch)   ||
-              (opts.trans   && transMatch)   ||
-              (opts.translit && translitMatch) ||
-              (opts.tags    && tagsMatch);
-
-            if (!passesFilter) return; // skip hits that don't match any enabled filter
-
-            addHit(h.verse_key, 2);
-            // Prefer translation snippet; fall back to transliteration if translit is the match
-            const snippetField = hl && (
-              (opts.trans    && hl[`text_${targetLang}`])    ||
-              (opts.translit && hl[`translit_${targetLang}`]) ||
-              hl[`text_${targetLang}`]
-            );
-            if (snippetField && snippetField.value) {
-              searchContextSnippets[h.verse_key] = snippetField.value
-                .replace(/<em>/g, '<mark class="highlight">')
-                .replace(/<\/em>/g, '</mark>');
-            }
+        const snippetBuckets = {};
+        meili.hits.forEach(hit => {
+          // Same-language hits outrank foreign ones so a Malay translation does
+          // not sit above the Indonesian verse the reader asked for.
+          addHit(hit.verse, hit.lang && hit.lang === state.uiLang ? 3 : 2);
+          if (!SNIPPET_KINDS.has(hit.kind)) return;
+          const bucket = snippetBuckets[hit.verse] || (snippetBuckets[hit.verse] = []);
+          if (bucket.length >= 3) return;
+          bucket.push({
+            text: hit.snippet || '',
+            source_name: hit.source,
+            source_id: hit.source,
+            source_type: hit.kind === 'tafsirs' ? 'Tafsir'
+                       : hit.kind === 'asbabun_nuzul' ? 'Asbabun Nuzul'
+                       : 'Translation'
           });
-        }
+        });
+        Object.keys(snippetBuckets).forEach(vk => {
+          const rows = snippetBuckets[vk].filter(r => r.text);
+          if (rows.length) searchContextSnippets[vk] = JSON.stringify(rows);
+        });
+      } else if (!meili.ok) {
+        console.warn('Meilisearch unavailable, falling back to in-house keyword index:', meili.error);
       }
-    } catch (algoliaErr) {
-      console.warn('Algolia search error:', algoliaErr);
+    } catch (meiliErr) {
+      console.warn('Meilisearch keyword search failed:', meiliErr);
     }
 
-    // ── 2. Database / RPC Search (Supabase) ──────────────────────────────────
-    if (supabaseClient) {
+    // ── 2. Database / RPC Search (Supabase) — in-house fallback ──────────────
+    if (!meiliHandled && supabaseClient) {
       try {
         const { data: results, error: rpcErr } = await supabaseClient.rpc('search_verses', {
           p_query: query.trim(),
@@ -3009,14 +2985,14 @@ async function triggerRouting() {
     const qLower = query.toLowerCase().trim();
 
     // Pre-fetch transliteration files if translit search is enabled
-    if (state.searchOptions.translit && db.registry && db.registry.transliterations) {
+    if (!meiliHandled && state.searchOptions.translit && db.registry && db.registry.transliterations) {
       await Promise.all(
         db.registry.transliterations.map(t => db.cache.has(db._cacheKey(t.file)) ? null : db.getResource(t.file).catch(() => null))
       );
     }
 
     // Check pre-built search index
-    if (!db.searchIndex) {
+    if (!meiliHandled && !db.searchIndex) {
       try {
         const indexFile = (state.searchOptions.lang !== 'en' && state.searchOptions.lang !== 'id' && state.searchOptions.lang !== 'all')
           ? 'data/search_index_full.json' : 'data/search_index.json';
@@ -3033,7 +3009,7 @@ async function triggerRouting() {
     const STOP_WORDS = db.stopWords || new Set();
 
     // ── Search pre-built index with per-category filtering ──────────────────
-    if (db.searchIndex) {
+    if (!meiliHandled && db.searchIndex) {
       const exactPhrases = [];
       const broadWords = [];
       const regexParse = /"([^"]+)"|(\S+)/g;
@@ -3086,7 +3062,7 @@ async function triggerRouting() {
     // Check loaded tafsirs — only run if tafsir filter is enabled and meaningful words exist
     const qWords = qLower.split(/\s+/);
     const meaningfulQWords = qWords.filter(w => w.length >= 2 && !STOP_WORDS.has(w));
-    if (state.searchOptions.tafsir && meaningfulQWords.length > 0 && db.registry && db.registry.tafsirs) {
+    if (!meiliHandled && state.searchOptions.tafsir && meaningfulQWords.length > 0 && db.registry && db.registry.tafsirs) {
       // Use focused query (meaningful words only) to avoid broad false matches
       const focusedQuery = meaningfulQWords.join(' ');
       db.registry.tafsirs.forEach(t => {
@@ -3115,7 +3091,7 @@ async function triggerRouting() {
     }
 
     // Check transliteration data — only run if translit filter is enabled
-    if (state.searchOptions.translit && meaningfulQWords.length > 0 && db.registry && db.registry.transliterations) {
+    if (!meiliHandled && state.searchOptions.translit && meaningfulQWords.length > 0 && db.registry && db.registry.transliterations) {
       const focusedQuery = meaningfulQWords.join(' ');
       for (const trItem of db.registry.transliterations) {
         const data = db.cache.get(trItem.file);
@@ -3213,7 +3189,7 @@ async function triggerRouting() {
 
       header.innerHTML = `
         <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
-        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}</div>
+        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}${meiliEngineNote ? ` <span class="search-engine-badge" title="${isId ? 'Kata kunci dicari di Meilisearch' : 'Keywords served by Meilisearch'}">&#9889; ${meiliEngineNote}</span>` : ''}</div>
         ${noteHtml}
       `;
     }

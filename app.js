@@ -5403,6 +5403,18 @@ function registerServiceWorker() {
         reg.update().catch(() => {});
       })
       .catch(err => console.error('[Service Worker] Failed:', err));
+
+    // Drop shells cached by an older worker version. Without this a visitor
+    // keeps getting the index.html that was current when the worker installed,
+    // so anything newly added to the page stays invisible until the cache is
+    // bumped by hand.
+    if (window.caches) {
+      caches.keys().then(keys => keys.forEach(k => {
+        if (k.indexOf('tafseer-pwa-') === 0 && k !== 'tafseer-pwa-v71') {
+          caches.delete(k).then(ok => console.log('[Service Worker] Dropped stale shell', k, ok));
+        }
+      })).catch(() => {});
+    }
   }
 }
 

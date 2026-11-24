@@ -2836,7 +2836,9 @@ async function triggerRouting() {
         // Replaced old Supabase-only RPC with the CF Worker that generates
         // real-time embeddings via @cf/baai/bge-m3 and merges semantic +
         // full-text results using Reciprocal Rank Fusion (RRF).
-        const CF_WORKER_URL = 'https://tafsir-web-search.irianto-suryoputro.workers.dev/api/search';
+        // Embedding runs on the tafseer.id Cloudflare account (separate Workers AI
+        // free allocation from the original one, which exhausted its daily neurons).
+        const CF_WORKER_URL = 'https://tafsir-web-search.wandering-flower-6702.workers.dev/api/search';
 
         const workerRes = await fetch(CF_WORKER_URL, {
           method: 'POST',

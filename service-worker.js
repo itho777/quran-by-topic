@@ -16,7 +16,7 @@
  * Bump CACHE_NAME on every shell change: activate() drops older caches,
  * and the HTML is no longer pinned by the cache anyway.
  */
-const CACHE_NAME = 'tafseer-pwa-v71';
+const CACHE_NAME = 'tafseer-pwa-v72';
 const ASSETS = [
   './',
   './index.html',

@@ -97,17 +97,77 @@ let searchSimilarityScores = {};
 // header says so, rather than presenting full-text matches as semantic.
 let semanticFallbackReason = '';
 
-// tafsir-web-search returns 200 even when it could not build a query vector and
-// silently dropped to Supabase full-text. Only trust a payload that really ran
-// hybrid retrieval and produced hits.
-function semanticResultUsable(d) {
-  return !!d
-    && d.success === true
-    && d.vectorGenerated === true
-    && d.searchMode === 'hybrid'
-    && Array.isArray(d.results)
-    && d.results.length > 0;
+// ── Unified search ladder ────────────────────────────────────────────────────
+// Both search boxes call the same Worker with a different `mode`. The Worker
+// runs selected method → the other method → Meilisearch → Algolia → basic
+// keyword, and reports which rung actually answered. The UI labels only that
+// rung, so a keyword answer is never presented as semantic.
+const SEARCH_WORKER_URL = 'https://tafsir-web-search.wandering-flower-6702.workers.dev/api/search';
+
+function escapeHtmlText(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
+
+// Reduce a Worker payload to what the result header needs.
+function describeSearchEngine(d) {
+  return {
+    label: d.searchLabel || (d.searchMethod === 'semantic' ? 'Semantic' : 'Keyword'),
+    provider: d.searchProvider || '',
+    method: d.searchMethod || '',
+    fellBack: !!d.fellBack,
+    requested: d.requestedMode || '',
+    notice: d.notice || '',
+    attempts: Array.isArray(d.attempts) ? d.attempts : [],
+  };
+}
+
+async function runWorkerSearch(queryText, mode, limit = 50) {
+  // Hard cap so a hung Worker cannot leave the results pane on a spinner: the
+  // catch below hands the query to the client-side stack instead.
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const res = await fetch(SEARCH_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctl.signal,
+      body: JSON.stringify({
+        query: queryText.trim(),
+        lang: state.uiLang === 'id' ? 'id' : 'en',
+        limit,
+        mode,
+      }),
+    });
+    if (!res.ok) throw new Error(`Worker HTTP ${res.status}`);
+    const d = await res.json();
+    if (!d.success) throw new Error(d.error || 'Worker error');
+    return d;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Badge naming the engine that answered. The tooltip carries every rung that
+// was tried, with status and milliseconds, so the reader can audit the choice.
+function searchEngineBadgeHtml(engine, isId) {
+  if (!engine || !engine.label) return '';
+  const label = engine.fellBack
+    ? (isId ? `cadangan: ${engine.label}` : `fallback: ${engine.label}`)
+    : engine.label;
+  const trail = (engine.attempts || [])
+    .map(a => `${a.method}${a.provider ? ` (${a.provider})` : ''}: ${a.status}`
+      + (a.reason ? ` — ${a.reason}` : '')
+      + (typeof a.ms === 'number' ? ` ${a.ms}ms` : ''))
+    .join('\n');
+  const title = [engine.provider, trail].filter(Boolean).join('\n');
+  return ` <span class="search-engine-badge" title="${escapeHtmlText(title)}">&#9889; ${escapeHtmlText(label)}</span>`;
+}
+
 let searchContextSnippets = {};
 let lastActiveHash = '#home';
 
@@ -2829,43 +2889,34 @@ async function triggerRouting() {
     searchSimilarityScores = {};
     searchContextSnippets = {};
 
+    // Engine that actually answered this search (set by the Worker response).
+    let searchEngine = null;
+    // The Worker is asked once per search; the second entry point must not
+    // repeat the whole ladder.
+    let workerTried = false;
+
     if (state.searchOptions && state.searchOptions.semantic) {
       showProgress(isId ? 'Menghubungkan ke AI...' : 'Connecting to AI...');
       try {
-        // ── Cloudflare Workers AI Hybrid Search (bge-m3 vector + trigram RRF) ──
-        // Replaced old Supabase-only RPC with the CF Worker that generates
-        // real-time embeddings via @cf/baai/bge-m3 and merges semantic +
-        // full-text results using Reciprocal Rank Fusion (RRF).
-        // Embedding runs on the tafseer.id Cloudflare account (separate Workers AI
-        // free allocation from the original one, which exhausted its daily neurons).
-        const CF_WORKER_URL = 'https://tafsir-web-search.wandering-flower-6702.workers.dev/api/search';
+        // ── Unified ladder via the tafsir-web-search Worker ────────────────
+        // `mode` only picks the first rung; the Worker runs the rest (other
+        // method → Meilisearch → Algolia → basic keyword) and reports which
+        // rung answered, so the heading never claims the wrong engine.
+        workerTried = true; // set before the await: never repeat the ladder
+        const workerData = await runWorkerSearch(query, 'semantic', 50);
+        searchEngine = describeSearchEngine(workerData);
 
-        const workerRes = await fetch(CF_WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: query.trim(),
-            lang: state.uiLang === 'id' ? 'id' : 'en',
-            limit: 50,
-          }),
-        });
-
-        if (!workerRes.ok) throw new Error(`Worker HTTP ${workerRes.status}`);
-        const workerData = await workerRes.json();
-        if (!workerData.success) throw new Error(workerData.error || 'Worker error');
-
-        if (!semanticResultUsable(workerData)) {
-          // No query vector (Workers AI quota spent) or no vector hits. Fall
-          // through to the keyword engine below instead of rendering
-          // full-text matches under a "semantic" heading.
-          console.warn(
-            `Semantic search did not run (vectorGenerated=${workerData.vectorGenerated}, mode=${workerData.searchMode}); using keyword search.`,
-            workerData.aiError || ''
-          );
+        if (!Array.isArray(workerData.results) || workerData.results.length === 0) {
+          // Every rung came back empty. Fall through to the client-side stack
+          // rather than rendering an empty page.
           semanticFallbackReason = workerData.aiError
             ? 'quota'
             : (workerData.searchMode !== 'hybrid' ? 'no-vector' : 'no-hits');
           searchSimilarityScores = {};
+          console.warn(
+            `Semantic ladder returned no rows (vectorGenerated=${workerData.vectorGenerated}, mode=${workerData.searchMode}); using the client-side stack.`,
+            workerData.aiError || ''
+          );
         } else {
           const mergedResults = [];
           workerData.results.forEach(r => {
@@ -2876,9 +2927,12 @@ async function triggerRouting() {
           });
 
           if (header) {
+            const title = searchEngine.label === 'Semantic'
+              ? (isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for')
+              : (isId ? 'Hasil Pencarian Kata Kunci untuk' : 'Keyword Search Results for');
             header.innerHTML = `
-              <h2 class="search-results-title">${isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for'} &ldquo;${query}&rdquo;</h2>
-              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan secara makna' : 'verses matching semantically'}</div>
+              <h2 class="search-results-title">${title} &ldquo;${query}&rdquo;</h2>
+              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan' : 'matching verses'}${searchEngineBadgeHtml(searchEngine, isId)}</div>
             `;
           }
 
@@ -2887,43 +2941,11 @@ async function triggerRouting() {
           return;
         }
       } catch (err) {
-        console.warn('Hybrid search (CF Worker) failed, falling back to legacy semantic search:', err);
-        // ── Legacy fallback: old Supabase RPC (no CF AI vectors) ──────────────
-        try {
-          const { data: results, error: rpcErr } = await supabaseClient.rpc('semantic_search_verses_by_text', {
-            query_text: query.trim(),
-            lang_code: state.uiLang,
-            match_threshold: 0.1,
-            result_limit: 50,
-            offset_val: 0
-          });
-
-          if (rpcErr) throw rpcErr;
-
-          const mergedResults = [];
-          if (results && Array.isArray(results)) {
-            results.forEach(r => {
-              const verseKey = r.verse_key;
-              searchSimilarityScores[verseKey] = r.similarity || 0;
-              mergedResults.push(verseKey);
-            });
-          }
-
-          if (header) {
-            header.innerHTML = `
-              <h2 class="search-results-title">${isId ? 'Hasil Pencarian Semantik untuk' : 'Semantic Search Results for'} &ldquo;${query}&rdquo;</h2>
-              <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat paling relevan secara makna' : 'verses matching semantically'}</div>
-            `;
-          }
-
-          await ensureActiveDatasets();
-          renderSearchPage(mergedResults, query);
-          return;
-        } catch (fallbackErr) {
-          console.warn('Legacy semantic search also failed, falling back to keyword search:', fallbackErr);
-          searchSimilarityScores = {};
-          if (!semanticFallbackReason) semanticFallbackReason = 'unavailable';
-        }
+        // Worker unreachable. The client-side stack below answers instead and
+        // the badge says so — results are never labelled semantic on this path.
+        console.warn('Search Worker unreachable, using the client-side stack:', err);
+        searchSimilarityScores = {};
+        if (!semanticFallbackReason) semanticFallbackReason = 'unavailable';
       }
     }
 
@@ -2938,43 +2960,72 @@ async function triggerRouting() {
 
     showProgress(isId ? 'Mencari...' : 'Searching...');
 
-    // ── 1. Meilisearch keyword engine (primary) ─────────────────────────────
-    // Replaces the old Algolia call. The in-house index in step 3 remains the
-    // fallback: it runs whenever this yields no hits or the search box is down.
+    // ── 1. Same Worker ladder, starting at keyword ─────────────────────────
+    // Both search boxes share one ladder; only the starting rung differs. When
+    // this answers, the client-side Meili/RPC/index stack below is skipped.
     let meiliHandled = false;
     let meiliEngineNote = '';
-    try {
-      const meili = await meiliSearchVerses(query.trim(), state.searchOptions);
-      if (meili.ok && meili.hits.length > 0) {
-        meiliHandled = true;
-        meiliEngineNote = meili.strategy === 'all' ? 'Meilisearch' : 'Meilisearch (broad)';
-
-        const snippetBuckets = {};
-        meili.hits.forEach(hit => {
-          // Same-language hits outrank foreign ones so a Malay translation does
-          // not sit above the Indonesian verse the reader asked for.
-          addHit(hit.verse, hit.lang && hit.lang === state.uiLang ? 3 : 2);
-          if (!SNIPPET_KINDS.has(hit.kind)) return;
-          const bucket = snippetBuckets[hit.verse] || (snippetBuckets[hit.verse] = []);
-          if (bucket.length >= 3) return;
-          bucket.push({
-            text: hit.snippet || '',
-            source_name: hit.source,
-            source_id: hit.source,
-            source_type: hit.kind === 'tafsirs' ? 'Tafsir'
-                       : hit.kind === 'asbabun_nuzul' ? 'Asbabun Nuzul'
-                       : 'Translation'
-          });
+    if (!workerTried) {
+      try {
+        workerTried = true; // set before the await: never repeat the ladder
+        const workerData = await runWorkerSearch(query, 'keyword', 50);
+        searchEngine = describeSearchEngine(workerData);
+        const workerRows = Array.isArray(workerData.results) ? workerData.results : [];
+        workerRows.forEach(r => {
+          if (!r || typeof r.verse_key !== 'string' || !r.verse_key.includes(':')) return;
+          addHit(r.verse_key, 2);
+          if (r.translation_text && !searchContextSnippets[r.verse_key]) {
+            searchContextSnippets[r.verse_key] = JSON.stringify([{
+              text: r.translation_text,
+              source_name: 'Translation',
+              source_id: '',
+              source_type: 'Translation'
+            }]);
+          }
         });
-        Object.keys(snippetBuckets).forEach(vk => {
-          const rows = snippetBuckets[vk].filter(r => r.text);
-          if (rows.length) searchContextSnippets[vk] = JSON.stringify(rows);
-        });
-      } else if (!meili.ok) {
-        console.warn('Meilisearch unavailable, falling back to in-house keyword index:', meili.error);
+        meiliHandled = workerRows.length > 0;
+      } catch (err) {
+        console.warn('Search Worker unreachable for keyword, using the client-side stack:', err);
       }
-    } catch (meiliErr) {
-      console.warn('Meilisearch keyword search failed:', meiliErr);
+    }
+
+    // ── 2. Meilisearch keyword engine (direct, client-side) ─────────────────
+    // Runs only when the Worker produced nothing: the Worker's own Meili rung
+    // is the primary path, this is the client's copy of it.
+    if (!meiliHandled) {
+      try {
+        const meili = await meiliSearchVerses(query.trim(), state.searchOptions);
+        if (meili.ok && meili.hits.length > 0) {
+          meiliHandled = true;
+          meiliEngineNote = meili.strategy === 'all' ? 'Meilisearch' : 'Meilisearch (broad)';
+
+          const snippetBuckets = {};
+          meili.hits.forEach(hit => {
+            // Same-language hits outrank foreign ones so a Malay translation does
+            // not sit above the Indonesian verse the reader asked for.
+            addHit(hit.verse, hit.lang && hit.lang === state.uiLang ? 3 : 2);
+            if (!SNIPPET_KINDS.has(hit.kind)) return;
+            const bucket = snippetBuckets[hit.verse] || (snippetBuckets[hit.verse] = []);
+            if (bucket.length >= 3) return;
+            bucket.push({
+              text: hit.snippet || '',
+              source_name: hit.source,
+              source_id: hit.source,
+              source_type: hit.kind === 'tafsirs' ? 'Tafsir'
+                         : hit.kind === 'asbabun_nuzul' ? 'Asbabun Nuzul'
+                         : 'Translation'
+            });
+          });
+          Object.keys(snippetBuckets).forEach(vk => {
+            const rows = snippetBuckets[vk].filter(r => r.text);
+            if (rows.length) searchContextSnippets[vk] = JSON.stringify(rows);
+          });
+        } else if (!meili.ok) {
+          console.warn('Meilisearch unavailable, falling back to in-house keyword index:', meili.error);
+        }
+      } catch (meiliErr) {
+        console.warn('Meilisearch keyword search failed:', meiliErr);
+      }
     }
 
     // ── 2. Database / RPC Search (Supabase) — in-house fallback ──────────────
@@ -3219,9 +3270,16 @@ async function triggerRouting() {
       };
       const sourcesLabel = isId ? formatParts(_fParts_id) : formatParts(_fParts_en);
 
+      // Name the engine that actually answered this search. When the Worker
+      // never answered, say Meilisearch or the client-side index plainly — an
+      // approximate source is still reported as approximate.
+      const engineForBadge = searchEngine || (meiliHandled
+        ? { label: meiliEngineNote || 'Meilisearch', provider: 'Meilisearch (client query)', fellBack: true, attempts: [] }
+        : { label: isId ? 'indeks lokal' : 'local index', provider: 'Client-side search index', fellBack: true, attempts: [] });
+
       header.innerHTML = `
         <h2 class="search-results-title">${isId ? 'Hasil Pencarian untuk' : 'Search Results for'} &ldquo;${query}&rdquo;</h2>
-        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}${meiliEngineNote ? ` <span class="search-engine-badge" title="${isId ? 'Kata kunci dicari di Meilisearch' : 'Keywords served by Meilisearch'}">&#9889; ${meiliEngineNote}</span>` : ''}${semanticFallbackReason ? ` <span class="search-engine-badge" title="${isId ? 'Pencarian makna sedang tidak tersedia; ayat dicocokkan lewat kata kunci' : 'Semantic matching unavailable right now; verses matched by keyword'}">&#9888; ${isId ? 'kata kunci' : 'keyword only'}</span>` : ''}</div>
+        <div class="search-results-count">${isId ? 'Ditemukan' : 'Found'} ${mergedResults.length} ${isId ? 'ayat dari' : 'verses across'} ${sourcesLabel}${searchEngineBadgeHtml(engineForBadge, isId)}</div>
         ${noteHtml}
       `;
     }

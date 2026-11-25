@@ -301,6 +301,14 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
   Future<void> _openLink(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return;
+    // tafseer.id verse links have an exact in-app route. Opening them inside
+    // the app avoids depending on an external browser (and its <queries>
+    // visibility on Android 11+).
+    final verse = RegExp(r'tafseer\.id/#sura/(\d+)/verse/(\d+)').firstMatch(url);
+    if (verse != null && context.mounted) {
+      context.go('/surahs/${verse.group(1)}/ayahs/${verse.group(2)}');
+      return;
+    }
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/razi_service.dart';
 import '../../core/settings_manager.dart';
 import '../../core/theme.dart';
+import 'razi_rich_text.dart';
 
 /// Razi in the tafseer.id app — the same widget the website embeds
 /// (`razi-chat.js` → `https://razi.hadeeth.id/api/chat`), rebuilt in this app's
@@ -175,7 +176,7 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
                   ),
                 ),
                 Text(
-                  isEn ? 'Qur\'an companion' : 'Pendamping Al-Qur\'an',
+                  isEn ? 'AI Assistant for Qur\'an Study' : 'Asisten AI untuk Studi Al-Qur\'an',
                   style: TextStyle(color: AppTheme.outline, fontSize: 10.5),
                 ),
               ],
@@ -284,67 +285,17 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
                   height: 1.5,
                 ),
               )
-            : SelectionArea(
-                child: RichText(
-                  text: TextSpan(
-                    children: _raziSpans(
-                      m.text,
-                      TextStyle(
-                        color: AppTheme.onSurface,
-                        fontSize: 13.5,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
+            : RaziRichText(
+                text: m.text,
+                style: TextStyle(
+                  color: AppTheme.onSurface,
+                  fontSize: 13.5,
+                  height: 1.5,
                 ),
+                onLink: _openLink,
               ),
       ),
     );
-  }
-
-  /// Razi answers in light markdown: `[QS 2:43](https://tafseer.id/#sura/2/verse/43)`
-  /// and `**bold**`. Rendering the raw string showed the brackets and the URL.
-  /// Links become tappable spans; everything else is plain text.
-  List<InlineSpan> _raziSpans(String text, TextStyle base) {
-    final spans = <InlineSpan>[];
-    final pattern =
-        RegExp(r'\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*');
-    var index = 0;
-    for (final match in pattern.allMatches(text)) {
-      if (match.start > index) {
-        spans.add(TextSpan(text: text.substring(index, match.start), style: base));
-      }
-      final label = match.group(1);
-      final url = match.group(2);
-      if (label != null && url != null) {
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.baseline,
-          baseline: TextBaseline.alphabetic,
-          child: GestureDetector(
-            onTap: () => _openLink(url),
-            child: Text(
-              label,
-              style: base.copyWith(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.underline,
-                decorationColor: AppTheme.primary,
-              ),
-            ),
-          ),
-        ));
-      } else if (match.group(3) != null) {
-        spans.add(TextSpan(
-          text: match.group(3),
-          style: base.copyWith(fontWeight: FontWeight.w700),
-        ));
-      }
-      index = match.end;
-    }
-    if (index < text.length) {
-      spans.add(TextSpan(text: text.substring(index), style: base));
-    }
-    return spans;
   }
 
   Future<void> _openLink(String url) async {

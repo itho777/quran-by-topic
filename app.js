@@ -141,6 +141,9 @@ async function runWorkerSearch(queryText, mode, limit = 50) {
         lang: state.uiLang === 'id' ? 'id' : 'en',
         limit,
         mode,
+        // Category checkboxes travel with the query so the Worker's Meilisearch
+        // rung filters on the index instead of returning every source.
+        options: state.searchOptions || null,
       }),
     });
     if (!res.ok) throw new Error(`Worker HTTP ${res.status}`);
@@ -2971,17 +2974,40 @@ async function triggerRouting() {
         const workerData = await runWorkerSearch(query, 'keyword', 50);
         searchEngine = describeSearchEngine(workerData);
         const workerRows = Array.isArray(workerData.results) ? workerData.results : [];
+        // The Worker's Meilisearch rung returns one row per verse with up to
+        // three snippets, each carrying its own kind/source. Keep them, so the
+        // excerpt chips name the tafsir/asbab/translation that matched instead
+        // of pretending everything was a translation.
+        const workerSnippetBuckets = {};
         workerRows.forEach(r => {
           if (!r || typeof r.verse_key !== 'string' || !r.verse_key.includes(':')) return;
-          addHit(r.verse_key, 2);
-          if (r.translation_text && !searchContextSnippets[r.verse_key]) {
-            searchContextSnippets[r.verse_key] = JSON.stringify([{
+          // Same-language rows outrank foreign ones, as in the client-side path.
+          addHit(r.verse_key, r.lang && r.lang === state.uiLang ? 3 : 2);
+          const bucket = workerSnippetBuckets[r.verse_key] || (workerSnippetBuckets[r.verse_key] = []);
+          const snippets = Array.isArray(r.snippets) ? r.snippets : [];
+          snippets.forEach(sn => {
+            if (!sn || !sn.text || bucket.length >= 3) return;
+            bucket.push({
+              text: sn.text,
+              source_name: sn.source || '',
+              source_id: sn.source || '',
+              source_type: sn.kind === 'tafsirs' ? 'Tafsir'
+                         : sn.kind === 'asbabun_nuzul' ? 'Asbabun Nuzul'
+                         : 'Translation'
+            });
+          });
+          if (!snippets.length && r.translation_text && bucket.length < 3) {
+            bucket.push({
               text: r.translation_text,
               source_name: 'Translation',
               source_id: '',
               source_type: 'Translation'
-            }]);
+            });
           }
+        });
+        Object.keys(workerSnippetBuckets).forEach(vk => {
+          const rows = workerSnippetBuckets[vk].filter(x => x.text);
+          if (rows.length) searchContextSnippets[vk] = JSON.stringify(rows);
         });
         meiliHandled = workerRows.length > 0;
       } catch (err) {

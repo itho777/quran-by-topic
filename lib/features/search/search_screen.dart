@@ -186,7 +186,9 @@ class _SearchScreenState extends State<SearchScreen> {
       'text_ar': hit.textAr,
       'translation_text': hit.translationText,
       'match_score': 1,
-      '_similarity': hit.score,
+      // Worker scores are RRF ranks (1/(60+rank)), not similarity — showing
+      // them as a percentage would claim "2% match" for the best verse.
+      '_similarity': null,
       '_from_tag': false,
       '_matched_tags': const <String>[],
       '_match_note': sources.isEmpty ? null : sources.first['source_type'],
@@ -315,6 +317,49 @@ class _SearchScreenState extends State<SearchScreen> {
         '_context_sources': sources,
       };
     }).whereType<Map<String, dynamic>>().toList();
+
+    // A natural-language phrase ("ayat tentang perintah shalat") matches
+    // nothing in the AND-ed full-text index, which is what an empty page looks
+    // like from the user's side. Retry word by word and rank by how many words
+    // a verse contains.
+    if (list.isEmpty) {
+      final tokens = query
+          .split(RegExp(r'\s+'))
+          .map((w) => w.replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), ''))
+          .where((w) => w.length >= 3)
+          .toSet()
+          .take(6)
+          .toList();
+      if (tokens.length > 1) {
+        final merged = <String, Map<String, dynamic>>{};
+        for (final token in tokens) {
+          try {
+            final res = await Supabase.instance.client.rpc('search_verses', params: {
+              'p_query': token,
+              'p_lang_code': _langCode,
+              'p_result_limit': 40,
+              'p_offset_val': 0,
+            });
+            for (final row in List<Map<String, dynamic>>.from(res)) {
+              final key = row['verse_key'] as String? ?? '';
+              if (key.isEmpty) continue;
+              final seen = merged[key];
+              if (seen == null) {
+                merged[key] = Map<String, dynamic>.from(row)..['match_score'] = 1;
+              } else {
+                seen['match_score'] = ((seen['match_score'] as num?)?.toInt() ?? 1) + 1;
+              }
+            }
+          } catch (_) {}
+        }
+        if (merged.isNotEmpty) {
+          list = merged.values.toList()
+            ..sort((a, b) => ((b['match_score'] as num?)?.toInt() ?? 0)
+                .compareTo((a['match_score'] as num?)?.toInt() ?? 0));
+          list = list.take(60).toList();
+        }
+      }
+    }
 
     // Show Phase 1 results immediately
     setState(() {
@@ -601,34 +646,21 @@ class _SearchScreenState extends State<SearchScreen> {
         return;
       }
 
-      // Query database-side semantic search RPC (client-side copy of rung 1)
-      final res = await Supabase.instance.client.rpc('semantic_search_verses_by_text', params: {
-        'query_text': query.trim(),
-        'lang_code': _langCode,
-        'match_threshold': 0.1,
-        'result_limit': 50,
-        'offset_val': 0,
-      });
-
-      final list = List<Map<String, dynamic>>.from(res);
-
-      final mapped = list.map((r) => {
-        'verse_key': r['verse_key'],
-        'text_ar': r['text_ar'],
-        'translation_text': r['translation_text'],
-        'match_score': 1,
-        '_similarity': (r['similarity'] as num?)?.toDouble() ?? 0.0,
-        '_context_sources': <Map<String, dynamic>>[],
-      }).toList();
-
-      if (!mounted) return;
-      setState(() {
-        _results = mapped;
-        _hasMore = false;
-        _engineLabel = _langCode == 'id' ? 'Semantik (langsung)' : 'Semantic (direct)';
-        _engineFellBack = true;
-        _engineNotice = '';
-      });
+      // The database-side semantic RPC embeds the query through Hugging Face,
+      // whose free credits are exhausted (HTTP 402), so it answers every query
+      // with an error. Calling it only hid the real problem behind an empty
+      // results page — go straight to the keyword ladder instead.
+      debugPrint('[Search] Semantic ladder produced no rows; using keyword.');
+      await _performKeywordSearch(query);
+      if (mounted && _results.isEmpty) {
+        setState(() {
+          _engineLabel = _langCode == 'id' ? 'Kata kunci' : 'Keyword';
+          _engineFellBack = true;
+          _engineNotice = _langCode == 'id'
+              ? 'Mesin semantik tidak menjawab. Hasil dari pencarian kata kunci.'
+              : 'Semantic engine did not answer. Showing keyword results.';
+        });
+      }
     } catch (e) {
       debugPrint('Semantic search failed: $e. Falling back to keyword search.');
       await _performKeywordSearch(query);

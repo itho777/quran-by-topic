@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
+import '../../core/search_api.dart';
 import '../../core/static_index_service.dart';
 import '../../core/local_db.dart';
 import '../../core/cdn_translation_service.dart';
@@ -35,6 +36,12 @@ class _SearchScreenState extends State<SearchScreen> {
   String _langCode = 'id';
   bool _didSearch = false;
   String _searchMode = 'keyword'; // 'keyword' or 'semantic'
+
+  // Which engine actually answered the last query. Set from the Worker response
+  // so the badge can name a fallback instead of repeating the requested mode.
+  String _engineLabel = '';
+  bool _engineFellBack = false;
+  String _engineNotice = '';
 
   // Phase 2: static multilingual index results
   List<Map<String, dynamic>> _staticResults = [];
@@ -119,6 +126,9 @@ class _SearchScreenState extends State<SearchScreen> {
       _results = [];
       _hasMore = true;
       _didSearch = true;
+      _engineLabel = '';
+      _engineFellBack = false;
+      _engineNotice = '';
     });
 
     int attempts = 0;
@@ -149,7 +159,69 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _loading = false);
   }
 
+  // Category checkboxes travel to the Worker so its Meilisearch rung filters on
+  // the index instead of returning every source.
+  Map<String, bool> _workerSearchOptions() => {
+        'quran': _searchQuran,
+        'trans': _searchTranslation,
+        'tafsir': _searchTafsir,
+        'nuzul': _searchNuzul,
+        'translit': true,
+        'tags': _searchTag,
+      };
+
+  /// Worker hit -> the row shape [_buildMainContent] already renders.
+  Map<String, dynamic> _rowFromWorkerHit(SearchHit hit) {
+    final sources = hit.snippets.map((s) => s.toContextSource()).toList();
+    if (sources.isEmpty && hit.translationText.isNotEmpty) {
+      sources.add({
+        'text': hit.translationText,
+        'source_name': 'Translation',
+        'source_id': '',
+        'source_type': 'Translation',
+      });
+    }
+    return {
+      'verse_key': hit.verseKey,
+      'text_ar': hit.textAr,
+      'translation_text': hit.translationText,
+      'match_score': 1,
+      '_similarity': hit.score,
+      '_from_tag': false,
+      '_matched_tags': const <String>[],
+      '_match_note': sources.isEmpty ? null : sources.first['source_type'],
+      '_context_sources': sources,
+    };
+  }
+
   Future<void> _performKeywordSearch(String query) async {
+    // ── Tier 0: the same ladder the full-web app uses ──────────────────────
+    // Meilisearch answers first; Cloudflare AI semantic, Algolia and the
+    // Supabase keyword RPC follow in that order. When this answers, the local
+    // stack below is skipped, so the phone and the browser cannot disagree
+    // about a hit.
+    final workerOutcome = await SearchApi.instance.search(
+      query,
+      semantic: false,
+      lang: _langCode,
+      limit: 60,
+      options: _workerSearchOptions(),
+    );
+    if (workerOutcome != null && workerOutcome.hits.isNotEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _engineLabel = workerOutcome.label;
+        _engineFellBack = workerOutcome.fellBack;
+        _engineNotice = workerOutcome.notice;
+        _results = workerOutcome.hits.map(_rowFromWorkerHit).toList();
+        _hasMore = false;
+        _staticResults = [];
+        _staticExpanded = false;
+        _offlineMessage = '';
+      });
+      return;
+    }
+
     // ── Phase 1: DB search (fast GIN index, EN/ID/AR) ──────────────────────
     List<Map<String, dynamic>> list = [];
     bool isOffline = false;
@@ -250,6 +322,11 @@ class _SearchScreenState extends State<SearchScreen> {
       _hasMore = list.length >= 100;
       _staticResults = [];
     _staticExpanded = false;
+      // No engine from the Worker answered: say plainly that this is the local
+      // Supabase index rather than letting the mode pill imply otherwise.
+      _engineLabel = _langCode == 'id' ? 'indeks lokal' : 'local index';
+      _engineFellBack = true;
+      _engineNotice = '';
     });
 
     // ── Phase 2: Static index search (all 111 languages) ───────────────────
@@ -501,7 +578,30 @@ class _SearchScreenState extends State<SearchScreen> {
             : 'Searching meaning with AI...';
       });
 
-      // Query database-side semantic search RPC
+      // ── Tier 0: Cloudflare Workers AI semantic, then the shared ladder ────
+      // The Worker reports which rung answered; when semantic itself is down
+      // and Meilisearch answers instead, the badge says "Keyword (Meilisearch)"
+      // rather than passing keyword rows off as semantic.
+      final workerOutcome = await SearchApi.instance.search(
+        query,
+        semantic: true,
+        lang: _langCode,
+        limit: 50,
+      );
+      if (workerOutcome != null && workerOutcome.hits.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _engineLabel = workerOutcome.label;
+          _engineFellBack = workerOutcome.fellBack;
+          _engineNotice = workerOutcome.notice;
+          _results = workerOutcome.hits.map(_rowFromWorkerHit).toList();
+          _hasMore = false;
+          _offlineMessage = '';
+        });
+        return;
+      }
+
+      // Query database-side semantic search RPC (client-side copy of rung 1)
       final res = await Supabase.instance.client.rpc('semantic_search_verses_by_text', params: {
         'query_text': query.trim(),
         'lang_code': _langCode,
@@ -521,9 +621,13 @@ class _SearchScreenState extends State<SearchScreen> {
         '_context_sources': <Map<String, dynamic>>[],
       }).toList();
 
+      if (!mounted) return;
       setState(() {
         _results = mapped;
         _hasMore = false;
+        _engineLabel = _langCode == 'id' ? 'Semantik (langsung)' : 'Semantic (direct)';
+        _engineFellBack = true;
+        _engineNotice = '';
       });
     } catch (e) {
       debugPrint('Semantic search failed: $e. Falling back to keyword search.');
@@ -693,11 +797,58 @@ class _SearchScreenState extends State<SearchScreen> {
     return Column(
       children: [
         _buildModeSelector(),
+        if (_engineLabel.isNotEmpty && _results.isNotEmpty) _buildEngineBadge(),
         if (_showAdvancedOptions && _searchMode == 'keyword') _buildAdvancedOptionsPanel(),
         Expanded(
           child: _buildMainContent(),
         ),
       ],
+    );
+  }
+
+  /// Names the engine that actually answered — never the mode the user picked.
+  /// The Worker's notice (which rungs were skipped and why) rides in the
+  /// tooltip, so a fallback can be audited rather than guessed at.
+  Widget _buildEngineBadge() {
+    final isEn = _langCode == 'en';
+    final label = _engineFellBack
+        ? (isEn ? 'fallback: $_engineLabel' : 'cadangan: $_engineLabel')
+        : _engineLabel;
+    final tip = _engineNotice.isNotEmpty
+        ? _engineNotice
+        : (isEn ? 'Search engine that answered' : 'Mesin pencari yang menjawab');
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Tooltip(
+          message: tip,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppTheme.outlineVariant),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.bolt, size: 12, color: AppTheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: AppTheme.outline,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

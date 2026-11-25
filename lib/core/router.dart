@@ -12,6 +12,7 @@ import '../features/topic/topic_screen.dart';
 import '../features/topic/topic_detail_screen.dart';
 import '../features/bookmarks/bookmarks_screen.dart';
 import '../features/more/more_screen.dart';
+import '../features/razi/razi_screen.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/library/library_screen.dart';
@@ -83,6 +84,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           final ayahNo = state.pathParameters['ayahNo'] ?? '1';
           return '/surahs/$surahNo/ayahs/$ayahNo';
         },
+      ),
+      // ── Razi: full-screen chat, outside the tab shell ─────────────────────
+      GoRoute(
+        path: '/razi',
+        builder: (context, state) => const RaziScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => ShellScaffold(child: child),

@@ -436,6 +436,28 @@ class MoreScreen extends ConsumerWidget {
                   trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
                   onTap: () => context.go('/library'),
                 ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.auto_awesome, color: AppTheme.primary, size: 18),
+                  ),
+                  title: Text(
+                    settings.appLanguage == 'en' ? 'Ask Razi (AI)' : 'Tanya Razi (AI)',
+                    style: TextStyle(color: AppTheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    settings.appLanguage == 'en'
+                        ? 'Chat about verses, tafsir and context'
+                        : 'Obrolan tentang ayat, tafsir, dan konteksnya',
+                    style: TextStyle(color: AppTheme.outline, fontSize: 11),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: AppTheme.outline, size: 18),
+                  onTap: () => context.push('/razi'),
+                ),
               ],
 
             ),

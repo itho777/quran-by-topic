@@ -2071,7 +2071,7 @@ function createVerseCard(verseKey, isDetailMode = false, highlightQuery = '') {
 
   const similarityScore = searchSimilarityScores[verseKey];
   const similarityBadge = (similarityScore !== undefined)
-    ? `<span class="similarity-badge" style="font-size: 0.7rem; background: var(--accent-light, rgba(16, 185, 129, 0.1)); color: var(--accent); font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">AI Match: ${(similarityScore * 100).toFixed(0)}%</span>`
+    ? `<span class="similarity-badge" style="font-size: 0.7rem; background: var(--accent-light, rgba(16, 185, 129, 0.1)); color: var(--accent); font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">Match: ${(similarityScore * 100).toFixed(0)}%</span>`
     : '';
 
   // Card Header
@@ -2924,8 +2924,9 @@ async function triggerRouting() {
           const mergedResults = [];
           workerData.results.forEach(r => {
             const verseKey = r.verse_key;
-            // Store RRF score as similarity so existing score-badge UI still works
-            searchSimilarityScores[verseKey] = r.score || 0;
+            // The Worker's score is an RRF rank (1/(60+rank)), not a
+            // similarity: rendering it as "2%" for the top verse claimed a
+            // confidence the ladder never measured. Order carries relevance.
             mergedResults.push(verseKey);
           });
 

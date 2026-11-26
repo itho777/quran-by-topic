@@ -336,7 +336,9 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
     // visibility on Android 11+).
     final verse = RegExp(r'tafseer\.id/#sura/(\d+)/verse/(\d+)').firstMatch(url);
     if (verse != null && context.mounted) {
-      context.go('/surahs/${verse.group(1)}/ayahs/${verse.group(2)}');
+      // push, not go: go replaces the stack and the back button lands on Home
+      // instead of returning to the conversation.
+      context.push('/surahs/${verse.group(1)}/ayahs/${verse.group(2)}');
       return;
     }
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);

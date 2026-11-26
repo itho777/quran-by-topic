@@ -878,11 +878,32 @@ class _SearchScreenState extends State<SearchScreen> {
       children: [
         _buildModeSelector(),
         if (_engineLabel.isNotEmpty && _results.isNotEmpty) _buildEngineBadge(),
+        if (_engineFellBack && _engineTrace.isNotEmpty) _buildTraceStrip(),
         if (_showAdvancedOptions && _searchMode == 'keyword') _buildAdvancedOptionsPanel(),
         Expanded(
           child: _buildMainContent(),
         ),
       ],
+    );
+  }
+
+  /// Why the fallback fired, in one muted line under the badge. Without it a
+  /// successful fallback hides the fact that the Worker never answered.
+  Widget _buildTraceStrip() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: SelectableText(
+          _engineTrace,
+          style: TextStyle(
+            color: AppTheme.outline,
+            fontSize: 10,
+            height: 1.4,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ),
     );
   }
 

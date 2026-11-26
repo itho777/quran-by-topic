@@ -43,6 +43,16 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _engineFellBack = false;
   String _engineNotice = '';
 
+  /// One line per rung the search actually tried. Rendered under the empty
+  /// state so "no results" never hides whether the Worker was unreachable or
+  /// simply returned nothing.
+  String _engineTrace = '';
+
+  /// Set when a Worker call comes back null. The semantic path falls through to
+  /// the keyword path, which would otherwise call the same dead host and spend
+  /// a second 20 s timeout before the local index is even tried.
+  bool _workerDown = false;
+
   // Phase 2: static multilingual index results
   List<Map<String, dynamic>> _staticResults = [];
   bool _staticLoading = false;
@@ -129,6 +139,8 @@ class _SearchScreenState extends State<SearchScreen> {
       _engineLabel = '';
       _engineFellBack = false;
       _engineNotice = '';
+      _engineTrace = '';
+      _workerDown = false;
     });
 
     int attempts = 0;
@@ -170,6 +182,28 @@ class _SearchScreenState extends State<SearchScreen> {
         'tags': _searchTag,
       };
 
+  /// Rung-by-rung account of what answered, for the empty state.
+  String _traceFor(SearchOutcome? outcome, {int? localRows}) {
+    final isEn = _langCode == 'en';
+    final lines = <String>[];
+    if (outcome == null) {
+      lines.add(isEn
+          ? 'worker: unreachable (network)'
+          : 'worker: tidak terjangkau (jaringan)');
+    } else if (outcome.attempts.isEmpty) {
+      lines.add('worker: ${outcome.method} ${outcome.hits.length} rows');
+    } else {
+      for (final a in outcome.attempts) {
+        final reason = a.reason.isEmpty ? '' : ' (${a.reason})';
+        lines.add('${a.method}: ${a.status}$reason ${a.rows} rows ${a.ms}ms');
+      }
+    }
+    if (localRows != null) {
+      lines.add(isEn ? 'local index: $localRows rows' : 'indeks lokal: $localRows baris');
+    }
+    return lines.join('\n');
+  }
+
   /// Worker hit -> the row shape [_buildMainContent] already renders.
   Map<String, dynamic> _rowFromWorkerHit(SearchHit hit) {
     final sources = hit.snippets.map((s) => s.toContextSource()).toList();
@@ -202,13 +236,16 @@ class _SearchScreenState extends State<SearchScreen> {
     // Supabase keyword RPC follow in that order. When this answers, the local
     // stack below is skipped, so the phone and the browser cannot disagree
     // about a hit.
-    final workerOutcome = await SearchApi.instance.search(
-      query,
-      semantic: false,
-      lang: _langCode,
-      limit: 60,
-      options: _workerSearchOptions(),
-    );
+    final workerOutcome = _workerDown
+        ? null
+        : await SearchApi.instance.search(
+            query,
+            semantic: false,
+            lang: _langCode,
+            limit: 60,
+            options: _workerSearchOptions(),
+          );
+    if (workerOutcome == null) _workerDown = true;
     if (workerOutcome != null && workerOutcome.hits.isNotEmpty) {
       if (!mounted) return;
       setState(() {
@@ -255,7 +292,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     // Map DB fields to widget format, parse context_snippet JSON
-    final mapped = list.map((r) {
+    List<Map<String, dynamic>> mapRows(List<Map<String, dynamic>> rows) => rows.map((r) {
       final tagsList = List<String>.from(r['matched_tags'] as List? ?? []);
       List<Map<String, dynamic>> sources = [];
       final raw = r['context_snippet'] as String?;
@@ -318,11 +355,13 @@ class _SearchScreenState extends State<SearchScreen> {
       };
     }).whereType<Map<String, dynamic>>().toList();
 
+    var mapped = mapRows(list);
+
     // A natural-language phrase ("ayat tentang perintah shalat") matches
     // nothing in the AND-ed full-text index, which is what an empty page looks
     // like from the user's side. Retry word by word and rank by how many words
     // a verse contains.
-    if (list.isEmpty) {
+    if (mapped.isEmpty) {
       final tokens = query
           .split(RegExp(r'\s+'))
           .map((w) => w.replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), ''))
@@ -361,6 +400,11 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     }
 
+    // `mapped` was built from the pre-retry list, so an empty phrase query left
+    // it empty even after the token retry filled `list` — the page stayed blank
+    // with no fallback showing. Re-map whatever the ladder ended up with.
+    mapped = mapRows(list);
+
     // Show Phase 1 results immediately
     setState(() {
       _results = mapped;
@@ -372,6 +416,7 @@ class _SearchScreenState extends State<SearchScreen> {
       _engineLabel = _langCode == 'id' ? 'indeks lokal' : 'local index';
       _engineFellBack = true;
       _engineNotice = '';
+      _engineTrace = _traceFor(workerOutcome, localRows: list.length);
     });
 
     // ── Phase 2: Static index search (all 111 languages) ───────────────────
@@ -633,6 +678,7 @@ class _SearchScreenState extends State<SearchScreen> {
         lang: _langCode,
         limit: 50,
       );
+      if (workerOutcome == null) _workerDown = true;
       if (workerOutcome != null && workerOutcome.hits.isNotEmpty) {
         if (!mounted) return;
         setState(() {
@@ -651,6 +697,7 @@ class _SearchScreenState extends State<SearchScreen> {
       // with an error. Calling it only hid the real problem behind an empty
       // results page — go straight to the keyword ladder instead.
       debugPrint('[Search] Semantic ladder produced no rows; using keyword.');
+      if (mounted) setState(() => _engineTrace = _traceFor(workerOutcome));
       await _performKeywordSearch(query);
       if (mounted && _results.isEmpty) {
         setState(() {
@@ -1152,6 +1199,32 @@ class _SearchScreenState extends State<SearchScreen> {
                     _langCode == 'id' ? 'Coba kata yang berbeda' : 'Try a different word',
                     style: TextStyle(color: AppTheme.outline, fontSize: 12),
                   ),
+                  if (_engineTrace.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.outlineVariant.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: SelectableText(
+                          _engineTrace,
+                          textAlign: TextAlign.left,
+                          style: TextStyle(
+                            color: AppTheme.outline,
+                            fontSize: 10.5,
+                            height: 1.45,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

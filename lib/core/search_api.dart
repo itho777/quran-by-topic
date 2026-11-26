@@ -19,7 +19,10 @@ import 'package:http/http.dart' as http;
 const String kSearchWorkerUrl =
     'https://tafsir-web-search.wandering-flower-6702.workers.dev/api/search';
 
-const Duration _kWorkerTimeout = Duration(seconds: 20);
+/// The Worker answers a cold bge-m3 query in ~3 s. Ten seconds leaves room for
+/// a slow mobile link without turning a dead host into a 20 s freeze before the
+/// local index is tried.
+const Duration _kWorkerTimeout = Duration(seconds: 10);
 
 class SearchSnippet {
   const SearchSnippet({

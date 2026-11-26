@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,6 +36,29 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
   final RaziService _razi = RaziService();
   bool _sending = false;
 
+  /// Seconds spent waiting on the backend. razi.hadeeth.id answers in 25-40 s
+  /// (measured), so a silent spinner reads as "stuck"; the counter and the slow
+  /// note below make the wait legible.
+  int _elapsed = 0;
+  Timer? _ticker;
+
+  void _startTicker() {
+    _ticker?.cancel();
+    _elapsed = 0;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() => _elapsed++);
+    });
+  }
+
+  void _stopTicker() {
+    _ticker?.cancel();
+    _ticker = null;
+  }
+
   static const _startersId = [
     'Apa makna ayat tentang sabar?',
     'Jelaskan asbabun nuzul Surah Al-Fatihah',
@@ -50,6 +75,7 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
 
   @override
   void dispose() {
+    _stopTicker();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
@@ -67,6 +93,7 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
       _messages.add(_RaziMessage(text: text, fromUser: true));
       _sending = true;
     });
+    _startTicker();
     _input.clear();
     _scrollToEnd();
     try {
@@ -88,6 +115,7 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
         _sending = false;
       });
     }
+    _stopTicker();
     _scrollToEnd();
   }
 
@@ -333,19 +361,36 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
           color: AppTheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(strokeWidth: 1.6, color: AppTheme.primary),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 1.6, color: AppTheme.primary),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isEn
+                      ? 'Razi is thinking... ${_elapsed}s'
+                      : 'Razi sedang berpikir... ${_elapsed}s',
+                  style: TextStyle(color: AppTheme.outline, fontSize: 12),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              isEn ? 'Razi is thinking...' : 'Razi sedang berpikir...',
-              style: TextStyle(color: AppTheme.outline, fontSize: 12),
-            ),
+            if (_elapsed >= 8) ...[
+              const SizedBox(height: 6),
+              Text(
+                isEn
+                    ? 'Usually 25-40 s. Answers arrive all at once, not word by word.'
+                    : 'Biasanya 25-40 detik. Jawaban datang sekaligus, bukan kata per kata.',
+                style: TextStyle(color: AppTheme.outline.withValues(alpha: 0.8), fontSize: 11),
+              ),
+            ],
           ],
         ),
       ),

@@ -105,11 +105,13 @@ class _RaziScreenState extends ConsumerState<RaziScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final detail = e is RaziException ? e.detail : e.toString();
+      final headline = lang == 'id'
+          ? 'Maaf, Razi tidak dapat dihubungi sekarang.'
+          : 'Razi could not be reached right now.';
       setState(() {
         _messages.add(_RaziMessage(
-          text: lang == 'id'
-              ? 'Maaf, Razi tidak dapat dihubungi sekarang. Periksa koneksi lalu coba lagi.'
-              : 'Razi could not be reached right now. Check your connection and try again.',
+          text: '$headline\n\n$detail',
           fromUser: false,
         ));
         _sending = false;

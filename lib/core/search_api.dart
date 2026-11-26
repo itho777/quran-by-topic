@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -183,6 +184,22 @@ class SearchApi {
 
   final http.Client _client = http.Client();
 
+  /// Why the last call returned null — surfaced in the search screen's trace so
+  /// "no results" can name a blocked host, a timeout or an HTTP code.
+  String? lastError;
+
+  /// The full-web app calls this Worker from tafseer.id; the same origin and
+  /// referer travel with the app's request so edge rules treat it the same way.
+  static const _headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Origin': 'https://tafseer.id',
+    'Referer': 'https://tafseer.id/',
+    'User-Agent':
+        'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/126.0.0.0 Mobile Safari/537.36 TafseerApp/3.3',
+  };
+
   /// Runs the server-side ladder for [query].
   ///
   /// Returns `null` only when the Worker could not be reached or answered with
@@ -198,15 +215,13 @@ class SearchApi {
   }) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return null;
+    lastError = null;
 
     try {
       final res = await _client
           .post(
             Uri.parse(kSearchWorkerUrl),
-            headers: const {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: {..._headers, 'Accept-Language': lang},
             body: jsonEncode({
               'query': trimmed,
               'lang': lang,
@@ -218,16 +233,25 @@ class SearchApi {
           .timeout(_kWorkerTimeout);
 
       if (res.statusCode != 200) {
+        lastError = 'HTTP ${res.statusCode}';
         debugPrint('[SearchApi] Worker HTTP ${res.statusCode}');
         return null;
       }
       final decoded = jsonDecode(res.body);
       if (decoded is! Map || decoded['success'] != true) {
+        lastError = 'worker error: ${decoded is Map ? decoded['error'] : decoded}';
         debugPrint('[SearchApi] Worker error: ${decoded is Map ? decoded['error'] : decoded}');
         return null;
       }
       return SearchOutcome.fromJson(Map<String, dynamic>.from(decoded));
+    } on TimeoutException {
+      lastError = 'timeout after ${_kWorkerTimeout.inSeconds}s';
+      debugPrint('[SearchApi] Worker timed out');
+      return null;
     } catch (e) {
+      lastError = e is SocketException
+          ? 'socket: ${e.osError?.message ?? e.message}'
+          : e.toString();
       debugPrint('[SearchApi] Worker unreachable: $e');
       return null;
     }

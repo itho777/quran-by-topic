@@ -187,9 +187,10 @@ class _SearchScreenState extends State<SearchScreen> {
     final isEn = _langCode == 'en';
     final lines = <String>[];
     if (outcome == null) {
+      final why = SearchApi.instance.lastError ?? 'no response';
       lines.add(isEn
-          ? 'worker: unreachable (network)'
-          : 'worker: tidak terjangkau (jaringan)');
+          ? 'worker: unreachable ($why)'
+          : 'worker: tidak terjangkau ($why)');
     } else if (outcome.attempts.isEmpty) {
       lines.add('worker: ${outcome.method} ${outcome.hits.length} rows');
     } else {
